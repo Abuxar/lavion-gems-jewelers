@@ -294,7 +294,35 @@
         const discountAmount = Math.round((subtotal * appliedDiscountPercent) / 100);
         const grandTotal = subtotal + shipping - discountAmount;
 
-        const tableRows = cart.map(item => `
+        // ── Helper: map product category to its page URL ──
+        const BASE = 'https://lavion-gems-jewelers.vercel.app';
+        function getProductPageUrl(item) {
+          const cat = (item.category || '').toLowerCase();
+          if (cat.includes('ring'))            return `${BASE}/rings.html`;
+          if (cat.includes('necklace'))        return `${BASE}/necklaces.html`;
+          if (cat.includes('earring'))         return `${BASE}/earrings.html`;
+          if (cat.includes('bracelet') || cat.includes('bangle')) return `${BASE}/bracelets.html`;
+          if (cat.includes('gem') || cat.includes('sapphire') || cat.includes('ruby') || cat.includes('emerald')) return `${BASE}/gems.html`;
+          if (cat.includes('diamond'))         return `${BASE}/diamonds.html`;
+          if (cat.includes('asian') || cat.includes('kundan') || cat.includes('polki')) return `${BASE}/asian-jewellery.html`;
+          if (cat.includes('western'))         return `${BASE}/western-jewellery.html`;
+          if (cat.includes('high'))            return `${BASE}/high-jewellery.html`;
+          if (cat.includes('custom'))          return `${BASE}/customized-jewellery.html`;
+          return `${BASE}/collections.html`;
+        }
+
+        // ── Build full-bag WhatsApp message with all items + links ──
+        function buildBagWhatsAppUrl() {
+          const lines = cart.map(i => `• ${i.name} (x${i.qty}) — ${getProductPageUrl(i)}`).join('%0A');
+          const msg = encodeURIComponent('Hello Lavion Gems & Jewellers, I would like to request the price for the following items in my shopping bag:\n') + lines + encodeURIComponent('\n\nPlease provide today\'s gold rate price for these items. Thank you!');
+          return `https://wa.me/923241775662?text=${msg}`;
+        }
+
+        const tableRows = cart.map(item => {
+          const productUrl = getProductPageUrl(item);
+          const waMsg = encodeURIComponent(`Hello Lavion Gems & Jewellers, I would like to enquire about the price for:\n\n• ${item.name} (Qty: ${item.qty})\n\nProduct Page: ${productUrl}\n\nPlease share today's price. Thank you!`);
+          const waUrl = `https://wa.me/923241775662?text=${waMsg}`;
+          return `
           <tr>
             <td>
               <div class="cart-item-info">
@@ -305,7 +333,13 @@
                 </div>
               </div>
             </td>
-            <td style="font-weight: 500; font-size:12px; color:var(--color-gold-light);">📞 Price on Request</td>
+            <td>
+              <a href="${waUrl}" target="_blank" rel="noopener noreferrer" title="Request price on WhatsApp"
+                style="display:inline-flex; align-items:center; gap:6px; background:#25D366; color:#fff; border-radius:20px; padding:6px 12px; font-size:11px; font-weight:700; text-decoration:none; white-space:nowrap; letter-spacing:0.3px;">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width:13px;height:13px;"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                Request Price
+              </a>
+            </td>
             <td>
               <div class="qty-stepper">
                 <button class="qty-btn dec-qty" data-id="${item.id}">-</button>
@@ -322,7 +356,8 @@
               </button>
             </td>
           </tr>
-        `).join('');
+        `;
+        }).join('');
 
         const mobileCards = cart.map(item => `
           <div class="mobile-cart-card">
@@ -340,12 +375,20 @@
                 <input type="number" class="qty-input item-qty-input" data-id="${item.id}" value="${item.qty}" min="1" />
                 <button class="qty-btn inc-qty" data-id="${item.id}">+</button>
               </div>
-              <button class="cart-item-remove remove-item-btn" data-id="${item.id}" title="Remove item" style="background:rgba(231,76,60,0.15); border:1px solid #e74c3c; color:#e74c3c; padding:4px 10px; border-radius:4px; font-size:11px; font-weight:600;">
-                Remove ✕
-              </button>
+              <div style="display:flex; gap:8px; align-items:center;">
+                <a href="${waUrl}" target="_blank" rel="noopener noreferrer"
+                  style="display:inline-flex; align-items:center; gap:5px; background:#25D366; color:#fff; border-radius:16px; padding:5px 10px; font-size:10px; font-weight:700; text-decoration:none; letter-spacing:0.3px;">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width:11px;height:11px;"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                  Price?
+                </a>
+                <button class="cart-item-remove remove-item-btn" data-id="${item.id}" title="Remove item" style="background:rgba(231,76,60,0.15); border:1px solid #e74c3c; color:#e74c3c; padding:4px 10px; border-radius:4px; font-size:11px; font-weight:600;">
+                  Remove ✕
+                </button>
+              </div>
             </div>
           </div>
-        `).join('');
+        `;
+        }).join('');
 
         container.innerHTML = `
           <div class="cart-layout">
@@ -401,10 +444,10 @@
                 <div style="font-size: 11px; color: rgba(200,169,110,0.8);">💡 Try promo code <strong>LAVION10</strong> for 10% off!</div>
               </div>
 
-              <a href="https://wa.me/923241775662?text=Hello%20Lavion%20Gems%20%26%20Jewellers%2C%20I%20would%20like%20to%20enquire%20about%20the%20prices%20for%20items%20in%20my%20shopping%20bag." target="_blank" rel="noopener noreferrer"
+              <a href="${buildBagWhatsAppUrl()}" target="_blank" rel="noopener noreferrer"
                 style="display:flex; align-items:center; justify-content:center; gap:10px; width:100%; padding:14px; background:#25D366; color:#fff; border-radius:6px; font-weight:700; font-size:13px; letter-spacing:1px; text-decoration:none; margin-bottom:12px;">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width:20px;height:20px;"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-                WhatsApp Us for Price
+                WhatsApp Us — Request All Prices
               </a>
 
               <button class="btn-gold" id="proceed-checkout-btn" style="width: 100%; padding: 14px; text-align: center; justify-content: center; font-size: 12px; letter-spacing: 2px;">
