@@ -4,6 +4,53 @@
 (function () {
   'use strict';
 
+  /* ======================================
+     GLOBAL MULTI-CURRENCY EXCHANGE SYSTEM
+  ====================================== */
+  const CURRENCY_RATES = {
+    PKR: { symbol: 'PKR', rate: 1.0, prefix: 'PKR ', suffix: '' },
+    USD: { symbol: '$', rate: 0.0036, prefix: '$', suffix: ' USD' },
+    AED: { symbol: 'AED', rate: 0.0132, prefix: 'AED ', suffix: '' },
+    GBP: { symbol: '£', rate: 0.0028, prefix: '£', suffix: ' GBP' },
+    EUR: { symbol: '€', rate: 0.0033, prefix: '€', suffix: ' EUR' },
+    SAR: { symbol: 'SAR', rate: 0.0135, prefix: 'SAR ', suffix: '' },
+    CAD: { symbol: 'CA$', rate: 0.0049, prefix: 'CA$', suffix: ' CAD' }
+  };
+
+  window.getActiveCurrency = function () {
+    return localStorage.getItem('lavion_currency_v1') || 'PKR';
+  };
+
+  window.setActiveCurrency = function (code) {
+    if (CURRENCY_RATES[code]) {
+      localStorage.setItem('lavion_currency_v1', code);
+      window.refreshCurrencyDisplay();
+    }
+  };
+
+  window.formatPrice = function (amountInPKR) {
+    const code = window.getActiveCurrency();
+    const curr = CURRENCY_RATES[code] || CURRENCY_RATES.PKR;
+    const converted = Math.round(amountInPKR * curr.rate);
+    return `${curr.prefix}${converted.toLocaleString()}${curr.suffix}`;
+  };
+
+  window.refreshCurrencyDisplay = function () {
+    const code = window.getActiveCurrency();
+    document.querySelectorAll('.currency-selector-dropdown').forEach(select => {
+      select.value = code;
+    });
+
+    if (typeof window.renderProducts === 'function') window.renderProducts();
+    if (typeof renderAdmin === 'function') renderAdmin();
+    if (typeof renderCart === 'function') renderCart();
+    if (typeof window.renderWishlist === 'function') window.renderWishlist();
+  };
+
+  document.addEventListener('DOMContentLoaded', () => {
+    window.refreshCurrencyDisplay();
+  });
+
   /* ---- Hero Slider ---- */
   const slides = document.querySelectorAll('.hero-slide');
   const dots = document.querySelectorAll('.hero-dot');

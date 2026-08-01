@@ -305,7 +305,7 @@
                 </div>
               </div>
             </td>
-            <td style="font-weight: 500;">PKR ${item.price.toLocaleString()}</td>
+            <td style="font-weight: 500;">${window.formatPrice(item.price)}</td>
             <td>
               <div class="qty-stepper">
                 <button class="qty-btn dec-qty" data-id="${item.id}">-</button>
@@ -313,7 +313,7 @@
                 <button class="qty-btn inc-qty" data-id="${item.id}">+</button>
               </div>
             </td>
-            <td style="font-weight: 600; color: var(--color-gold-dark);">PKR ${(item.price * item.qty).toLocaleString()}</td>
+            <td style="font-weight: 600; color: var(--color-gold-dark);">${window.formatPrice(item.price * item.qty)}</td>
             <td>
               <button class="cart-item-remove remove-item-btn" data-id="${item.id}" title="Remove item">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" style="width:18px;height:18px;">
@@ -331,7 +331,7 @@
               <div class="mobile-cart-details">
                 <div class="mobile-cart-title">${item.name}</div>
                 <div class="mobile-cart-cat">${item.category}</div>
-                <div class="mobile-cart-price">PKR ${(item.price * item.qty).toLocaleString()}</div>
+                <div class="mobile-cart-price">${window.formatPrice(item.price * item.qty)}</div>
               </div>
             </div>
             <div style="display:flex; justify-content:space-between; align-items:center; width:100%; border-top:1px solid rgba(255,255,255,0.1); padding-top:8px;">
@@ -389,18 +389,18 @@
 
               <div class="cart-summary-row">
                 <span>Subtotal</span>
-                <strong>PKR ${subtotal.toLocaleString()}</strong>
+                <strong>${window.formatPrice(subtotal)}</strong>
               </div>
 
               <div class="cart-summary-row">
                 <span>Estimated Express Shipping</span>
-                <strong>${shipping === 0 ? '<span style="color:#2ecc71;">FREE</span>' : 'PKR ' + shipping.toLocaleString()}</strong>
+                <strong>${shipping === 0 ? '<span style="color:#2ecc71;">FREE</span>' : window.formatPrice(shipping)}</strong>
               </div>
 
               ${appliedDiscountPercent > 0 ? `
                 <div class="cart-summary-row" style="color:#2ecc71;">
                   <span>Promo Discount (${appliedDiscountPercent}%)</span>
-                  <strong>- PKR ${discountAmount.toLocaleString()}</strong>
+                  <strong>- ${window.formatPrice(discountAmount)}</strong>
                 </div>
               ` : ''}
 
@@ -415,7 +415,7 @@
 
               <div class="cart-summary-row total">
                 <span>Grand Total</span>
-                <span>PKR ${grandTotal.toLocaleString()}</span>
+                <span>${window.formatPrice(grandTotal)}</span>
               </div>
 
               <button class="btn-gold" id="proceed-checkout-btn" style="width: 100%; padding: 14px; text-align: center; justify-content: center; font-size: 12px; letter-spacing: 2px;">
