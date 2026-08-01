@@ -29,6 +29,8 @@
 
 html {
   scroll-behavior: smooth;
+  overflow-x: hidden;
+  width: 100%;
 }
 
 body {
@@ -38,6 +40,9 @@ body {
   font-size: 14px;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+  width: 100%;
+  position: relative;
 }
 
 a {
@@ -2863,6 +2868,47 @@ footer {
 }
 
 @media (max-width: 600px) {
+  .hero {
+    height: 70vh !important;
+    min-height: 440px !important;
+  }
+
+  .hero-content {
+    bottom: 20px !important;
+    padding: 16px 14px !important;
+    width: calc(100% - 24px) !important;
+  }
+
+  .hero-title {
+    font-size: 22px !important;
+    letter-spacing: 1px !important;
+    margin-bottom: 6px !important;
+  }
+
+  .hero-subtitle {
+    font-size: 12px !important;
+    margin-bottom: 12px !important;
+  }
+
+  .hero-cta {
+    padding: 8px 16px !important;
+    font-size: 10px !important;
+  }
+
+  .hero-arrow {
+    display: none !important;
+  }
+
+  .announcement-bar {
+    font-size: 10px !important;
+    padding: 6px 12px !important;
+  }
+
+  .categories-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+  }
+
   .products-grid {
     grid-template-columns: repeat(2, 1fr) !important;
     gap: 10px !important;
