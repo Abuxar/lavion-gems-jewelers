@@ -3232,7 +3232,6 @@ footer {
     margin: 10px auto !important;
     box-sizing: border-box !important;
   }
-}
 
   .admin-header {
     padding: 12px 14px !important;
@@ -3248,6 +3247,7 @@ footer {
     overflow-x: auto !important;
     white-space: nowrap !important;
     -webkit-overflow-scrolling: touch !important;
+    display: flex !important;
   }
 
   .admin-tab-btn {
@@ -3258,6 +3258,31 @@ footer {
 
   .admin-body {
     padding: 14px 10px !important;
+  }
+
+  .cart-layout {
+    grid-template-columns: 1fr !important;
+    gap: 20px !important;
+    width: 100% !important;
+  }
+
+  .cart-summary-card {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    padding: 16px 12px !important;
+  }
+
+  .mobile-cart-card {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 10px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    padding: 12px !important;
+    overflow: hidden !important;
   }
 }
 

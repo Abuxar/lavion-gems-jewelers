@@ -326,21 +326,23 @@
 
         const mobileCards = cart.map(item => `
           <div class="mobile-cart-card">
-            <img src="${item.img}" alt="${item.name}" class="mobile-cart-img" />
-            <div class="mobile-cart-details">
-              <div class="mobile-cart-title">${item.name}</div>
-              <div class="mobile-cart-cat">${item.category}</div>
-              <div class="mobile-cart-price">PKR ${(item.price * item.qty).toLocaleString()}</div>
+            <div style="display:flex; gap:12px; align-items:center; width:100%;">
+              <img src="${item.img}" alt="${item.name}" class="mobile-cart-img" />
+              <div class="mobile-cart-details">
+                <div class="mobile-cart-title">${item.name}</div>
+                <div class="mobile-cart-cat">${item.category}</div>
+                <div class="mobile-cart-price">PKR ${(item.price * item.qty).toLocaleString()}</div>
+              </div>
             </div>
-            <div class="mobile-cart-actions">
-              <button class="cart-item-remove remove-item-btn" data-id="${item.id}" title="Remove item" style="background:rgba(231,76,60,0.15); border:1px solid #e74c3c; color:#e74c3c; padding:4px 8px; border-radius:4px;">
-                ✕
-              </button>
-              <div class="qty-stepper" style="transform:scale(0.85); transform-origin:right center;">
+            <div style="display:flex; justify-content:space-between; align-items:center; width:100%; border-top:1px solid rgba(255,255,255,0.1); padding-top:8px;">
+              <div class="qty-stepper" style="transform:scale(0.85); transform-origin:left center;">
                 <button class="qty-btn dec-qty" data-id="${item.id}">-</button>
                 <input type="number" class="qty-input item-qty-input" data-id="${item.id}" value="${item.qty}" min="1" />
                 <button class="qty-btn inc-qty" data-id="${item.id}">+</button>
               </div>
+              <button class="cart-item-remove remove-item-btn" data-id="${item.id}" title="Remove item" style="background:rgba(231,76,60,0.15); border:1px solid #e74c3c; color:#e74c3c; padding:4px 10px; border-radius:4px; font-size:11px; font-weight:600;">
+                Remove ✕
+              </button>
             </div>
           </div>
         `).join('');
