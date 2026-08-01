@@ -3046,6 +3046,79 @@ footer {
   }
 }
 
+/* ======================================
+   LUXURY MOBILE SHOPPING BAG CARDS (0% TEXT OVERLAP)
+====================================== */
+.mobile-cart-card {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .cart-table-wrap {
+    display: none !important;
+  }
+
+  .mobile-cart-card {
+    display: flex !important;
+    background: #1c1a17;
+    border: 1px solid rgba(200, 169, 110, 0.3);
+    border-radius: 10px;
+    padding: 14px;
+    margin-bottom: 12px;
+    gap: 12px;
+    align-items: center;
+    position: relative;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  }
+
+  .mobile-cart-img {
+    width: 64px;
+    height: 64px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 1px solid rgba(200, 169, 110, 0.2);
+    flex-shrink: 0;
+  }
+
+  .mobile-cart-details {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .mobile-cart-title {
+    font-family: var(--font-sans);
+    font-size: 13px;
+    font-weight: 600;
+    color: #ffffff;
+    margin-bottom: 3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .mobile-cart-cat {
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.5);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+  }
+
+  .mobile-cart-price {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--color-gold-light);
+  }
+
+  .mobile-cart-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+}
+
   .admin-overlay {
     padding: 8px !important;
   }
