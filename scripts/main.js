@@ -369,24 +369,31 @@
   const quickAddBtn = document.getElementById('quick-add-btn');
 
   function openProductModal(product = null) {
-    if (modalTitle) modalTitle.textContent = product ? 'Edit Product Item' : 'Add New Product Item';
-    document.getElementById('form-product-id').value = product ? product.id : '';
-    document.getElementById('form-product-name').value = product ? product.name : '';
-    document.getElementById('form-product-category').value = product ? product.category : 'rings';
-    document.getElementById('form-product-price').value = product ? product.price : '';
-    document.getElementById('form-product-stock').value = product ? product.stock : 10;
-    document.getElementById('form-product-badge').value = product ? product.badge : '';
-    document.getElementById('form-product-desc').value = product ? product.desc || '' : '';
+    const modal = document.getElementById('admin-product-modal');
+    if (!modal) return;
+
+    const titleEl = document.getElementById('modal-product-title');
+    if (titleEl) titleEl.textContent = product ? 'Edit Product Item' : 'Add New Product Item';
+
+    if (document.getElementById('form-product-id')) document.getElementById('form-product-id').value = product ? product.id : '';
+    if (document.getElementById('form-product-name')) document.getElementById('form-product-name').value = product ? product.name : '';
+    if (document.getElementById('form-product-category')) document.getElementById('form-product-category').value = product ? product.category : 'rings';
+    if (document.getElementById('form-product-price')) document.getElementById('form-product-price').value = product ? product.price : '';
+    if (document.getElementById('form-product-stock')) document.getElementById('form-product-stock').value = product ? product.stock : 10;
+    if (document.getElementById('form-product-badge')) document.getElementById('form-product-badge').value = product ? product.badge : '';
+    if (document.getElementById('form-product-desc')) document.getElementById('form-product-desc').value = product ? product.desc || '' : '';
 
     const imageVal = product ? product.img : 'images/gems.png';
     activeUploadedImageBase64 = imageVal;
-    if (previewImg) previewImg.src = imageVal;
+    const preview = document.getElementById('form-product-img-preview');
+    if (preview) preview.src = imageVal;
 
-    productModal?.classList.add('active');
+    modal.classList.add('active');
+    modal.style.zIndex = '25000';
+    document.body.style.overflow = 'hidden';
   }
 
-  addProductBtn?.addEventListener('click', () => openProductModal());
-  quickAddBtn?.addEventListener('click', () => openProductModal());
+  window.openProductModal = openProductModal;
 
   document.addEventListener('click', (e) => {
     const trigger = e.target.closest('#add-product-btn, #quick-add-btn, .admin-add-product-trigger');
