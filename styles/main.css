@@ -2971,9 +2971,80 @@ footer {
     padding: 12px 40px 12px 14px !important;
   }
 
-  .gold-rate-bar {
-    font-size: 10px !important;
+.mobile-menu-links a svg {
+  width: 18px !important;
+  height: 18px !important;
+  max-width: 18px !important;
+  max-height: 18px !important;
+  flex-shrink: 0 !important;
+  display: inline-block !important;
+  vertical-align: middle !important;
+}
+
+@media (max-width: 600px) {
+  .invoice-card {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
   }
+
+  #printable-invoice-content {
+    padding: 16px 10px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    overflow-x: hidden !important;
+  }
+
+  .invoice-header {
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+
+  .invoice-header div:last-child {
+    text-align: left !important;
+  }
+
+  .invoice-details-grid {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+    padding: 10px !important;
+    font-size: 11px !important;
+  }
+
+  .invoice-table {
+    font-size: 10px !important;
+    width: 100% !important;
+    table-layout: fixed !important;
+  }
+
+  .invoice-table th, .invoice-table td {
+    padding: 6px 3px !important;
+    word-break: break-word !important;
+  }
+
+  .invoice-footer {
+    flex-direction: column !important;
+    gap: 12px !important;
+    text-align: center !important;
+  }
+
+  .cart-summary-row {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    gap: 8px !important;
+    flex-wrap: wrap !important;
+    font-size: 13px !important;
+  }
+
+  .cart-summary-row.total span {
+    font-size: 15px !important;
+    line-height: 1.4 !important;
+  }
+}
 
   .admin-overlay {
     padding: 8px !important;

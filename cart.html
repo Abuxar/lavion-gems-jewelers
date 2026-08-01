@@ -453,7 +453,15 @@
           renderCart();
         });
 
-        document.getElementById('proceed-checkout-btn')?.addEventListener('click', () => {
+        document.getElementById('proceed-checkout-btn')?.addEventListener('click', (e) => {
+          e.preventDefault();
+          const activeUser = window.getActiveCustomer ? window.getActiveCustomer() : null;
+          if (activeUser) {
+            if (document.getElementById('cust-name')) document.getElementById('cust-name').value = activeUser.name || '';
+            if (document.getElementById('cust-phone')) document.getElementById('cust-phone').value = activeUser.phone || '';
+            if (document.getElementById('cust-city')) document.getElementById('cust-city').value = activeUser.city || '';
+            if (document.getElementById('cust-address')) document.getElementById('cust-address').value = activeUser.address || '';
+          }
           const modal = document.getElementById('checkout-modal');
           modal?.classList.add('active');
           document.body.style.overflow = 'hidden';
@@ -475,7 +483,10 @@
         const payment = document.getElementById('cust-payment').value;
 
         const cart = window.getCart();
-        if (cart.length === 0) return;
+        if (cart.length === 0) {
+          window.showToast('Your shopping bag is empty!', 'error');
+          return;
+        }
 
         const subtotal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
         const shipping = subtotal >= 50000 ? 0 : 1500;
@@ -506,24 +517,35 @@
 
         window.clearCart();
         document.getElementById('checkout-modal')?.classList.remove('active');
+        document.body.style.overflow = '';
 
-        // Show receipt
+        // Show receipt with direct invoice PDF generator button
         const receiptModal = document.getElementById('receipt-modal');
         const receiptBody = document.getElementById('receipt-body');
         if (receiptBody) {
           receiptBody.innerHTML = `
-            <div style="margin-bottom:8px;"><strong>Order ID:</strong> ${orderId}</div>
-            <div style="margin-bottom:8px;"><strong>Customer:</strong> ${name}</div>
-            <div style="margin-bottom:8px;"><strong>Contact:</strong> ${phone} | ${city}</div>
-            <div style="margin-bottom:8px;"><strong>Items:</strong> ${itemsSummary}</div>
-            <div style="margin-bottom:8px;"><strong>Payment Method:</strong> ${payment}</div>
-            <div style="font-size:16px; font-weight:bold; color:var(--color-gold-light); margin-top:12px; border-top:1px dashed rgba(200,169,110,0.3); padding-top:8px;">
-              Total Amount Paid: PKR ${total.toLocaleString()}
+            <div style="margin-bottom:8px; display:flex; justify-content:space-between;"><span>Order Ref ID:</span><strong style="color:var(--color-gold-light);">${orderId}</strong></div>
+            <div style="margin-bottom:8px; display:flex; justify-content:space-between;"><span>Customer:</span><strong style="color:#fff;">${name}</strong></div>
+            <div style="margin-bottom:8px; display:flex; justify-content:space-between;"><span>Delivery Address:</span><span style="color:rgba(255,255,255,0.8);">${address}, ${city}</span></div>
+            <div style="margin-bottom:8px; display:flex; justify-content:space-between;"><span>Contact Phone:</span><span style="color:#fff;">${phone}</span></div>
+            <div style="margin-bottom:8px; display:flex; justify-content:space-between;"><span>Payment Mode:</span><span style="color:#fff;">${payment}</span></div>
+            <div style="font-size:16px; font-weight:bold; color:var(--color-gold-light); margin-top:12px; border-top:1px dashed rgba(200,169,110,0.3); padding-top:8px; display:flex; justify-content:space-between;">
+              <span>Total Payable:</span> <span>PKR ${total.toLocaleString()}</span>
+            </div>
+            
+            <div style="display:flex; gap:10px; margin-top:20px; flex-wrap:wrap;">
+              <button onclick="window.generateInvoice('${orderId}')" class="admin-primary-btn" style="flex:1; justify-content:center; background:var(--color-gold); color:#1c1a18; font-weight:700;">
+                📄 Download Invoice PDF
+              </button>
+              <a href="https://wa.me/923241775662?text=Hello%20Lavion%20Gems%2C%20I%20just%20placed%20order%20${orderId}" target="_blank" rel="noopener noreferrer" class="admin-action-btn edit" style="padding:10px 14px; text-decoration:none; display:flex; align-items:center; gap:6px;">
+                💬 WhatsApp Us
+              </a>
             </div>
           `;
         }
 
         receiptModal?.classList.add('active');
+        renderCart();
       });
 
       document.addEventListener('DOMContentLoaded', renderCart);
