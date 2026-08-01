@@ -147,29 +147,31 @@
 
   /* ======================================
      PER-PRODUCT CURRENCY CONVERSION SYSTEM
+  ====================================== */  /* ======================================
+     PER-PRODUCT CURRENCY CONVERSION SYSTEM
   ====================================== */
   const PRODUCT_RATES = {
-    GBP: { code: 'GBP', symbol: '£', rate: 1.0, prefix: '£ ' },
-    USD: { code: 'USD', symbol: '$', rate: 1.27, prefix: '$ ' },
-    PKR: { code: 'PKR', symbol: 'Rs', rate: 356.0, prefix: 'PKR ' },
-    EUR: { code: 'EUR', symbol: '€', rate: 1.17, prefix: '€ ' },
-    AED: { code: 'AED', symbol: 'AED', rate: 4.66, prefix: 'AED ' },
-    SAR: { code: 'SAR', symbol: 'SAR', rate: 4.76, prefix: 'SAR ' },
-    CAD: { code: 'CAD', symbol: 'CA$', rate: 1.76, prefix: 'CA$ ' }
+    PKR: { code: 'PKR', symbol: 'Rs', rate: 1.0, prefix: 'PKR ' },
+    USD: { code: 'USD', symbol: '$', rate: 0.0036, prefix: '$ ' },
+    GBP: { code: 'GBP', symbol: '£', rate: 0.0028, prefix: '£ ' },
+    EUR: { code: 'EUR', symbol: '€', rate: 0.0033, prefix: '€ ' },
+    AED: { code: 'AED', symbol: 'AED', rate: 0.0132, prefix: 'AED ' },
+    SAR: { code: 'SAR', symbol: 'SAR', rate: 0.0135, prefix: 'SAR ' },
+    CAD: { code: 'CAD', symbol: 'CA$', rate: 0.0049, prefix: 'CA$ ' }
   };
 
-  window.formatProductPrice = function (priceInGBP, currencyCode = 'GBP') {
-    const curr = PRODUCT_RATES[currencyCode] || PRODUCT_RATES.GBP;
-    const converted = Math.round(priceInGBP * curr.rate);
+  window.formatProductPrice = function (priceInPKR, currencyCode = 'PKR') {
+    const curr = PRODUCT_RATES[currencyCode] || PRODUCT_RATES.PKR;
+    const converted = Math.round(priceInPKR * curr.rate);
     return `${curr.prefix}${converted.toLocaleString()}`;
   };
 
-  window.renderCurrencySelector = function (productId, currentCurrency = 'GBP') {
+  window.renderCurrencySelector = function (productId, currentCurrency = 'PKR') {
     return `
       <select class="product-currency-picker" data-id="${productId}" onchange="window.handleProductCurrencyChange(this)" title="Convert price" style="background:rgba(200,169,110,0.12); color:var(--color-gold-light); border:1px solid rgba(200,169,110,0.4); font-size:10px; font-weight:700; border-radius:4px; padding:2px 4px; outline:none; cursor:pointer;">
-        <option value="GBP" ${currentCurrency === 'GBP' ? 'selected' : ''}>💷 GBP (£)</option>
-        <option value="USD" ${currentCurrency === 'USD' ? 'selected' : ''}>💵 USD ($)</option>
         <option value="PKR" ${currentCurrency === 'PKR' ? 'selected' : ''}>🇵🇰 PKR (Rs)</option>
+        <option value="USD" ${currentCurrency === 'USD' ? 'selected' : ''}>💵 USD ($)</option>
+        <option value="GBP" ${currentCurrency === 'GBP' ? 'selected' : ''}>💷 GBP (£)</option>
         <option value="EUR" ${currentCurrency === 'EUR' ? 'selected' : ''}>💶 EUR (€)</option>
         <option value="AED" ${currentCurrency === 'AED' ? 'selected' : ''}>🇦🇪 AED</option>
         <option value="SAR" ${currentCurrency === 'SAR' ? 'selected' : ''}>🇸🇦 SAR</option>
@@ -195,34 +197,34 @@
     }
   };
 
-  window.formatPrice = function (amountInGBP) {
-    return window.formatProductPrice(amountInGBP, 'GBP');
+  window.formatPrice = function (amountInPKR) {
+    return window.formatProductPrice(amountInPKR, 'PKR');
   };
 
   /* ======================================
      ADMIN PANEL CONTROLLER
   ====================================== */
   const DEFAULT_PRODUCTS = [
-    { id: '1', name: 'Emerald Royale Ring', category: 'rings', price: 1150, stock: 8, badge: 'New', img: 'images/featured_rings.png', desc: '22k Yellow Gold & 1.8ct Colombian Emerald Ring' },
-    { id: '2', name: 'Diamond Halo Necklace', category: 'necklaces', price: 1850, stock: 4, badge: 'Bestseller', img: 'images/hero_necklace.png', desc: '18k White Gold & 2.2ct VS1 Diamond Halo Necklace' },
-    { id: '3', name: 'Celestial Drops Earrings', category: 'earrings', price: 750, stock: 12, badge: '', img: 'images/featured_earrings.png', desc: '18k White Gold Diamond Pavé Drop Earrings' },
-    { id: '4', name: 'Eternity Bangle', category: 'bracelets', price: 1400, stock: 3, badge: 'Limited', img: 'images/featured_bracelets.png', desc: '22k Solid Gold Diamond-Set Bangle' },
-    { id: '5', name: 'Royal Parure Set', category: 'asian', price: 3800, stock: 2, badge: 'Heritage', img: 'images/hero_campaign.png', desc: '22k Heritage Gold Full Bridal Set — Choker, Earrings & Ring' },
-    { id: '6', name: 'Ruby Solitaire Ring', category: 'rings', price: 1350, stock: 6, badge: '', img: 'images/featured_rings.png', desc: '22k Gold & 2.1ct Burmese Ruby Ring' },
-    { id: '7', name: 'Certified Ceylon Sapphire', category: 'gems', price: 2600, stock: 5, badge: 'Certified', img: 'images/gems.png', desc: '4.5ct Unmounted Royal Blue Ceylon Sapphire with Certificate' },
-    { id: '8', name: 'GIA Solitaire Diamond Ring', category: 'diamonds', price: 4200, stock: 2, badge: 'New', img: 'images/diamonds.png', desc: 'Platinum & 2.0ct GIA Certified VVS1 Diamond Ring' },
-    { id: '9', name: 'Kundan Polki Choker Set', category: 'asian', price: 2400, stock: 4, badge: 'Heritage', img: 'images/asian_jewellery.png', desc: 'Heritage 22k Gold Kundan & Uncut Diamond Polki Choker' },
-    { id: '10', name: 'Art Deco Diamond Cuff', category: 'western', price: 1750, stock: 3, badge: 'Limited', img: 'images/western_jewellery.png', desc: 'Minimalist Platinum & Diamond Art Deco Cuff Bangle' },
-    { id: '11', name: 'Bespoke Calligraphy Gold Pendant', category: 'customized', price: 650, stock: 10, badge: 'Custom', img: 'images/hero_campaign.png', desc: 'Handcrafted 22k Gold Custom Arabic/Urdu Name Calligraphy' },
-    { id: '12', name: 'Custom Emerald Bridal Choker', category: 'customized', price: 4800, stock: 5, badge: 'Bespoke', img: 'images/asian_jewellery.png', desc: 'Custom Designed 22k Gold & 6.0ct Colombian Emerald Parure' },
-    { id: '13', name: 'Custom Engagement Solitaire', category: 'customized', price: 2900, stock: 8, badge: 'Bespoke', img: 'images/featured_rings.png', desc: 'Tailor-Made Platinum & 1.5ct GIA Diamond Engagement Ring' }
+    { id: '1', name: 'Emerald Royale Ring', category: 'rings', price: 285000, stock: 8, badge: 'New', img: 'images/featured_rings.png', desc: '22k Gold & Colombian Emerald Ring' },
+    { id: '2', name: 'Diamond Halo Necklace', category: 'necklaces', price: 620000, stock: 4, badge: 'Bestseller', img: 'images/hero_necklace.png', desc: '18k White Gold & 2.2ct Diamond Necklace' },
+    { id: '3', name: 'Celestial Drops Earrings', category: 'earrings', price: 195000, stock: 12, badge: '', img: 'images/featured_earrings.png', desc: '18k Gold Diamond Pavé Drop Earrings' },
+    { id: '4', name: 'Eternity Bangle', category: 'bracelets', price: 430000, stock: 3, badge: 'Limited', img: 'images/featured_bracelets.png', desc: '22k Gold Diamond-Set Bangle' },
+    { id: '5', name: 'Royal Parure Set', category: 'asian', price: 1250000, stock: 2, badge: 'Heritage', img: 'images/hero_campaign.png', desc: '22k Gold Full Set — Necklace, Earrings & Ring' },
+    { id: '6', name: 'Ruby Solitaire Ring', category: 'rings', price: 360000, stock: 6, badge: '', img: 'images/featured_rings.png', desc: '22k Gold & Burmese Ruby Ring' },
+    { id: '7', name: 'Certified Ceylon Sapphire', category: 'gems', price: 450000, stock: 5, badge: 'Certified', img: 'images/gems.png', desc: 'Precious unmounted royal blue sapphire' },
+    { id: '8', name: 'GIA Solitaire Diamond Ring', category: 'diamonds', price: 890000, stock: 2, badge: 'New', img: 'images/diamonds.png', desc: 'Platinum & GIA Certified VVS Diamond Ring' },
+    { id: '9', name: 'Kundan Polki Choker Set', category: 'asian', price: 780000, stock: 4, badge: 'Heritage', img: 'images/asian_jewellery.png', desc: 'Heritage 22k Gold Kundan & Polki Choker' },
+    { id: '10', name: 'Art Deco Diamond Cuff', category: 'western', price: 560000, stock: 3, badge: 'Limited', img: 'images/western_jewellery.png', desc: 'Minimalist Platinum & Diamond Art Deco Cuff' },
+    { id: '11', name: 'Bespoke Calligraphy Gold Pendant', category: 'customized', price: 185000, stock: 10, badge: 'Custom', img: 'images/hero_campaign.png', desc: 'Handcrafted 22k Gold Custom Arabic/Urdu Name Calligraphy' },
+    { id: '12', name: 'Custom Emerald Bridal Choker', category: 'customized', price: 1450000, stock: 5, badge: 'Bespoke', img: 'images/asian_jewellery.png', desc: 'Custom Designed 22k Gold & Colombian Emerald Parure' },
+    { id: '13', name: 'Custom Engagement Solitaire', category: 'customized', price: 950000, stock: 8, badge: 'Bespoke', img: 'images/featured_rings.png', desc: 'Tailor-Made Platinum & GIA Diamond Engagement Ring' }
   ];
 
   const DEFAULT_ORDERS = [
-    { id: 'ORD-8821', customer: 'Ayesha Malik', phone: '+92 300 1234567', city: 'Lahore', items: 'Emerald Royale Ring (x1)', total: 800, status: 'Pending', date: '2026-07-27' },
-    { id: 'ORD-8822', customer: 'Hamza Khan', phone: '+92 321 9876543', city: 'Karachi', items: 'Diamond Halo Necklace (x1)', total: 1750, status: 'Processing', date: '2026-07-27' },
-    { id: 'ORD-8823', customer: 'Zainab Ahmed', phone: '+92 333 4567890', city: 'Islamabad', items: 'Eternity Bangle (x1), Celestial Drops (x1)', total: 1750, status: 'Shipped', date: '2026-07-26' },
-    { id: 'ORD-8824', customer: 'Tariq Siddiqui', phone: '+92 301 5554433', city: 'Rawalpindi', items: 'Royal Parure Set (x1)', total: 3500, status: 'Delivered', date: '2026-07-25' }
+    { id: 'ORD-8821', customer: 'Ayesha Malik', phone: '+92 300 1234567', city: 'Lahore', items: 'Emerald Royale Ring (x1)', total: 285000, status: 'Pending', date: '2026-07-27' },
+    { id: 'ORD-8822', customer: 'Hamza Khan', phone: '+92 321 9876543', city: 'Karachi', items: 'Diamond Halo Necklace (x1)', total: 620000, status: 'Processing', date: '2026-07-27' },
+    { id: 'ORD-8823', customer: 'Zainab Ahmed', phone: '+92 333 4567890', city: 'Islamabad', items: 'Eternity Bangle (x1), Celestial Drops (x1)', total: 625000, status: 'Shipped', date: '2026-07-26' },
+    { id: 'ORD-8824', customer: 'Tariq Siddiqui', phone: '+92 301 5554433', city: 'Rawalpindi', items: 'Royal Parure Set (x1)', total: 1250000, status: 'Delivered', date: '2026-07-25' }
   ];
 
   /* ======================================
@@ -236,7 +238,7 @@
       if (prodRes.ok) {
         const data = await prodRes.json();
         if (data.products && data.products.length > 0) {
-          localStorage.setItem('lavion_products_v1', JSON.stringify(data.products));
+          localStorage.setItem('lavion_products_v5', JSON.stringify(data.products));
         }
       }
 
@@ -264,12 +266,13 @@
   syncBackendData();
 
   function getProducts() {
-    const saved = localStorage.getItem('lavion_products_v4');
+    const saved = localStorage.getItem('lavion_products_v5');
     if (!saved) {
       localStorage.removeItem('lavion_products_v1');
       localStorage.removeItem('lavion_products_v2');
       localStorage.removeItem('lavion_products_v3');
-      localStorage.setItem('lavion_products_v4', JSON.stringify(DEFAULT_PRODUCTS));
+      localStorage.removeItem('lavion_products_v4');
+      localStorage.setItem('lavion_products_v5', JSON.stringify(DEFAULT_PRODUCTS));
       return DEFAULT_PRODUCTS;
     }
     return JSON.parse(saved);

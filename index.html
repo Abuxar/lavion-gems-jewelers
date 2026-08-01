@@ -292,11 +292,15 @@
   <!-- ===================== CATEGORIES ===================== -->
   <section class="categories" id="jewelry">
     <div class="container">
-      <div class="section-header reveal">
-        <span class="section-eyebrow">Explore</span>
-        <h2 class="section-title">Our Jewellery</h2>
-        <p class="section-subtitle">From delicate everyday pieces to grand statement jewellery for life's most precious
-          moments</p>
+      <div class="section-header reveal" style="display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:16px;">
+        <div>
+          <span class="section-eyebrow">Explore</span>
+          <h2 class="section-title">Our Jewellery Categories</h2>
+          <p class="section-subtitle">From delicate everyday pieces to grand statement jewellery for life's most precious moments</p>
+        </div>
+        <button class="admin-primary-btn" onclick="window.openGoldCalculator()" style="padding:12px 22px; font-size:12px; font-weight:700; background:linear-gradient(135deg, #c8a96e 0%, #9a7040 100%); color:#fff; border:1px solid #e8d5a3; border-radius:6px; cursor:pointer; box-shadow:0 4px 15px rgba(200,169,110,0.3); transition:all 0.3s ease;">
+          ⚖️ Live Pakistan Gold Calculator
+        </button>
       </div>
       <div class="categories-grid">
         <!-- Customized Jewellery -->
@@ -475,11 +479,11 @@
                 <div class="product-card-name">Emerald Royale</div>
                 <div class="product-card-desc">22k Gold & Colombian Emerald Ring</div>
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                  <div class="product-card-price" style="font-weight:700; color:var(--color-gold-light);">£ 1,150</div>
+                  <div class="product-card-price" style="font-weight:700; color:var(--color-gold-light);">PKR 285,000</div>
                   <select class="product-currency-picker" data-id="1" onchange="window.handleProductCurrencyChange(this)" title="Convert currency" style="background:rgba(200,169,110,0.12); color:var(--color-gold-light); border:1px solid rgba(200,169,110,0.4); font-size:10px; font-weight:700; border-radius:4px; padding:2px 4px; outline:none; cursor:pointer;">
-                    <option value="GBP">💷 GBP (£)</option>
+                    <option value="PKR" selected>🇵🇰 PKR (Rs)</option>
                     <option value="USD">💵 USD ($)</option>
-                    <option value="PKR">🇵🇰 PKR (Rs)</option>
+                    <option value="GBP">💷 GBP (£)</option>
                     <option value="EUR">💶 EUR (€)</option>
                     <option value="AED">🇦🇪 AED</option>
                     <option value="SAR">🇸🇦 SAR</option>
@@ -507,11 +511,11 @@
                 <div class="product-card-name">Diamond Halo</div>
                 <div class="product-card-desc">18k White Gold & Diamond Necklace</div>
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                  <div class="product-card-price" style="font-weight:700; color:var(--color-gold-light);">£ 1,850</div>
+                  <div class="product-card-price" style="font-weight:700; color:var(--color-gold-light);">PKR 620,000</div>
                   <select class="product-currency-picker" data-id="2" onchange="window.handleProductCurrencyChange(this)" title="Convert currency" style="background:rgba(200,169,110,0.12); color:var(--color-gold-light); border:1px solid rgba(200,169,110,0.4); font-size:10px; font-weight:700; border-radius:4px; padding:2px 4px; outline:none; cursor:pointer;">
-                    <option value="GBP">💷 GBP (£)</option>
+                    <option value="PKR" selected>🇵🇰 PKR (Rs)</option>
                     <option value="USD">💵 USD ($)</option>
-                    <option value="PKR">🇵🇰 PKR (Rs)</option>
+                    <option value="GBP">💷 GBP (£)</option>
                     <option value="EUR">💶 EUR (€)</option>
                     <option value="AED">🇦🇪 AED</option>
                     <option value="SAR">🇸🇦 SAR</option>
@@ -538,11 +542,11 @@
                 <div class="product-card-name">Celestial Drops</div>
                 <div class="product-card-desc">Diamond Pavé Drop Earrings</div>
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                  <div class="product-card-price" style="font-weight:700; color:var(--color-gold-light);">£ 750</div>
+                  <div class="product-card-price" style="font-weight:700; color:var(--color-gold-light);">PKR 195,000</div>
                   <select class="product-currency-picker" data-id="3" onchange="window.handleProductCurrencyChange(this)" title="Convert currency" style="background:rgba(200,169,110,0.12); color:var(--color-gold-light); border:1px solid rgba(200,169,110,0.4); font-size:10px; font-weight:700; border-radius:4px; padding:2px 4px; outline:none; cursor:pointer;">
-                    <option value="GBP">💷 GBP (£)</option>
+                    <option value="PKR" selected>🇵🇰 PKR (Rs)</option>
                     <option value="USD">💵 USD ($)</option>
-                    <option value="PKR">🇵🇰 PKR (Rs)</option>
+                    <option value="GBP">💷 GBP (£)</option>
                     <option value="EUR">💶 EUR (€)</option>
                     <option value="AED">🇦🇪 AED</option>
                     <option value="SAR">🇸🇦 SAR</option>
@@ -570,11 +574,11 @@
                 <div class="product-card-name">Eternity Bangle</div>
                 <div class="product-card-desc">22k Gold Diamond-Set Bangle</div>
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                  <div class="product-card-price" style="font-weight:700; color:var(--color-gold-light);">£ 1,400</div>
+                  <div class="product-card-price" style="font-weight:700; color:var(--color-gold-light);">PKR 430,000</div>
                   <select class="product-currency-picker" data-id="4" onchange="window.handleProductCurrencyChange(this)" title="Convert currency" style="background:rgba(200,169,110,0.12); color:var(--color-gold-light); border:1px solid rgba(200,169,110,0.4); font-size:10px; font-weight:700; border-radius:4px; padding:2px 4px; outline:none; cursor:pointer;">
-                    <option value="GBP">💷 GBP (£)</option>
+                    <option value="PKR" selected>🇵🇰 PKR (Rs)</option>
                     <option value="USD">💵 USD ($)</option>
-                    <option value="PKR">🇵🇰 PKR (Rs)</option>
+                    <option value="GBP">💷 GBP (£)</option>
                     <option value="EUR">💶 EUR (€)</option>
                     <option value="AED">🇦🇪 AED</option>
                     <option value="SAR">🇸🇦 SAR</option>
@@ -602,11 +606,11 @@
                 <div class="product-card-name">Royal Parure</div>
                 <div class="product-card-desc">Full Set — Necklace, Earrings & Ring</div>
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                  <div class="product-card-price" style="font-weight:700; color:var(--color-gold-light);">£ 3,500</div>
+                  <div class="product-card-price" style="font-weight:700; color:var(--color-gold-light);">PKR 1,250,000</div>
                   <select class="product-currency-picker" data-id="5" onchange="window.handleProductCurrencyChange(this)" title="Convert currency" style="background:rgba(200,169,110,0.12); color:var(--color-gold-light); border:1px solid rgba(200,169,110,0.4); font-size:10px; font-weight:700; border-radius:4px; padding:2px 4px; outline:none; cursor:pointer;">
-                    <option value="GBP">💷 GBP (£)</option>
+                    <option value="PKR" selected>🇵🇰 PKR (Rs)</option>
                     <option value="USD">💵 USD ($)</option>
-                    <option value="PKR">🇵🇰 PKR (Rs)</option>
+                    <option value="GBP">💷 GBP (£)</option>
                     <option value="EUR">💶 EUR (€)</option>
                     <option value="AED">🇦🇪 AED</option>
                     <option value="SAR">🇸🇦 SAR</option>
@@ -633,11 +637,11 @@
                 <div class="product-card-name">Ruby Solitaire</div>
                 <div class="product-card-desc">22k Gold & Burmese Ruby Ring</div>
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                  <div class="product-card-price" style="font-weight:700; color:var(--color-gold-light);">£ 1,000</div>
+                  <div class="product-card-price" style="font-weight:700; color:var(--color-gold-light);">PKR 360,000</div>
                   <select class="product-currency-picker" data-id="6" onchange="window.handleProductCurrencyChange(this)" title="Convert currency" style="background:rgba(200,169,110,0.12); color:var(--color-gold-light); border:1px solid rgba(200,169,110,0.4); font-size:10px; font-weight:700; border-radius:4px; padding:2px 4px; outline:none; cursor:pointer;">
-                    <option value="GBP">💷 GBP (£)</option>
+                    <option value="PKR" selected>🇵🇰 PKR (Rs)</option>
                     <option value="USD">💵 USD ($)</option>
-                    <option value="PKR">🇵🇰 PKR (Rs)</option>
+                    <option value="GBP">💷 GBP (£)</option>
                     <option value="EUR">💶 EUR (€)</option>
                     <option value="AED">🇦🇪 AED</option>
                     <option value="SAR">🇸🇦 SAR</option>
