@@ -361,13 +361,6 @@
   const modalCancelBtn = document.getElementById('modal-cancel-btn');
 
   function openProductModal(product = null) {
-    productForm.reset();
-    if (product) {
-      document.getElementById('modal-product-title').textContent = 'Edit Product';
-      document.getElementById('form-product-id').value = product.id;
-      document.getElementById('form-product-name').value = product.name;
-      document.getElementById('form-product-category').value = product.category;
-      document.getElementById('form-product-price').value = product.price;
     if (modalTitle) modalTitle.textContent = product ? 'Edit Product Item' : 'Add New Product Item';
     document.getElementById('form-product-id').value = product ? product.id : '';
     document.getElementById('form-product-name').value = product ? product.name : '';
