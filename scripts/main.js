@@ -493,7 +493,8 @@
 
       catalogTbody.querySelectorAll('.admin-action-btn.edit').forEach(btn => {
         btn.addEventListener('click', () => {
-          const p = products.find(prod => prod.id === btn.getAttribute('data-id'));
+          const id = btn.getAttribute('data-id');
+          const p = products.find(prod => String(prod.id) === String(id));
           if (p) openProductModal(p);
         });
       });
@@ -501,12 +502,13 @@
       catalogTbody.querySelectorAll('.admin-action-btn.delete').forEach(btn => {
         btn.addEventListener('click', () => {
           const id = btn.getAttribute('data-id');
-          const p = products.find(prod => prod.id === id);
+          const p = products.find(prod => String(prod.id) === String(id));
           const name = p ? p.name : 'this product';
           showCustomConfirm('Delete Product', `Are you sure you want to delete "${name}" from the catalog?`, () => {
-            const updated = products.filter(prod => prod.id !== id);
+            const updated = products.filter(prod => String(prod.id) !== String(id));
             saveProducts(updated);
             showToast(`Product "${name}" deleted.`, 'error');
+            renderAdmin();
           });
         });
       });
@@ -549,11 +551,12 @@
       stockTbody.querySelectorAll('.stock-dec').forEach(btn => {
         btn.addEventListener('click', () => {
           const id = btn.getAttribute('data-id');
-          const p = products.find(prod => prod.id === id);
+          const p = products.find(prod => String(prod.id) === String(id));
           if (p && p.stock > 0) {
             p.stock--;
             saveProducts(products);
             showToast(`Stock updated for ${p.name}`, 'info');
+            renderAdmin();
           }
         });
       });
@@ -561,11 +564,12 @@
       stockTbody.querySelectorAll('.stock-inc').forEach(btn => {
         btn.addEventListener('click', () => {
           const id = btn.getAttribute('data-id');
-          const p = products.find(prod => prod.id === id);
+          const p = products.find(prod => String(prod.id) === String(id));
           if (p) {
             p.stock++;
             saveProducts(products);
             showToast(`Stock updated for ${p.name}`, 'info');
+            renderAdmin();
           }
         });
       });
@@ -574,11 +578,12 @@
         input.addEventListener('change', () => {
           const id = input.getAttribute('data-id');
           const val = parseInt(input.value) || 0;
-          const p = products.find(prod => prod.id === id);
+          const p = products.find(prod => String(prod.id) === String(id));
           if (p) {
             p.stock = Math.max(0, val);
             saveProducts(products);
             showToast(`Stock set to ${p.stock} for ${p.name}`, 'info');
+            renderAdmin();
           }
         });
       });
@@ -628,11 +633,12 @@
           const id = select.getAttribute('data-id');
           const newStatus = select.value;
           const ords = getOrders();
-          const ord = ords.find(o => o.id === id);
+          const ord = ords.find(o => String(o.id) === String(id));
           if (ord) {
             ord.status = newStatus;
             saveOrders(ords);
             showToast(`Order ${id} status updated to "${newStatus}".`, 'info');
+            renderAdmin();
           }
         });
       });
@@ -640,10 +646,12 @@
       ordersTbody.querySelectorAll('.delete-order').forEach(btn => {
         btn.addEventListener('click', () => {
           const id = btn.getAttribute('data-id');
-          showCustomConfirm('Delete Order Record', `Are you sure you want to remove order record ${id}?`, () => {
-            const ords = getOrders().filter(o => o.id !== id);
-            saveOrders(ords);
-            showToast(`Order record ${id} removed.`, 'error');
+          showCustomConfirm('Delete Order Record', `Are you sure you want to delete order "${id}"?`, () => {
+            const ords = getOrders();
+            const updated = ords.filter(o => String(o.id) !== String(id));
+            saveOrders(updated);
+            showToast(`Order ${id} deleted.`, 'error');
+            renderAdmin();
           });
         });
       });
