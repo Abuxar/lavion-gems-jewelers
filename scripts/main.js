@@ -1699,6 +1699,38 @@
     });
   };
 
+  /* ---- Mobile Menu Drawer Handler ---- */
+  function initMobileMenu() {
+    const hamburgerBtn = document.getElementById('nav-hamburger');
+    const mobileMenu = document.getElementById('mobile-menu');
+    const mobileMenuClose = document.getElementById('mobile-menu-close');
+
+    if (!hamburgerBtn || !mobileMenu) return;
+
+    hamburgerBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      mobileMenu.classList.add('active');
+      document.body.style.overflow = 'hidden';
+    });
+
+    const closeMenu = () => {
+      mobileMenu.classList.remove('active');
+      document.body.style.overflow = '';
+    };
+
+    mobileMenuClose?.addEventListener('click', closeMenu);
+
+    mobileMenu.querySelectorAll('a').forEach(link => {
+      link.addEventListener('click', closeMenu);
+    });
+
+    document.addEventListener('click', (e) => {
+      if (mobileMenu.classList.contains('active') && !mobileMenu.contains(e.target) && !hamburgerBtn.contains(e.target)) {
+        closeMenu();
+      }
+    });
+  }
+
   // Initial cart & wishlist badge update on DOM ready
   document.addEventListener('DOMContentLoaded', () => {
     window.updateCartBadge();
@@ -1708,6 +1740,7 @@
     window.renderGoldRateBar();
     initAdminGoldRateControls();
     initCustomerAuthControls();
+    initMobileMenu();
   });
   window.updateCartBadge();
   window.updateWishlistBadge();
@@ -1716,6 +1749,7 @@
   window.renderGoldRateBar();
   initAdminGoldRateControls();
   initCustomerAuthControls();
+  initMobileMenu();
 })();
 
 
