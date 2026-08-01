@@ -2135,7 +2135,7 @@
   initCustomerAuthControls();
   initMobileMenu();
   window.renderMobileAppDock();
-
+})();
 
 // ===================== FLOATING WHATSAPP BUTTON =====================
 (function injectWhatsAppButton() {
