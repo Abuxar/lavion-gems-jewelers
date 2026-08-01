@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Diamonds Collection — Lavion Gems & Jewellers</title>
+  <meta name="description" content="GIA certified Solitaires, Diamond Tennis Bracelets & Accessories at Lavion Gems & Jewellers." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Montserrat:wght@200;300;400;500;600;700&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="styles/main.css" />
+</head>
+
+<body>
+  <div class="announcement-bar">
+    ✦ Complimentary Gift Wrapping on all Orders &nbsp;|&nbsp; Free Delivery above PKR 50,000 &nbsp;|&nbsp; Book a Private Consultation
+  </div>
+
+  <div class="header-utility">
+    <div class="header-utility-left">
+      <a href="index.html">Pakistan</a>
+      <a href="index.html#services">Contact Us</a>
+    </div>
+    <div class="header-utility-right">
+      <a href="#">Wishlist</a>
+      <a href="cart.html" style="color:var(--color-gold-dark);font-weight:600;">Shopping Bag</a>
+      <a href="#" id="open-admin-panel" style="color:var(--color-gold-dark);font-weight:600;">Admin Panel</a>
+    </div>
+  </div>
+
+  <nav class="main-nav">
+    <div class="nav-inner">
+      <div class="nav-logo">
+        <a href="index.html">Lavion <span>Gems</span> & Jewellers</a>
+      </div>
+      <ul class="nav-links">
+        <li><a href="high-jewellery.html">High Jewellery</a></li>
+        <li><a href="collections.html">Jewellery</a></li>
+        <li><a href="gems.html">Gems</a></li>
+        <li><a href="diamonds.html" class="active">Diamonds</a></li>
+        <li><a href="asian-jewellery.html">Asian Jewellery</a></li>
+        <li><a href="western-jewellery.html">Western Jewellery</a></li>
+        <li><a href="collections.html">Collections</a></li>
+      </ul>
+      <div class="nav-icons">
+        <a href="cart.html" style="position:relative;">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007z" />
+          </svg>
+          <span class="icon-badge">0</span>
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <section class="category-hero">
+    <div class="container">
+      <span class="category-hero-eyebrow">Pure Fire & Brilliance</span>
+      <h1 class="category-hero-title">GIA Certified Diamonds Collection</h1>
+      <p class="category-hero-desc">Discover rare GIA-certified diamonds meticulously set into timeless solitaire rings, tennis bracelets, pavé bands, and fine accessories.</p>
+      <div class="breadcrumbs">
+        <a href="index.html">Home</a>
+        <span>/</span>
+        <span>Diamonds</span>
+      </div>
+    </div>
+  </section>
+
+  <section style="padding: 40px 0 100px; background: var(--color-bg);">
+    <div class="container">
+      <div class="category-toolbar">
+        <div class="category-count" id="category-item-count">Showing pieces</div>
+        <div class="category-filters">
+          <input type="text" id="cat-search" class="filter-search" placeholder="Search diamonds..." />
+          <select id="cat-sort" class="filter-select">
+            <option value="featured">Sort: Featured</option>
+            <option value="low-high">Price: Low to High</option>
+            <option value="high-low">Price: High to Low</option>
+            <option value="name">Name: A to Z</option>
+          </select>
+        </div>
+      </div>
+      <div class="products-grid" id="cat-products-grid"></div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="footer-top"><div class="footer-brand"><div class="footer-brand-name">Lavion <span>Gems</span> & Jewellers</div></div></div>
+    <div class="footer-bottom"><p>© 2025 Lavion Gems & Jewellers. All rights reserved.</p></div>
+  </footer>
+
+  <script src="scripts/main.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => { renderCategoryPage('diamonds'); });
+    function renderCategoryPage(categorySlug) {
+      const grid = document.getElementById('cat-products-grid');
+      const countEl = document.getElementById('category-item-count');
+      if (!grid) return;
+
+      const allProducts = window.getProducts();
+      let products = allProducts.filter(p => p.category === categorySlug || p.name.toLowerCase().includes('diamond') || p.name.toLowerCase().includes('solitaire') || p.desc.toLowerCase().includes('gia'));
+
+      const searchVal = document.getElementById('cat-search')?.value.toLowerCase() || '';
+      const sortVal = document.getElementById('cat-sort')?.value || 'featured';
+
+      if (searchVal) products = products.filter(p => p.name.toLowerCase().includes(searchVal) || p.desc.toLowerCase().includes(searchVal));
+      if (sortVal === 'low-high') products.sort((a, b) => a.price - b.price);
+      else if (sortVal === 'high-low') products.sort((a, b) => b.price - a.price);
+      else if (sortVal === 'name') products.sort((a, b) => a.name.localeCompare(b.name));
+
+      if (countEl) countEl.textContent = `Showing ${products.length} pieces`;
+
+      grid.innerHTML = products.map(p => `
+        <div class="product-card" style="flex: auto;">
+          <div class="product-card-img" onclick="window.openQuickView('${p.id}')">
+            <img src="${p.img}" alt="${p.name}" loading="lazy" />
+            ${p.badge ? `<span class="product-card-badge">${p.badge}</span>` : ''}
+          </div>
+          <div class="product-card-body">
+            <div class="product-card-name">${p.name}</div>
+            <div class="product-card-desc">${p.desc || ''}</div>
+            <div class="product-card-price">PKR ${p.price.toLocaleString()}</div>
+            <div class="product-card-actions">
+              <button class="btn-add-cart" onclick="window.addToCart('${p.id}', 1)">+ Add to Bag</button>
+              <button class="btn-quick-view" onclick="window.openQuickView('${p.id}')">👁</button>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+    document.getElementById('cat-search')?.addEventListener('input', () => renderCategoryPage('diamonds'));
+    document.getElementById('cat-sort')?.addEventListener('change', () => renderCategoryPage('diamonds'));
+  </script>
+</body>
+
+</html>

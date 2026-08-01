@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Customized Jewellery — Lavion Gems & Jewellers</title>
+  <meta name="description" content="Order customized and bespoke handcrafted gold, diamond & gemstone jewellery at Lavion Gems & Jewellers Pakistan. Turn your dream designs into reality." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Montserrat:wght@200;300;400;500;600;700&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="styles/main.css" />
+  <style>
+    .custom-studio-card {
+      background: var(--color-bg-soft);
+      border: 1px solid var(--color-gold);
+      border-radius: 12px;
+      padding: 40px;
+      margin-bottom: 60px;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.06);
+    }
+    .custom-form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px;
+      margin-bottom: 24px;
+    }
+    .custom-form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .custom-form-group label {
+      font-family: var(--font-sans);
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--color-dark);
+    }
+    .custom-form-group input,
+    .custom-form-group select,
+    .custom-form-group textarea {
+      padding: 12px 16px;
+      border: 1px solid var(--color-border);
+      border-radius: 6px;
+      font-family: var(--font-sans);
+      font-size: 13px;
+      background: var(--color-bg);
+      color: var(--color-dark);
+      transition: border-color 0.3s ease;
+    }
+    .custom-form-group input:focus,
+    .custom-form-group select:focus,
+    .custom-form-group textarea:focus {
+      outline: none;
+      border-color: var(--color-gold-dark);
+    }
+    .option-chips-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 10px;
+    }
+    .chip-radio {
+      position: relative;
+    }
+    .chip-radio input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+    .chip-radio label {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 14px;
+      border: 1px solid var(--color-border);
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      text-align: center;
+      cursor: pointer;
+      background: var(--color-bg);
+      transition: all 0.3s ease;
+      color: var(--color-text-muted);
+    }
+    .chip-radio input:checked + label {
+      border-color: var(--color-gold-dark);
+      background: var(--color-dark);
+      color: var(--color-gold-light);
+      box-shadow: 0 4px 12px rgba(28, 26, 24, 0.2);
+    }
+    .btn-submit-custom {
+      background: linear-gradient(135deg, #c8a96e 0%, #9a7040 100%);
+      color: #ffffff !important;
+      border: 1px solid #e8d5a3;
+      padding: 16px 36px;
+      font-family: var(--font-sans);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      cursor: pointer;
+      border-radius: 6px;
+      transition: all 0.3s ease;
+      box-shadow: 0 6px 20px rgba(200, 169, 110, 0.4);
+      width: 100%;
+      margin-top: 16px;
+    }
+    .btn-submit-custom:hover {
+      background: linear-gradient(135deg, #e8d5a3 0%, #c8a96e 100%);
+      color: #1c1a18 !important;
+      box-shadow: 0 8px 24px rgba(200, 169, 110, 0.6);
+      transform: translateY(-2px);
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Announcement Bar -->
+  <div class="announcement-bar">
+    ✦ Complimentary Gift Wrapping on all Orders &nbsp;|&nbsp; Free Delivery above PKR 50,000 &nbsp;|&nbsp; Book a Private Consultation
+  </div>
+
+  <!-- Top Utility Header -->
+  <div class="header-utility">
+    <div class="header-utility-left">
+      <a href="index.html">Pakistan</a>
+      <a href="index.html#services">Contact Us</a>
+    </div>
+    <div class="header-utility-right">
+      <a href="wishlist.html" id="util-wishlist" style="position:relative;">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round"
+            d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
+        </svg>
+        Wishlist (<span class="wishlist-badge" style="position:static;display:inline-flex;width:auto;height:auto;background:transparent;color:inherit;font-weight:600;">0</span>)
+      </a>
+      <a href="cart.html" id="util-cart">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round"
+            d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007z" />
+        </svg>
+        Shopping Bag
+      </a>
+      <a href="#" id="open-admin-panel" style="color:var(--color-gold-dark);font-weight:600;display:flex;align-items:center;gap:4px;">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width:14px;height:14px;">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0m-9.75 0h9.75" />
+        </svg>
+        Admin Panel
+      </a>
+    </div>
+  </div>
+
+  <!-- Main Navigation -->
+  <nav class="main-nav">
+    <div class="nav-inner">
+      <button class="nav-hamburger" id="nav-hamburger" aria-label="Open menu">
+        <span></span><span></span><span></span>
+      </button>
+
+      <div class="nav-logo">
+        <a href="index.html">Lavion <span>Gems</span> & Jewellers</a>
+      </div>
+
+      <ul class="nav-links">
+        <li class="nav-item"><a href="high-jewellery.html">High Jewellery</a></li>
+        <li class="nav-item">
+          <a href="collections.html">Jewellery</a>
+          <div class="nav-dropdown">
+            <a href="customized-jewellery.html" style="color:var(--color-gold-dark);font-weight:600;">✦ Customized Jewellery</a>
+            <a href="asian-jewellery.html">Asian Jewellery</a>
+            <a href="western-jewellery.html">Western Jewellery</a>
+            <a href="rings.html">Rings</a>
+            <a href="necklaces.html">Necklaces</a>
+            <a href="earrings.html">Earrings</a>
+            <a href="bracelets.html">Bracelets</a>
+          </div>
+        </li>
+        <li class="nav-item"><a href="customized-jewellery.html" class="active" style="color:var(--color-gold-dark);font-weight:600;">Customized</a></li>
+        <li class="nav-item"><a href="gems.html">Gems</a></li>
+        <li class="nav-item"><a href="diamonds.html">Diamonds</a></li>
+        <li class="nav-item"><a href="asian-jewellery.html">Asian Jewellery</a></li>
+        <li class="nav-item"><a href="western-jewellery.html">Western Jewellery</a></li>
+        <li class="nav-item"><a href="collections.html">Collections</a></li>
+      </ul>
+
+      <div class="nav-icons">
+        <a href="wishlist.html" aria-label="Wishlist" style="position:relative;">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round"
+              d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
+          </svg>
+          <span class="wishlist-badge">0</span>
+        </a>
+        <a href="cart.html" aria-label="Shopping Bag" style="position:relative;">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round"
+              d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007z" />
+          </svg>
+          <span class="icon-badge">0</span>
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Mobile Menu -->
+  <div class="mobile-menu" id="mobile-menu" role="dialog" aria-modal="true">
+    <div class="mobile-menu-header">
+      <span style="font-family:var(--font-serif);font-size:18px;letter-spacing:3px;text-transform:uppercase;">Lavion <span
+          style="color:var(--color-gold-dark)">Gems</span></span>
+      <button class="mobile-menu-close" id="mobile-menu-close">&times;</button>
+    </div>
+    <nav class="mobile-menu-links">
+      <a href="index.html">Home</a>
+      <a href="customized-jewellery.html" style="color:var(--color-gold-dark);font-weight:600;">Customized Jewellery Studio</a>
+      <a href="wishlist.html">Your Wishlist</a>
+      <a href="cart.html">Shopping Bag</a>
+      <a href="rings.html">Rings</a>
+      <a href="necklaces.html">Necklaces</a>
+      <a href="earrings.html">Earrings</a>
+      <a href="bracelets.html">Bracelets</a>
+      <a href="asian-jewellery.html">Asian Jewellery</a>
+      <a href="western-jewellery.html">Western Jewellery</a>
+      <a href="gems.html">Gems</a>
+      <a href="diamonds.html">Diamonds</a>
+    </nav>
+  </div>
+
+  <!-- Hero Header -->
+  <section class="category-hero" style="background-image: linear-gradient(rgba(18,16,14,0.7), rgba(18,16,14,0.85)), url('images/hero_campaign.png');">
+    <div class="container">
+      <span class="category-hero-eyebrow">Bespoke Atelier</span>
+      <h1 class="category-hero-title">Customized Jewellery Studio</h1>
+      <p class="category-hero-desc">Bring your unique vision to life. From custom Arabic/Urdu name calligraphy to bespoke engagement solitaires and bridal heirlooms, crafted by master goldsmiths.</p>
+      <div class="breadcrumbs">
+        <a href="index.html">Home</a>
+        <span>/</span>
+        <span>Customized Jewellery</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Main Content Section -->
+  <section style="padding: 60px 0 100px; background: var(--color-bg);">
+    <div class="container">
+
+      <!-- Interactive Customization Order Builder Card -->
+      <div class="custom-studio-card">
+        <div style="text-align: center; max-width: 680px; margin: 0 auto 36px;">
+          <span style="font-family: var(--font-sans); font-size: 11px; text-transform: uppercase; letter-spacing: 2.5px; color: var(--color-gold-dark); font-weight: 600; display: block; margin-bottom: 8px;">Order Custom Jewellery</span>
+          <h2 style="font-family: var(--font-serif); font-size: 36px; color: var(--color-dark); margin-bottom: 12px;">Craft Your Bespoke Masterpiece</h2>
+          <p style="font-family: var(--font-serif); font-size: 16px; font-style: italic; color: var(--color-text-muted);">Fill out your custom design preferences below. Our master jeweler will review your request and contact you within 24 hours with design sketches and a quote.</p>
+        </div>
+
+        <form id="custom-jewellery-form">
+          <!-- Step 1: Item Type Selection -->
+          <div style="margin-bottom: 28px;">
+            <label style="font-family: var(--font-sans); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--color-dark); display: block; margin-bottom: 12px;">
+              1. Select Jewellery Type <span style="color:#e74c3c">*</span>
+            </label>
+            <div class="option-chips-grid">
+              <div class="chip-radio">
+                <input type="radio" id="type-ring" name="item_type" value="Custom Ring" checked />
+                <label for="type-ring">💍 Custom Ring</label>
+              </div>
+              <div class="chip-radio">
+                <input type="radio" id="type-pendant" name="item_type" value="Necklace / Calligraphy Pendant" />
+                <label for="type-pendant">📿 Necklace / Pendant</label>
+              </div>
+              <div class="chip-radio">
+                <input type="radio" id="type-earrings" name="item_type" value="Custom Earrings" />
+                <label for="type-earrings">✨ Earrings</label>
+              </div>
+              <div class="chip-radio">
+                <input type="radio" id="type-bracelet" name="item_type" value="Bracelet / Bangle" />
+                <label for="type-bracelet">🌟 Bracelet / Bangle</label>
+              </div>
+              <div class="chip-radio">
+                <input type="radio" id="type-bridal" name="item_type" value="Bridal Parure Set" />
+                <label for="type-bridal">👑 Bridal Set</label>
+              </div>
+              <div class="chip-radio">
+                <input type="radio" id="type-men" name="item_type" value="Men's Custom Ring/Cuff" />
+                <label for="type-men">👔 Men's Piece</label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 2: Metal & Gemstone Selection -->
+          <div class="custom-form-grid">
+            <div class="custom-form-group">
+              <label for="metal-select">2. Precious Metal & Purity <span style="color:#e74c3c">*</span></label>
+              <select id="metal-select" required>
+                <option value="22k Yellow Gold">22k Yellow Gold (Standard Pakistan Heritage)</option>
+                <option value="24k Pure Gold">24k Pure Gold</option>
+                <option value="18k Yellow Gold">18k Yellow Gold</option>
+                <option value="18k White Gold">18k White Gold</option>
+                <option value="18k Rose Gold">18k Rose Gold</option>
+                <option value="Platinum 950">Platinum (950)</option>
+                <option value="925 Sterling Silver">925 Sterling Silver</option>
+              </select>
+            </div>
+
+            <div class="custom-form-group">
+              <label for="gemstone-select">3. Preferred Gemstones / Diamonds</label>
+              <select id="gemstone-select">
+                <option value="GIA Certified Diamond">GIA Certified Natural Diamond</option>
+                <option value="Colombian Emerald">Colombian Emerald</option>
+                <option value="Burmese Ruby">Burmese Ruby</option>
+                <option value="Ceylon Royal Blue Sapphire">Ceylon Blue Sapphire</option>
+                <option value="South Sea Pearls">South Sea Pearls</option>
+                <option value="Kundan / Polki Glass Stone">Traditional Kundan / Polki</option>
+                <option value="No Gemstone (Solid Metal)">No Gemstone (Solid Metal)</option>
+                <option value="Custom Combination">Custom Combination (Specify below)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Step 3: Customization Details & Engraving -->
+          <div class="custom-form-grid">
+            <div class="custom-form-group">
+              <label for="engraving-text">4. Name / Calligraphy / Engraving Text (Optional)</label>
+              <input type="text" id="engraving-text" placeholder="e.g. Ayesha & Hamza, Urdu Calligraphy, 24.12.2025" />
+            </div>
+
+            <div class="custom-form-group">
+              <label for="budget-select">5. Estimated Budget Range <span style="color:#e74c3c">*</span></label>
+              <select id="budget-select" required>
+                <option value="PKR 50,000 - PKR 150,000">PKR 50,000 – PKR 150,000</option>
+                <option value="PKR 150,000 - PKR 350,000">PKR 150,000 – PKR 350,000</option>
+                <option value="PKR 350,000 - PKR 750,000">PKR 350,000 – PKR 750,000</option>
+                <option value="PKR 750,000 - PKR 1,500,000">PKR 750,000 – PKR 1,500,000</option>
+                <option value="PKR 1,500,000+ (High Jewellery)">PKR 1,500,000+ (Bespoke High Jewellery)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Step 4: Special Instructions & Reference Image -->
+          <div class="custom-form-grid">
+            <div class="custom-form-group" style="grid-column: 1 / -1;">
+              <label for="design-desc">6. Design Specifications & Special Instructions <span style="color:#e74c3c">*</span></label>
+              <textarea id="design-desc" rows="4" placeholder="Describe your design vision in detail (e.g. Solitaire ring with pavé diamond band, ring size 7, floral engraving inside, gold weight approx 8 grams)..." required></textarea>
+            </div>
+
+            <div class="custom-form-group" style="grid-column: 1 / -1;">
+              <label for="reference-url">7. Reference Design Image Link or Pinterest Sketch (Optional)</label>
+              <input type="url" id="reference-url" placeholder="https://example.com/my-jewellery-design-sketch.jpg" />
+            </div>
+          </div>
+
+          <hr style="border: 0; border-top: 1px solid var(--color-border); margin: 32px 0;" />
+
+          <h3 style="font-family: var(--font-serif); font-size: 24px; color: var(--color-dark); margin-bottom: 20px;">Customer Delivery Details</h3>
+
+          <!-- Step 5: Contact Details -->
+          <div class="custom-form-grid">
+            <div class="custom-form-group">
+              <label for="cust-name">Full Name <span style="color:#e74c3c">*</span></label>
+              <input type="text" id="cust-name" placeholder="Your full name" required />
+            </div>
+
+            <div class="custom-form-group">
+              <label for="cust-phone">WhatsApp / Phone Number <span style="color:#e74c3c">*</span></label>
+              <input type="tel" id="cust-phone" placeholder="+92 324 1775662" required />
+            </div>
+
+            <div class="custom-form-group">
+              <label for="cust-city">City <span style="color:#e74c3c">*</span></label>
+              <input type="text" id="cust-city" placeholder="e.g. Lahore, Karachi, Islamabad" required />
+            </div>
+
+            <div class="custom-form-group" style="grid-column: 1 / -1;">
+              <label for="cust-address">Delivery Address <span style="color:#e74c3c">*</span></label>
+              <input type="text" id="cust-address" placeholder="Complete address for home consultation / delivery" required />
+            </div>
+          </div>
+
+          <button type="submit" class="btn-submit-custom">
+            ✦ Submit Bespoke Customization Request
+          </button>
+        </form>
+      </div>
+
+      <!-- Showcased Custom Pieces Section -->
+      <div style="margin-top: 60px;">
+        <div class="toolbar" style="margin-bottom: 32px;">
+          <div>
+            <h2 style="font-family: var(--font-serif); font-size: 28px; color: var(--color-dark);">Sample Custom Creations</h2>
+            <p style="font-family: var(--font-serif); font-style: italic; color: var(--color-text-muted); font-size: 14px;">Recent bespoke pieces designed and crafted for our esteemed clientele.</p>
+          </div>
+        </div>
+
+        <div class="products-grid" id="custom-products-grid">
+          <!-- Rendered dynamically -->
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="footer-top">
+      <div class="footer-brand">
+        <div class="footer-brand-name">Lavion <span>Gems</span> & Jewellers</div>
+        <p class="footer-brand-tagline">Pakistan's premier luxury jewellery house, crafting heirlooms since 1978.</p>
+      </div>
+      <div class="footer-col">
+        <div class="footer-col-title">Categories</div>
+        <ul>
+          <li><a href="customized-jewellery.html">Customized Jewellery</a></li>
+          <li><a href="rings.html">Rings</a></li>
+          <li><a href="necklaces.html">Necklaces</a></li>
+          <li><a href="earrings.html">Earrings</a></li>
+          <li><a href="bracelets.html">Bracelets</a></li>
+          <li><a href="asian-jewellery.html">Asian Jewellery</a></li>
+          <li><a href="western-jewellery.html">Western Jewellery</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>© 2025 Lavion Gems & Jewellers. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script src="scripts/main.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      renderCustomGrid();
+      initCustomForm();
+    });
+
+    function renderCustomGrid() {
+      const grid = document.getElementById('custom-products-grid');
+      if (!grid) return;
+
+      const products = window.getProducts().filter(p => p.category === 'customized' || p.badge === 'Bespoke' || p.badge === 'Custom');
+
+      if (products.length === 0) {
+        grid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--color-text-muted);">Explore our custom studio above to craft your piece.</div>`;
+        return;
+      }
+
+      grid.innerHTML = products.map(p => `
+        <div class="product-card" style="flex: auto;">
+          <div class="product-card-img" onclick="window.openQuickView('${p.id}')">
+            <img src="${p.img}" alt="${p.name}" loading="lazy" />
+            ${p.badge ? `<span class="product-card-badge">${p.badge}</span>` : ''}
+          </div>
+          <div class="product-card-body">
+            <div class="product-card-name">${p.name}</div>
+            <div class="product-card-desc">${p.desc || ''}</div>
+            <div class="product-card-price">Est. PKR ${p.price.toLocaleString()}</div>
+            <div class="product-card-actions">
+              <button class="btn-add-cart" onclick="window.addToCart('${p.id}', 1)">+ Add to Bag</button>
+              <button class="btn-wishlist-toggle ${window.isInWishlist(p.id) ? 'in-wishlist' : ''}" data-id="${p.id}" onclick="window.toggleWishlist('${p.id}')" title="Wishlist">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
+                </svg>
+              </button>
+              <button class="btn-quick-view" onclick="window.openQuickView('${p.id}')" title="Quick View">👁</button>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function initCustomForm() {
+      const form = document.getElementById('custom-jewellery-form');
+      if (!form) return;
+
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+
+        const selectedTypeEl = form.querySelector('input[name="item_type"]:checked');
+        const itemType = selectedTypeEl ? selectedTypeEl.value : 'Custom Jewellery';
+        const metal = document.getElementById('metal-select').value;
+        const gemstone = document.getElementById('gemstone-select').value;
+        const engraving = document.getElementById('engraving-text').value.trim();
+        const budget = document.getElementById('budget-select').value;
+        const desc = document.getElementById('design-desc').value.trim();
+        const refUrl = document.getElementById('reference-url').value.trim();
+
+        const name = document.getElementById('cust-name').value.trim();
+        const phone = document.getElementById('cust-phone').value.trim();
+        const city = document.getElementById('cust-city').value.trim();
+        const address = document.getElementById('cust-address').value.trim();
+
+        const orderId = 'CUST-' + Math.floor(10000 + Math.random() * 90000);
+        const orderDate = new Date().toISOString().split('T')[0];
+
+        const customOrder = {
+          id: orderId,
+          customer: name,
+          phone: phone,
+          city: city,
+          address: address,
+          payment: 'Custom Quote Request',
+          items: `Custom: ${itemType} (${metal}, ${gemstone}) ${engraving ? '- Engraving: ' + engraving : ''}`,
+          total: 0, // Quote pending
+          status: 'Pending',
+          date: orderDate,
+          details: {
+            itemType, metal, gemstone, engraving, budget, desc, refUrl
+          }
+        };
+
+        // Save into Orders array in localStorage for Admin visibility
+        const currentOrders = window.getOrders();
+        currentOrders.unshift(customOrder);
+        window.saveOrders(currentOrders);
+
+        // Show Luxury Modal Receipt
+        showCustomReceiptModal(customOrder);
+        form.reset();
+      });
+    }
+
+    function showCustomReceiptModal(order) {
+      let modal = document.getElementById('custom-receipt-modal');
+      if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'custom-receipt-modal';
+        modal.className = 'admin-modal-backdrop';
+        document.body.appendChild(modal);
+      }
+
+      modal.innerHTML = `
+        <div class="admin-modal-dialog" style="max-width: 600px; text-align: center;">
+          <div style="width:60px;height:60px;border-radius:50%;background:rgba(200,169,110,0.2);color:var(--color-gold-light);display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 16px;">
+            ✦
+          </div>
+          <h2 style="font-family:var(--font-serif);font-size:28px;color:#fff;margin-bottom:8px;">Custom Request Submitted!</h2>
+          <p style="font-family:var(--font-serif);font-style:italic;color:rgba(255,255,255,0.7);font-size:15px;margin-bottom:20px;">
+            Thank you, <strong>${order.customer}</strong>. Your custom design request has been assigned to our master jeweler.
+          </p>
+
+          <div style="background:#12100e;border:1px solid rgba(200,169,110,0.3);border-radius:8px;padding:20px;text-align:left;font-size:13px;margin-bottom:24px;">
+            <div style="display:flex;justify-content:space-between;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,0.1);">
+              <span>Request Ref Number:</span>
+              <strong style="color:var(--color-gold-light);">${order.id}</strong>
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:10px;">
+              <span>Custom Specification:</span>
+              <span style="color:#fff;max-width:300px;text-align:right;">${order.items}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:10px;">
+              <span>Estimated Budget:</span>
+              <span style="color:#fff;">${order.details.budget}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:10px;">
+              <span>Consultation Status:</span>
+              <span class="admin-status-tag lowstock" style="padding:2px 8px;font-size:10px;">Quote Pending</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;">
+              <span>Turnaround Time:</span>
+              <span style="color:rgba(255,255,255,0.8);">7 - 14 Working Days</span>
+            </div>
+          </div>
+
+          <p style="font-size:12px;color:rgba(255,255,255,0.6);margin-bottom:24px;">
+            Our lead gemologist will contact you at <strong>${order.phone}</strong> via WhatsApp with 3D CAD renders and final pricing.
+          </p>
+
+          <div style="display:flex;gap:12px;justify-content:center;">
+            <a href="https://wa.me/923241775662?text=Hello%20Lavion%20Gems%2C%20I%20just%20submitted%20custom%20order%20${order.id}" target="_blank" class="admin-primary-btn" style="text-decoration:none;">
+              💬 Direct WhatsApp Consult
+            </a>
+            <button class="admin-action-btn" id="close-receipt-btn" style="padding:10px 20px;">Done</button>
+          </div>
+        </div>
+      `;
+
+      modal.classList.add('active');
+      document.body.style.overflow = 'hidden';
+
+      document.getElementById('close-receipt-btn')?.addEventListener('click', () => {
+        modal.classList.remove('active');
+        document.body.style.overflow = '';
+      });
+    }
+  </script>
+</body>
+
+</html>

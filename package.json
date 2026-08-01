@@ -1,0 +1,28 @@
+{
+  "name": "newpak-jewellers",
+  "version": "1.0.0",
+  "description": "Lavion Gems & Jewellers Luxury E-Commerce Platform with Node.js Express Backend",
+  "main": "server/server.js",
+  "scripts": {
+    "start": "node server/server.js",
+    "dev": "node --watch server/server.js",
+    "server": "node server/server.js"
+  },
+  "keywords": [
+    "jewellery",
+    "ecommerce",
+    "nodejs",
+    "express",
+    "gold-rate"
+  ],
+  "author": "Lavion Gems & Jewellers",
+  "license": "ISC",
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^9.9.1"
+  }
+}

@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Your Wishlist — Lavion Gems & Jewellers</title>
+  <meta name="description" content="View and manage your saved luxury gold, gemstone & diamond pieces at Lavion Gems & Jewellers." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Montserrat:wght@200;300;400;500;600;700&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="styles/main.css" />
+</head>
+
+<body>
+
+  <!-- Announcement Bar -->
+  <div class="announcement-bar">
+    ✦ Complimentary Gift Wrapping on all Orders &nbsp;|&nbsp; Free Delivery above PKR 50,000 &nbsp;|&nbsp; Book a Private Consultation
+  </div>
+
+  <!-- Top Utility Header -->
+  <div class="header-utility">
+    <div class="header-utility-left">
+      <a href="index.html">Pakistan</a>
+      <a href="index.html#services">Contact Us</a>
+    </div>
+    <div class="header-utility-right">
+      <a href="wishlist.html" id="util-wishlist" style="color:var(--color-gold-dark);font-weight:600;position:relative;">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round"
+            d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
+        </svg>
+        Wishlist (<span class="wishlist-badge" style="position:static;display:inline-flex;width:auto;height:auto;background:transparent;color:inherit;font-weight:600;">0</span>)
+      </a>
+      <a href="cart.html" id="util-cart">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round"
+            d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007z" />
+        </svg>
+        Shopping Bag
+      </a>
+      <a href="#" id="open-admin-panel" style="color:var(--color-gold-dark);font-weight:600;display:flex;align-items:center;gap:4px;">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width:14px;height:14px;">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0m-9.75 0h9.75" />
+        </svg>
+        Admin Panel
+      </a>
+    </div>
+  </div>
+
+  <!-- Main Navigation -->
+  <nav class="main-nav">
+    <div class="nav-inner">
+      <button class="nav-hamburger" id="nav-hamburger" aria-label="Open menu">
+        <span></span><span></span><span></span>
+      </button>
+
+      <div class="nav-logo">
+        <a href="index.html">Lavion <span>Gems</span> & Jewellers</a>
+      </div>
+
+      <ul class="nav-links">
+        <li class="nav-item"><a href="high-jewellery.html">High Jewellery</a></li>
+        <li class="nav-item">
+          <a href="collections.html">Jewellery</a>
+          <div class="nav-dropdown">
+            <a href="asian-jewellery.html">Asian Jewellery</a>
+            <a href="western-jewellery.html">Western Jewellery</a>
+            <a href="rings.html">Rings</a>
+            <a href="necklaces.html">Necklaces</a>
+            <a href="earrings.html">Earrings</a>
+            <a href="bracelets.html">Bracelets</a>
+          </div>
+        </li>
+        <li class="nav-item"><a href="gems.html">Gems</a></li>
+        <li class="nav-item"><a href="diamonds.html">Diamonds</a></li>
+        <li class="nav-item"><a href="asian-jewellery.html">Asian Jewellery</a></li>
+        <li class="nav-item"><a href="western-jewellery.html">Western Jewellery</a></li>
+        <li class="nav-item"><a href="collections.html">Collections</a></li>
+        <li><a href="index.html#story">Our Story</a></li>
+        <li><a href="index.html#services">Services</a></li>
+      </ul>
+
+      <div class="nav-icons">
+        <a href="wishlist.html" aria-label="Wishlist" style="position:relative;">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round"
+              d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
+          </svg>
+          <span class="wishlist-badge">0</span>
+        </a>
+        <a href="cart.html" aria-label="Shopping Bag" style="position:relative;">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round"
+              d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007z" />
+          </svg>
+          <span class="icon-badge">0</span>
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Mobile Menu -->
+  <div class="mobile-menu" id="mobile-menu" role="dialog" aria-modal="true">
+    <div class="mobile-menu-header">
+      <span style="font-family:var(--font-serif);font-size:18px;letter-spacing:3px;text-transform:uppercase;">Lavion <span
+          style="color:var(--color-gold-dark)">Gems</span></span>
+      <button class="mobile-menu-close" id="mobile-menu-close">&times;</button>
+    </div>
+    <nav class="mobile-menu-links">
+      <a href="index.html">Home</a>
+      <a href="wishlist.html" style="color:var(--color-gold-dark);">Your Wishlist</a>
+      <a href="cart.html">Shopping Bag</a>
+      <a href="rings.html">Rings</a>
+      <a href="necklaces.html">Necklaces</a>
+      <a href="earrings.html">Earrings</a>
+      <a href="bracelets.html">Bracelets</a>
+      <a href="asian-jewellery.html">Asian Jewellery</a>
+      <a href="western-jewellery.html">Western Jewellery</a>
+      <a href="gems.html">Gems</a>
+      <a href="diamonds.html">Diamonds</a>
+    </nav>
+  </div>
+
+  <!-- Hero Header -->
+  <section class="category-hero">
+    <div class="container">
+      <span class="category-hero-eyebrow">Saved Treasures</span>
+      <h1 class="category-hero-title">Your Wishlist</h1>
+      <p class="category-hero-desc">Your curated collection of handcrafted gold, gemstone & diamond masterpieces.</p>
+      <div class="breadcrumbs">
+        <a href="index.html">Home</a>
+        <span>/</span>
+        <span>Wishlist</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Wishlist Content Section -->
+  <section style="padding: 60px 0 100px; background: var(--color-bg); min-height: 60vh;">
+    <div class="container">
+      <div id="wishlist-container">
+        <!-- Rendered dynamically by JavaScript -->
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="footer-top">
+      <div class="footer-brand">
+        <div class="footer-brand-name">Lavion <span>Gems</span> & Jewellers</div>
+        <p class="footer-brand-tagline">Pakistan's premier luxury jewellery house, crafting heirlooms since 1978.</p>
+      </div>
+      <div class="footer-col">
+        <div class="footer-col-title">Categories</div>
+        <ul>
+          <li><a href="rings.html">Rings</a></li>
+          <li><a href="necklaces.html">Necklaces</a></li>
+          <li><a href="earrings.html">Earrings</a></li>
+          <li><a href="bracelets.html">Bracelets</a></li>
+          <li><a href="asian-jewellery.html">Asian Jewellery</a></li>
+          <li><a href="western-jewellery.html">Western Jewellery</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>© 2025 Lavion Gems & Jewellers. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script src="scripts/main.js"></script>
+  <script>
+    (function () {
+      function renderWishlist() {
+        const container = document.getElementById('wishlist-container');
+        if (!container) return;
+
+        const wishlistIds = window.getWishlist();
+        const allProducts = window.getProducts();
+        const wishlistedProducts = allProducts.filter(p => wishlistIds.includes(String(p.id)));
+
+        if (wishlistedProducts.length === 0) {
+          container.innerHTML = `
+            <div class="empty-cart-state">
+              <div class="empty-cart-icon" style="color: #e74c3c; border-color: #e74c3c; background: rgba(231,76,60,0.1);">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width:40px;height:40px;">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
+                </svg>
+              </div>
+              <h2 style="font-family: var(--font-serif); font-size: 32px; color: var(--color-dark); margin-bottom: 12px;">Your Wishlist is Empty</h2>
+              <p style="font-family: var(--font-serif); font-size: 16px; font-style: italic; color: var(--color-text-muted); margin-bottom: 32px;">Save your favorite gold, gemstone, and diamond jewellery pieces to view them anytime.</p>
+              
+              <div style="display: flex; flex-wrap: wrap; gap: 12px; justify-content: center;">
+                <a href="rings.html" class="btn-gold" style="padding: 12px 24px; font-size: 11px;">Explore Rings</a>
+                <a href="necklaces.html" class="btn-outline" style="padding: 12px 24px; font-size: 11px;">Explore Necklaces</a>
+                <a href="asian-jewellery.html" class="btn-outline" style="padding: 12px 24px; font-size: 11px;">Asian Jewellery</a>
+                <a href="collections.html" class="btn-outline" style="padding: 12px 24px; font-size: 11px;">All Collections</a>
+              </div>
+            </div>
+          `;
+          return;
+        }
+
+        const cardsHtml = wishlistedProducts.map(p => `
+          <div class="product-card" style="flex: auto;">
+            <div class="product-card-img" onclick="window.openQuickView('${p.id}')">
+              <img src="${p.img}" alt="${p.name}" loading="lazy" />
+              ${p.badge ? `<span class="product-card-badge">${p.badge}</span>` : ''}
+            </div>
+            <div class="product-card-body">
+              <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div>
+                  <div class="product-card-name">${p.name}</div>
+                  <div class="product-card-desc">${p.desc || ''}</div>
+                </div>
+                <button class="cart-item-remove remove-wish-btn" data-id="${p.id}" title="Remove from Wishlist" style="padding: 4px;">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#e74c3c" style="width: 18px; height: 18px;">
+                    <path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z" />
+                  </svg>
+                </button>
+              </div>
+              <div class="product-card-price" style="margin-top: 4px;">PKR ${p.price.toLocaleString()}</div>
+              
+              <div class="product-card-actions">
+                <button class="btn-add-cart add-to-bag-btn" data-id="${p.id}">
+                  <span>+</span> Add to Bag
+                </button>
+                <button class="btn-quick-view qv-btn" data-id="${p.id}" title="Quick View">
+                  👁
+                </button>
+              </div>
+            </div>
+          </div>
+        `).join('');
+
+        container.innerHTML = `
+          <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; flex-wrap: wrap; gap: 16px;">
+              <div style="font-family: var(--font-sans); font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--color-text-muted);">
+                Showing <strong>${wishlistedProducts.length}</strong> saved items
+              </div>
+              <div style="display: flex; gap: 12px;">
+                <button class="btn-gold" id="move-all-cart-btn" style="padding: 10px 18px; font-size: 10px;">Move All to Shopping Bag</button>
+                <button class="admin-action-btn delete" id="clear-wish-btn" style="padding: 10px 18px; font-size: 11px; font-weight: 600;">Clear Wishlist</button>
+              </div>
+            </div>
+
+            <div class="products-grid">
+              ${cardsHtml}
+            </div>
+          </div>
+        `;
+
+        // Event listeners
+        container.querySelectorAll('.remove-wish-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const id = btn.getAttribute('data-id');
+            window.removeFromWishlist(id);
+            renderWishlist();
+          });
+        });
+
+        container.querySelectorAll('.add-to-bag-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const id = btn.getAttribute('data-id');
+            window.addToCart(id, 1);
+          });
+        });
+
+        container.querySelectorAll('.qv-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const id = btn.getAttribute('data-id');
+            window.openQuickView(id);
+          });
+        });
+
+        document.getElementById('clear-wish-btn')?.addEventListener('click', () => {
+          window.clearWishlist();
+          renderWishlist();
+        });
+
+        document.getElementById('move-all-cart-btn')?.addEventListener('click', () => {
+          const currentWish = window.getWishlist();
+          currentWish.forEach(id => {
+            window.addToCart(id, 1);
+          });
+          window.showToast('All Wishlist items moved to Shopping Bag!', 'success');
+        });
+      }
+
+      document.addEventListener('DOMContentLoaded', renderWishlist);
+      renderWishlist();
+    })();
+  </script>
+</body>
+
+</html>
