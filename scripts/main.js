@@ -2137,6 +2137,30 @@
   window.renderMobileAppDock();
 })();
 
+// ===================== PRODUCT DEEP-LINK HANDLER =====================
+// Reads ?product=ID from the URL and auto-opens the Quick View modal
+// Example: rings.html?product=2 will open the Quick View for product ID 2
+(function handleProductDeepLink() {
+  function tryOpen() {
+    const params = new URLSearchParams(window.location.search);
+    const productId = params.get('product');
+    if (!productId) return;
+    if (typeof window.openQuickView === 'function') {
+      window.openQuickView(productId);
+    } else {
+      // wait for main.js to fully init
+      setTimeout(() => {
+        if (typeof window.openQuickView === 'function') window.openQuickView(productId);
+      }, 800);
+    }
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => setTimeout(tryOpen, 400));
+  } else {
+    setTimeout(tryOpen, 400);
+  }
+})();
+
 // ===================== FLOATING WHATSAPP BUTTON =====================
 (function injectWhatsAppButton() {
   const wa = document.createElement('a');

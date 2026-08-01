@@ -294,21 +294,24 @@
         const discountAmount = Math.round((subtotal * appliedDiscountPercent) / 100);
         const grandTotal = subtotal + shipping - discountAmount;
 
-        // ── Helper: map product category to its page URL ──
+        // ── Helper: map product to its EXACT product deep-link URL ──
         const BASE = 'https://lavion-gems-jewelers.vercel.app';
         function getProductPageUrl(item) {
           const cat = (item.category || '').toLowerCase();
-          if (cat.includes('ring'))            return `${BASE}/rings.html`;
-          if (cat.includes('necklace'))        return `${BASE}/necklaces.html`;
-          if (cat.includes('earring'))         return `${BASE}/earrings.html`;
-          if (cat.includes('bracelet') || cat.includes('bangle')) return `${BASE}/bracelets.html`;
-          if (cat.includes('gem') || cat.includes('sapphire') || cat.includes('ruby') || cat.includes('emerald')) return `${BASE}/gems.html`;
-          if (cat.includes('diamond'))         return `${BASE}/diamonds.html`;
-          if (cat.includes('asian') || cat.includes('kundan') || cat.includes('polki')) return `${BASE}/asian-jewellery.html`;
-          if (cat.includes('western'))         return `${BASE}/western-jewellery.html`;
-          if (cat.includes('high'))            return `${BASE}/high-jewellery.html`;
-          if (cat.includes('custom'))          return `${BASE}/customized-jewellery.html`;
-          return `${BASE}/collections.html`;
+          let page;
+          if (cat.includes('ring'))                                                          page = 'rings.html';
+          else if (cat.includes('necklace'))                                                 page = 'necklaces.html';
+          else if (cat.includes('earring'))                                                  page = 'earrings.html';
+          else if (cat.includes('bracelet') || cat.includes('bangle'))                      page = 'bracelets.html';
+          else if (cat.includes('gem') || cat.includes('sapphire') || cat.includes('ruby') || cat.includes('emerald')) page = 'gems.html';
+          else if (cat.includes('diamond'))                                                  page = 'diamonds.html';
+          else if (cat.includes('asian') || cat.includes('kundan') || cat.includes('polki')) page = 'asian-jewellery.html';
+          else if (cat.includes('western'))                                                  page = 'western-jewellery.html';
+          else if (cat.includes('high'))                                                     page = 'high-jewellery.html';
+          else if (cat.includes('custom'))                                                   page = 'customized-jewellery.html';
+          else                                                                               page = 'collections.html';
+          // Append ?product=ID so the page auto-opens the Quick View for this exact product
+          return `${BASE}/${page}?product=${item.id}`;
         }
 
         // ── Build full-bag WhatsApp message with all items + links ──
