@@ -359,7 +359,11 @@
         `;
         }).join('');
 
-        const mobileCards = cart.map(item => `
+        const mobileCards = cart.map(item => {
+          const productUrl = getProductPageUrl(item);
+          const waMsg = encodeURIComponent(`Hello Lavion Gems & Jewellers, I would like to enquire about the price for:\n\n• ${item.name} (Qty: ${item.qty})\n\nProduct Page: ${productUrl}\n\nPlease share today's price. Thank you!`);
+          const waUrl = `https://wa.me/923241775662?text=${waMsg}`;
+          return `
           <div class="mobile-cart-card">
             <div style="display:flex; gap:12px; align-items:center; width:100%;">
               <img src="${item.img}" alt="${item.name}" class="mobile-cart-img" />
