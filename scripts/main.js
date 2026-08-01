@@ -167,17 +167,7 @@
   };
 
   window.renderCurrencySelector = function (productId, currentCurrency = 'PKR') {
-    return `
-      <select class="product-currency-picker" data-id="${productId}" onchange="window.handleProductCurrencyChange(this)" title="Convert price" style="background:rgba(200,169,110,0.12); color:var(--color-gold-light); border:1px solid rgba(200,169,110,0.4); font-size:10px; font-weight:700; border-radius:4px; padding:2px 4px; outline:none; cursor:pointer;">
-        <option value="PKR" ${currentCurrency === 'PKR' ? 'selected' : ''}>🇵🇰 PKR (Rs)</option>
-        <option value="USD" ${currentCurrency === 'USD' ? 'selected' : ''}>💵 USD ($)</option>
-        <option value="GBP" ${currentCurrency === 'GBP' ? 'selected' : ''}>💷 GBP (£)</option>
-        <option value="EUR" ${currentCurrency === 'EUR' ? 'selected' : ''}>💶 EUR (€)</option>
-        <option value="AED" ${currentCurrency === 'AED' ? 'selected' : ''}>🇦🇪 AED</option>
-        <option value="SAR" ${currentCurrency === 'SAR' ? 'selected' : ''}>🇸🇦 SAR</option>
-        <option value="CAD" ${currentCurrency === 'CAD' ? 'selected' : ''}>🇨🇦 CAD</option>
-      </select>
-    `;
+    return '';
   };
 
   window.handleProductCurrencyChange = function (selectEl) {
