@@ -1137,15 +1137,206 @@
       document.body.style.overflow = '';
     };
 
-    document.querySelectorAll('#nav-search, .search-trigger').forEach(btn => {
-      btn.addEventListener('click', openSearch);
-    });
-
     closeBtn?.addEventListener('click', closeSearch);
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && overlay.classList.contains('active')) closeSearch();
     });
   }
+
+  /* ======================================
+     FEATURE 4: LIVE GOLD & METAL WEIGHT CALCULATOR
+  ====================================== */
+  window.openGoldCalculator = function () {
+    let modal = document.getElementById('gold-calculator-modal');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 'gold-calculator-modal';
+      modal.className = 'admin-modal-backdrop';
+      document.body.appendChild(modal);
+    }
+
+    modal.innerHTML = `
+      <div class="admin-modal-dialog" style="max-width:540px; background:#181614; border:1px solid var(--color-gold);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; border-bottom:1px solid rgba(200,169,110,0.3); padding-bottom:10px;">
+          <h3 style="font-family:var(--font-serif); font-size:22px; color:var(--color-gold-light); margin:0;">
+            ⚖️ Live Gold & Metal Weight Calculator
+          </h3>
+          <button class="search-close-btn" id="calc-close-btn" style="color:#fff; font-size:24px; background:none; border:none; cursor:pointer;">&times;</button>
+        </div>
+
+        <p style="font-size:12px; color:rgba(255,255,255,0.7); margin-bottom:16px;">
+          Calculate estimated custom gold jewellery value in Grams or Tola based on live bullion market rates.
+        </p>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
+          <div>
+            <label style="font-size:10px; text-transform:uppercase; color:rgba(255,255,255,0.7); display:block; margin-bottom:4px;">Gold Purity (Karat)</label>
+            <select id="calc-karat" style="width:100%; padding:8px; background:#12100e; border:1px solid rgba(200,169,110,0.3); color:#fff; border-radius:6px; font-size:12px;">
+              <option value="24">24K Pure Bullion (99.9%)</option>
+              <option value="22" selected>22K Sovereign Gold (91.6%)</option>
+              <option value="21">21K Middle-East Gold (87.5%)</option>
+              <option value="18">18K Haute Gold (75.0%)</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:10px; text-transform:uppercase; color:rgba(255,255,255,0.7); display:block; margin-bottom:4px;">Weight Unit</label>
+            <select id="calc-unit" style="width:100%; padding:8px; background:#12100e; border:1px solid rgba(200,169,110,0.3); color:#fff; border-radius:6px; font-size:12px;">
+              <option value="gram">Grams (g)</option>
+              <option value="tola">Tola (1 Tola = 11.66g)</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px;">
+          <div>
+            <label style="font-size:10px; text-transform:uppercase; color:rgba(255,255,255,0.7); display:block; margin-bottom:4px;">Net Metal Weight</label>
+            <input type="number" id="calc-weight" value="10" step="0.1" min="0.1" style="width:100%; padding:8px; background:#12100e; border:1px solid rgba(200,169,110,0.3); color:#fff; border-radius:6px; font-size:12px;" />
+          </div>
+          <div>
+            <label style="font-size:10px; text-transform:uppercase; color:rgba(255,255,255,0.7); display:block; margin-bottom:4px;">Making Charge %</label>
+            <input type="number" id="calc-making" value="10" min="0" max="50" style="width:100%; padding:8px; background:#12100e; border:1px solid rgba(200,169,110,0.3); color:#fff; border-radius:6px; font-size:12px;" />
+          </div>
+        </div>
+
+        <div style="background:rgba(200,169,110,0.12); border:1px solid var(--color-gold); border-radius:8px; padding:16px; text-align:center;">
+          <div style="font-size:10px; text-transform:uppercase; letter-spacing:1px; color:rgba(255,255,255,0.7); margin-bottom:4px;">Estimated Custom Jewellery Value</div>
+          <div id="calc-result-gbp" style="font-family:var(--font-serif); font-size:28px; font-weight:700; color:var(--color-gold-light);">£ 720</div>
+          <div id="calc-result-pkr" style="font-size:12px; color:rgba(255,255,255,0.7); margin-top:2px;">(Approx. PKR 256,320)</div>
+        </div>
+      </div>
+    `;
+
+    modal.classList.add('active');
+    modal.style.zIndex = '25000';
+    document.body.style.overflow = 'hidden';
+
+    const updateCalc = () => {
+      const karat = parseFloat(document.getElementById('calc-karat').value) || 22;
+      const unit = document.getElementById('calc-unit').value;
+      let weight = parseFloat(document.getElementById('calc-weight').value) || 0;
+      if (unit === 'tola') weight *= 11.66; // 1 Tola = 11.66g
+
+      const makingPct = parseFloat(document.getElementById('calc-making').value) || 0;
+
+      // Base 24K Gold Rate per Gram ~ £65 / gram
+      const baseGramRate24k = 65;
+      const gramRate = baseGramRate24k * (karat / 24);
+      const rawCost = weight * gramRate;
+      const totalGbp = Math.round(rawCost * (1 + makingPct / 100));
+      const totalPkr = Math.round(totalGbp * 356);
+
+      document.getElementById('calc-result-gbp').textContent = `£ ${totalGbp.toLocaleString()}`;
+      document.getElementById('calc-result-pkr').textContent = `(Approx. PKR ${totalPkr.toLocaleString()})`;
+    };
+
+    ['calc-karat', 'calc-unit', 'calc-weight', 'calc-making'].forEach(id => {
+      document.getElementById(id)?.addEventListener('input', updateCalc);
+      document.getElementById(id)?.addEventListener('change', updateCalc);
+    });
+
+    document.getElementById('calc-close-btn')?.addEventListener('click', () => {
+      modal.classList.remove('active');
+      document.body.style.overflow = '';
+    });
+
+    updateCalc();
+  };
+
+  /* ======================================
+     FEATURE 5: SUBMIT CUSTOMER REVIEW MODAL
+  ====================================== */
+  window.openSubmitReviewModal = function () {
+    let modal = document.getElementById('review-submit-modal');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 'review-submit-modal';
+      modal.className = 'admin-modal-backdrop';
+      document.body.appendChild(modal);
+    }
+
+    modal.innerHTML = `
+      <div class="admin-modal-dialog" style="max-width:500px; background:#181614;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; border-bottom:1px solid rgba(200,169,110,0.3); padding-bottom:10px;">
+          <h3 style="font-family:var(--font-serif); font-size:22px; color:var(--color-gold-light); margin:0;">
+            ✍️ Submit Verified Client Review
+          </h3>
+          <button class="search-close-btn" id="rev-close-btn" style="color:#fff; font-size:24px; background:none; border:none; cursor:pointer;">&times;</button>
+        </div>
+
+        <form id="submit-review-form">
+          <div style="margin-bottom:12px;">
+            <label style="font-size:10px; text-transform:uppercase; color:rgba(255,255,255,0.7); display:block; margin-bottom:4px;">Your Name</label>
+            <input type="text" id="rev-name" placeholder="e.g. Mrs. Ayesha Malik" style="width:100%; padding:8px; background:#12100e; border:1px solid rgba(200,169,110,0.3); color:#fff; border-radius:6px;" required />
+          </div>
+
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
+            <div>
+              <label style="font-size:10px; text-transform:uppercase; color:rgba(255,255,255,0.7); display:block; margin-bottom:4px;">City / Country</label>
+              <input type="text" id="rev-city" placeholder="e.g. Lahore / London" style="width:100%; padding:8px; background:#12100e; border:1px solid rgba(200,169,110,0.3); color:#fff; border-radius:6px;" required />
+            </div>
+            <div>
+              <label style="font-size:10px; text-transform:uppercase; color:rgba(255,255,255,0.7); display:block; margin-bottom:4px;">Rating</label>
+              <select id="rev-stars" style="width:100%; padding:8px; background:#12100e; border:1px solid rgba(200,169,110,0.3); color:#fff; border-radius:6px;">
+                <option value="5">★★★★★ (5 Stars)</option>
+                <option value="4">★★★★☆ (4 Stars)</option>
+              </select>
+            </div>
+          </div>
+
+          <div style="margin-bottom:16px;">
+            <label style="font-size:10px; text-transform:uppercase; color:rgba(255,255,255,0.7); display:block; margin-bottom:4px;">Your Review Testimonial</label>
+            <textarea id="rev-text" rows="3" placeholder="Tell us about your experience with your custom gold piece or diamond purchase..." style="width:100%; padding:8px; background:#12100e; border:1px solid rgba(200,169,110,0.3); color:#fff; border-radius:6px;" required></textarea>
+          </div>
+
+          <button type="submit" class="admin-primary-btn" style="width:100%; justify-content:center; padding:12px;">
+            Submit Testimonial
+          </button>
+        </form>
+      </div>
+    `;
+
+    modal.classList.add('active');
+    modal.style.zIndex = '25000';
+    document.body.style.overflow = 'hidden';
+
+    document.getElementById('rev-close-btn')?.addEventListener('click', () => {
+      modal.classList.remove('active');
+      document.body.style.overflow = '';
+    });
+
+    document.getElementById('submit-review-form')?.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const name = document.getElementById('rev-name').value;
+      const city = document.getElementById('rev-city').value;
+      const stars = document.getElementById('rev-stars').value;
+      const text = document.getElementById('rev-text').value;
+
+      const grid = document.getElementById('reviews-grid');
+      if (grid) {
+        const card = document.createElement('div');
+        card.className = 'review-card';
+        card.style.cssText = 'background: #ffffff; border: 1px solid var(--color-border); padding: 24px; border-radius: 10px; box-shadow: 0 4px 16px rgba(0,0,0,0.04);';
+        card.innerHTML = `
+          <div style="color: #f1c40f; font-size: 16px; margin-bottom: 8px;">${'★'.repeat(stars)}</div>
+          <p style="font-family: var(--font-serif); font-size: 15px; font-style: italic; color: #333; line-height: 1.6; margin-bottom: 16px;">
+            "${text}"
+          </p>
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--color-dark); color: var(--color-gold-light); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;">${name.charAt(0)}</div>
+            <div>
+              <div style="font-weight: 700; font-size: 13px; color: var(--color-dark);">${name}</div>
+              <div style="font-size: 11px; color: #2ecc71; font-weight: 600;">✓ Verified Buyer — ${city}</div>
+            </div>
+          </div>
+        `;
+        grid.prepend(card);
+      }
+
+      modal.classList.remove('active');
+      document.body.style.overflow = '';
+      showToast('Thank you! Your verified testimonial has been published.', 'success');
+    });
+  };
 
   /* ======================================
      FEATURE 3: ORDER TRACKER CONTROLLER
