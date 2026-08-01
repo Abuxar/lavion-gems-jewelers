@@ -359,6 +359,9 @@
   const productModal = document.getElementById('admin-product-modal');
   const productForm = document.getElementById('admin-product-form');
   const modalCancelBtn = document.getElementById('modal-cancel-btn');
+  const modalTitle = document.getElementById('modal-product-title');
+  const addProductBtn = document.getElementById('add-product-btn');
+  const quickAddBtn = document.getElementById('quick-add-btn');
 
   function openProductModal(product = null) {
     if (modalTitle) modalTitle.textContent = product ? 'Edit Product Item' : 'Add New Product Item';
@@ -376,6 +379,9 @@
 
     productModal?.classList.add('active');
   }
+
+  addProductBtn?.addEventListener('click', () => openProductModal());
+  quickAddBtn?.addEventListener('click', () => openProductModal());
 
   modalCancelBtn?.addEventListener('click', () => productModal?.classList.remove('active'));
 
