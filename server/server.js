@@ -54,10 +54,14 @@ app.get('*', (req, res) => {
 });
 
 // Start Server
-app.listen(PORT, () => {
-  console.log(`=================================================`);
-  console.log(` 💎 Lavion Gems & Jewellers Node.js Server Active`);
-  console.log(` 🚀 Running on: http://localhost:${PORT}`);
-  console.log(` 📡 Health Check: http://localhost:${PORT}/api/health`);
-  console.log(`=================================================`);
-});
+if (process.env.NODE_ENV !== 'production' || require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`=================================================`);
+    console.log(` 💎 Lavion Gems & Jewellers Node.js Server Active`);
+    console.log(` 🚀 Running on: http://localhost:${PORT}`);
+    console.log(` 📡 Health Check: http://localhost:${PORT}/api/health`);
+    console.log(`=================================================`);
+  });
+}
+
+module.exports = app;
