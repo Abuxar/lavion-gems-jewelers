@@ -347,8 +347,21 @@
             </div>
 
             <div class="custom-form-group" style="grid-column: 1 / -1;">
-              <label for="reference-url">7. Reference Design Image Link or Pinterest Sketch (Optional)</label>
-              <input type="url" id="reference-url" placeholder="https://example.com/my-jewellery-design-sketch.jpg" />
+              <label>7. Upload Reference Design Image or Sketch (Camera / Photos / Storage)</label>
+              <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-top:6px;">
+                <div>
+                  <span style="font-size:11px; color:var(--color-text-muted); display:block; margin-bottom:4px;">📷 Option A: Upload Photo / Sketch File</span>
+                  <input type="file" id="reference-file" accept="image/*" style="border:1px solid var(--color-gold); padding:8px; font-size:11px; border-radius:4px; width:100%; background:var(--color-bg-soft);" />
+                </div>
+                <div>
+                  <span style="font-size:11px; color:var(--color-text-muted); display:block; margin-bottom:4px;">🔗 Option B: Or Paste Image URL Link</span>
+                  <input type="url" id="reference-url" placeholder="https://example.com/sketch.jpg" style="padding:10px; font-size:12px;" />
+                </div>
+              </div>
+              <div id="reference-img-preview-wrap" style="margin-top:10px; display:none; align-items:center; gap:12px; background:var(--color-bg-soft); padding:8px 12px; border-radius:6px; border:1px solid var(--color-gold);">
+                <img id="reference-img-preview" src="" alt="Preview" style="width:48px; height:48px; object-fit:cover; border-radius:4px; border:1px solid var(--color-gold-dark);" />
+                <span style="font-size:12px; color:var(--color-gold-dark); font-weight:600;">Selected Reference Photo</span>
+              </div>
             </div>
           </div>
 

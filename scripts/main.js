@@ -1561,6 +1561,9 @@
   /* ======================================
      LUXURY INVOICE & RECEIPT SYSTEM
   ====================================== */
+  /* ======================================
+     LUXURY INVOICE & RECEIPT SYSTEM
+  ====================================== */
   window.generateInvoice = function (orderId) {
     const orders = window.getOrders();
     const order = orders.find(o => String(o.id).toLowerCase() === String(orderId).toLowerCase());
@@ -1582,17 +1585,23 @@
     const dateStr = order.date || new Date().toISOString().split('T')[0];
 
     modal.innerHTML = `
-      <div class="admin-modal-dialog invoice-card" style="max-width:760px; padding:0; overflow:hidden;">
-        <!-- Non-Print Header Bar -->
-        <div class="invoice-no-print" style="background:#1c1a18; padding:12px 24px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--color-gold);">
-          <span style="color:var(--color-gold-light); font-size:13px; font-weight:600;">🧾 Lavion Official Sales Invoice & Certificate</span>
-          <div style="display:flex; gap:10px;">
-            <button class="admin-primary-btn" id="inv-print-btn" style="padding:6px 16px; font-size:11px;">🖨 Print / Save as PDF</button>
-            <button class="admin-action-btn" id="inv-close-btn" style="padding:6px 12px; font-size:11px;">Close</button>
+      <div class="admin-modal-dialog invoice-card" style="max-width:780px; padding:0; overflow:hidden; border-radius:12px;">
+        <!-- Sticky Non-Print Control Header Bar -->
+        <div class="invoice-no-print" style="position:sticky; top:0; z-index:100; background:#1c1a18; padding:14px 20px; display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid var(--color-gold); box-shadow:0 4px 12px rgba(0,0,0,0.5);">
+          <span style="color:var(--color-gold-light); font-size:13px; font-weight:700; display:flex; align-items:center; gap:6px;">
+            🧾 Sales Invoice #${String(order.id).replace('ORD-', 'INV-')}
+          </span>
+          <div style="display:flex; gap:10px; align-items:center;">
+            <button class="admin-primary-btn" id="inv-download-pdf-btn" style="padding:8px 16px; font-size:12px; font-weight:700; background:var(--color-gold); color:#1c1a18; border:none; border-radius:4px; cursor:pointer; display:flex; align-items:center; gap:6px;">
+              ⬇️ Download PDF Invoice
+            </button>
+            <button class="admin-action-btn" id="inv-close-btn" style="padding:8px 14px; font-size:12px; font-weight:700; background:#e74c3c; color:#fff; border:none; border-radius:4px; cursor:pointer;">
+              ❌ Cancel / Close
+            </button>
           </div>
         </div>
 
-        <!-- Printable Content -->
+        <!-- Printable Content Container -->
         <div style="padding:40px; background:#fff; color:#1c1a18;" id="printable-invoice-content">
           <!-- Invoice Header -->
           <div class="invoice-header">
@@ -1694,8 +1703,28 @@
       document.body.style.overflow = '';
     });
 
-    document.getElementById('inv-print-btn')?.addEventListener('click', () => {
-      window.print();
+    document.getElementById('inv-download-pdf-btn')?.addEventListener('click', () => {
+      const element = document.getElementById('printable-invoice-content');
+      const generateAndSavePdf = () => {
+        const opt = {
+          margin: 0.3,
+          filename: `Lavion-Invoice-${order.id}.pdf`,
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { scale: 2 },
+          jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+        };
+        window.html2pdf().set(opt).from(element).save();
+      };
+
+      if (window.html2pdf) {
+        generateAndSavePdf();
+      } else {
+        showToast('Preparing PDF download...', 'info');
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+        script.onload = generateAndSavePdf;
+        document.body.appendChild(script);
+      }
     });
   };
 
