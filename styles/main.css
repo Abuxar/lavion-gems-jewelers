@@ -2974,4 +2974,41 @@ footer {
   .gold-rate-bar {
     font-size: 10px !important;
   }
+
+  .admin-overlay {
+    padding: 8px !important;
+  }
+
+  .admin-window {
+    height: 96vh !important;
+    max-height: 96vh !important;
+    border-radius: 8px !important;
+    width: 100% !important;
+  }
+
+  .admin-header {
+    padding: 12px 14px !important;
+  }
+
+  .admin-brand-title {
+    font-size: 14px !important;
+    letter-spacing: 1px !important;
+  }
+
+  .admin-tabs {
+    padding: 0 6px !important;
+    overflow-x: auto !important;
+    white-space: nowrap !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  .admin-tab-btn {
+    padding: 10px 12px !important;
+    font-size: 11px !important;
+    flex-shrink: 0 !important;
+  }
+
+  .admin-body {
+    padding: 14px 10px !important;
+  }
 }

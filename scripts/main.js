@@ -247,8 +247,9 @@
     return sessionStorage.getItem('lavion_admin_auth') === 'true';
   }
 
-  openAdminBtn?.addEventListener('click', (e) => {
-    e.preventDefault();
+  const triggerOpenAdmin = (e) => {
+    e?.preventDefault();
+    document.getElementById('mobile-menu')?.classList.remove('active');
     if (isAuthenticated()) {
       adminOverlay?.classList.add('active');
       document.body.style.overflow = 'hidden';
@@ -259,6 +260,10 @@
       if (passField) passField.value = '';
       loginModal?.classList.add('active');
     }
+  };
+
+  document.querySelectorAll('#open-admin-panel, .open-admin-panel').forEach(btn => {
+    btn.addEventListener('click', triggerOpenAdmin);
   });
 
   loginCancelBtn?.addEventListener('click', () => {
