@@ -1162,8 +1162,11 @@
       `;
     }
 
-    document.querySelectorAll('#util-account, .account-link').forEach(btn => {
-      btn.addEventListener('click', openTracker);
+    document.querySelectorAll('.open-order-tracker, #open-order-tracker').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        document.getElementById('mobile-menu')?.classList.remove('active');
+        openTracker(e);
+      });
     });
   }
 
@@ -1563,6 +1566,7 @@
     document.querySelectorAll('#util-account, .account-link').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.preventDefault();
+        document.getElementById('mobile-menu')?.classList.remove('active');
         window.openCustomerAuthModal();
       });
     });
