@@ -1105,7 +1105,7 @@
           <div class="product-card-body">
             <div class="product-card-name" style="color:#fff;">${p.name}</div>
             <div class="product-card-desc" style="color:rgba(255,255,255,0.6);">${p.desc || ''}</div>
-            <div class="product-card-price" style="color:var(--color-gold-light);">PKR ${p.price.toLocaleString()}</div>
+            <div class="product-card-price" style="color:var(--color-gold-light); font-size:12px; letter-spacing:0.5px;">📞 Price on Request</div>
             <div class="product-card-actions">
               <button class="btn-add-cart" onclick="window.addToCart('${p.id}', 1)">+ Add to Bag</button>
               <button class="btn-quick-view" onclick="window.openQuickView('${p.id}')" title="Quick View">👁</button>
