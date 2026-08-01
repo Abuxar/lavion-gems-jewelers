@@ -1734,6 +1734,131 @@ footer {
   border-bottom: 1px solid rgba(200, 169, 110, 0.2);
 }
 
+.size-guide-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.85);
+}
+
+/* ======================================
+   LUXURY INVOICE & PRINTABLE RECEIPT SYSTEM
+====================================== */
+.invoice-card {
+  max-width: 720px;
+  background: #ffffff;
+  color: #1c1a17;
+  border-radius: 12px;
+  padding: 40px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+  font-family: var(--font-sans);
+  position: relative;
+}
+
+.invoice-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  border-bottom: 2px solid var(--color-gold);
+  padding-bottom: 20px;
+  margin-bottom: 24px;
+}
+
+.invoice-brand-title {
+  font-family: var(--font-serif);
+  font-size: 26px;
+  color: #1c1a18;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.invoice-brand-title span {
+  color: var(--color-gold-dark);
+}
+
+.invoice-badge {
+  display: inline-block;
+  background: var(--color-gold-dark);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 3px;
+  margin-top: 6px;
+}
+
+.invoice-details-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  background: #fdfbf7;
+  border: 1px solid #ebd9b5;
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 28px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.invoice-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 24px;
+  font-size: 13px;
+}
+
+.invoice-table th {
+  background: #1c1a18;
+  color: var(--color-gold-light);
+  padding: 12px;
+  text-align: left;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.invoice-table td {
+  padding: 14px 12px;
+  border-bottom: 1px solid #eee;
+  color: #333;
+}
+
+.invoice-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid #ddd;
+  padding-top: 20px;
+  margin-top: 20px;
+  font-size: 12px;
+  color: #666;
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #invoice-modal, #invoice-modal * {
+    visibility: visible;
+  }
+  #invoice-modal {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    background: #fff !important;
+  }
+  .invoice-card {
+    box-shadow: none;
+    padding: 20px;
+    border: none;
+  }
+  .invoice-no-print {
+    display: none !important;
+  }
+}
+
 .admin-table td {
   padding: 14px 18px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);

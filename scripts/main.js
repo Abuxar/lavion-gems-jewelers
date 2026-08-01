@@ -368,42 +368,66 @@
       document.getElementById('form-product-name').value = product.name;
       document.getElementById('form-product-category').value = product.category;
       document.getElementById('form-product-price').value = product.price;
-      document.getElementById('form-product-stock').value = product.stock;
-      document.getElementById('form-product-badge').value = product.badge || '';
-      document.getElementById('form-product-img').value = product.img;
-      document.getElementById('form-product-desc').value = product.desc || '';
-    } else {
-      document.getElementById('modal-product-title').textContent = 'Add New Product';
-      document.getElementById('form-product-id').value = '';
-    }
+    if (modalTitle) modalTitle.textContent = product ? 'Edit Product Item' : 'Add New Product Item';
+    document.getElementById('form-product-id').value = product ? product.id : '';
+    document.getElementById('form-product-name').value = product ? product.name : '';
+    document.getElementById('form-product-category').value = product ? product.category : 'rings';
+    document.getElementById('form-product-price').value = product ? product.price : '';
+    document.getElementById('form-product-stock').value = product ? product.stock : 10;
+    document.getElementById('form-product-badge').value = product ? product.badge : '';
+    document.getElementById('form-product-desc').value = product ? product.desc || '' : '';
+
+    const imageVal = product ? product.img : 'images/gems.png';
+    activeUploadedImageBase64 = imageVal;
+    if (previewImg) previewImg.src = imageVal;
+
     productModal?.classList.add('active');
   }
 
   modalCancelBtn?.addEventListener('click', () => productModal?.classList.remove('active'));
 
-  productForm?.addEventListener('submit', (e) => {
+  productForm?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const id = document.getElementById('form-product-id').value;
-    const name = document.getElementById('form-product-name').value;
+    const name = document.getElementById('form-product-name').value.trim();
     const category = document.getElementById('form-product-category').value;
     const price = parseFloat(document.getElementById('form-product-price').value) || 0;
     const stock = parseInt(document.getElementById('form-product-stock').value) || 0;
     const badge = document.getElementById('form-product-badge').value;
-    const img = document.getElementById('form-product-img').value;
-    const desc = document.getElementById('form-product-desc').value;
+    const desc = document.getElementById('form-product-desc').value.trim();
+    const finalImg = activeUploadedImageBase64 || 'images/hero_campaign.png';
 
     let products = getProducts();
     if (id) {
-      products = products.map(p => p.id === id ? { id, name, category, price, stock, badge, img, desc } : p);
-      showToast(`Product "${name}" updated successfully!`, 'success');
+      products = products.map(p => p.id === id ? { id, name, category, price, stock, badge, img: finalImg, desc } : p);
+      showToast(`Product "${name}" updated under ${category.toUpperCase()} category!`, 'success');
     } else {
-      const newId = Date.now().toString();
-      products.push({ id: newId, name, category, price, stock, badge, img, desc });
-      showToast(`New product "${name}" added!`, 'success');
+      const newId = String(Date.now());
+      products.push({ id: newId, name, category, price, stock, badge, img: finalImg, desc });
+      showToast(`New product "${name}" added to ${category.toUpperCase()} category!`, 'success');
     }
 
     saveProducts(products);
     productModal?.classList.remove('active');
+
+    // Also POST to Express/MongoDB backend if active
+    try {
+      if (id) {
+        await fetch(`http://localhost:5000/api/products/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, category, price, stock, badge, img: finalImg, desc })
+        });
+      } else {
+        await fetch(`http://localhost:5000/api/products`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, category, price, stock, badge, img: finalImg, desc })
+        });
+      }
+    } catch (err) {
+      console.log('Product saved to local database.');
+    }
   });
 
   // Render Function
@@ -433,9 +457,9 @@
     if (catalogTbody) {
       catalogTbody.innerHTML = filteredProducts.map(p => `
         <tr>
-          <td><img src="${p.img}" class="admin-thumb" alt="${p.name}" /></td>
+          <td><img src="${p.img}" class="admin-thumb" alt="${p.name}" style="width:48px;height:48px;object-fit:cover;border-radius:4px;border:1px solid var(--color-gold);" /></td>
           <td><strong>${p.name}</strong><br><span style="font-size:11px;color:rgba(255,255,255,0.5);">${p.desc || ''}</span></td>
-          <td><span style="text-transform:uppercase;font-size:11px;color:var(--color-gold-light);">${p.category}</span></td>
+          <td><span style="text-transform:uppercase;font-size:11px;color:var(--color-gold-light);font-weight:700;">${p.category}</span></td>
           <td>PKR ${p.price.toLocaleString()}</td>
           <td>${p.stock} units</td>
           <td>${p.badge ? `<span class="admin-status-tag" style="background:rgba(200,169,110,0.2);color:var(--color-gold-light);">${p.badge}</span>` : '—'}</td>
@@ -446,7 +470,7 @@
             </div>
           </td>
         </tr>
-      `).join('') || `<tr><td colspan="7" style="text-align:center;padding:24px;color:rgba(255,255,255,0.5);">No items found</td></tr>`;
+      `).join('') || `<tr><td colspan="7" style="text-align:center;padding:24px;color:rgba(255,255,255,0.5);">No items match this category filter.</td></tr>`;
 
       catalogTbody.querySelectorAll('.admin-action-btn.edit').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -541,7 +565,7 @@
       });
     }
 
-    // Orders Table
+    // Orders Table with Printable Invoice Button
     const orderStatusFilter = document.getElementById('admin-filter-order-status')?.value || 'all';
     const filteredOrders = orders.filter(o => orderStatusFilter === 'all' || o.status === orderStatusFilter);
 
@@ -565,10 +589,20 @@
             </select>
           </td>
           <td>
-            <button class="admin-action-btn delete-order" data-id="${o.id}">Remove</button>
+            <div style="display:flex; gap:6px;">
+              <button class="admin-action-btn view-invoice" data-id="${o.id}" style="padding:4px 8px; font-size:11px; background:var(--color-gold); color:#1c1a18; font-weight:700;">📄 Invoice</button>
+              <button class="admin-action-btn delete-order" data-id="${o.id}">Remove</button>
+            </div>
           </td>
         </tr>
       `).join('') || `<tr><td colspan="8" style="text-align:center;padding:24px;color:rgba(255,255,255,0.5);">No orders found</td></tr>`;
+
+      ordersTbody.querySelectorAll('.view-invoice').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.getAttribute('data-id');
+          window.generateInvoice(id);
+        });
+      });
 
       ordersTbody.querySelectorAll('.order-status-select').forEach(select => {
         select.addEventListener('change', () => {
@@ -1465,12 +1499,15 @@
 
     const ordersHtml = orders.length > 0 ? orders.map(o => `
       <div style="background:#12100e; border:1px solid rgba(200,169,110,0.3); border-radius:6px; padding:12px; margin-bottom:10px; font-size:12px;">
-        <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
-          <strong style="color:var(--color-gold-light);">${o.id}</strong>
-          <span class="admin-status-tag instock" style="padding:2px 6px; font-size:9px;">${o.status}</span>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+          <div>
+            <strong style="color:var(--color-gold-light); font-size:13px;">${o.id}</strong>
+            <span class="admin-status-tag instock" style="padding:2px 6px; font-size:9px; margin-left:6px;">${o.status}</span>
+          </div>
+          <button onclick="window.generateInvoice('${o.id}')" style="background:var(--color-gold); color:#1c1a18; border:none; padding:4px 10px; border-radius:3px; font-size:11px; font-weight:700; cursor:pointer;">📄 Download Invoice</button>
         </div>
-        <div style="color:rgba(255,255,255,0.8);">${o.items}</div>
-        <div style="color:rgba(255,255,255,0.5); font-size:11px; margin-top:4px;">Placed on: ${o.date}</div>
+        <div style="color:rgba(255,255,255,0.85); font-weight:600;">${o.items}</div>
+        <div style="color:rgba(255,255,255,0.5); font-size:11px; margin-top:4px;">Placed on: ${o.date} &nbsp;|&nbsp; Total: PKR ${o.total.toLocaleString()}</div>
       </div>
     `).join('') : '<div style="color:rgba(255,255,255,0.5); font-size:12px; font-style:italic;">No past order history found.</div>';
 
@@ -1528,6 +1565,147 @@
     window.updateAccountHeaderUI();
   }
 
+  /* ======================================
+     LUXURY INVOICE & RECEIPT SYSTEM
+  ====================================== */
+  window.generateInvoice = function (orderId) {
+    const orders = window.getOrders();
+    const order = orders.find(o => String(o.id).toLowerCase() === String(orderId).toLowerCase());
+
+    if (!order) {
+      showToast('Order record not found for invoice generation.', 'error');
+      return;
+    }
+
+    let modal = document.getElementById('invoice-modal');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 'invoice-modal';
+      modal.className = 'admin-modal-backdrop';
+      document.body.appendChild(modal);
+    }
+
+    const rates = window.getGoldRates();
+    const dateStr = order.date || new Date().toISOString().split('T')[0];
+
+    modal.innerHTML = `
+      <div class="admin-modal-dialog invoice-card" style="max-width:760px; padding:0; overflow:hidden;">
+        <!-- Non-Print Header Bar -->
+        <div class="invoice-no-print" style="background:#1c1a18; padding:12px 24px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--color-gold);">
+          <span style="color:var(--color-gold-light); font-size:13px; font-weight:600;">🧾 Lavion Official Sales Invoice & Certificate</span>
+          <div style="display:flex; gap:10px;">
+            <button class="admin-primary-btn" id="inv-print-btn" style="padding:6px 16px; font-size:11px;">🖨 Print / Save as PDF</button>
+            <button class="admin-action-btn" id="inv-close-btn" style="padding:6px 12px; font-size:11px;">Close</button>
+          </div>
+        </div>
+
+        <!-- Printable Content -->
+        <div style="padding:40px; background:#fff; color:#1c1a18;" id="printable-invoice-content">
+          <!-- Invoice Header -->
+          <div class="invoice-header">
+            <div>
+              <div class="invoice-brand-title">LAVION <span>GEMS</span> & JEWELLERS</div>
+              <div style="font-size:11px; color:#666; font-style:italic;">Pakistan's Premier Luxury Jewellery House & Certified Bullion</div>
+              <div class="invoice-badge">Official Hallmark Certificate & Tax Invoice</div>
+            </div>
+            <div style="text-align:right;">
+              <h2 style="font-family:var(--font-serif); font-size:24px; color:var(--color-gold-dark); margin:0;">INVOICE</h2>
+              <div style="font-size:14px; font-weight:700; color:#333;"># ${String(order.id).replace('ORD-', 'INV-')}</div>
+              <div style="font-size:11px; color:#777;">Date: ${dateStr}</div>
+            </div>
+          </div>
+
+          <!-- Customer & Order Meta Grid -->
+          <div class="invoice-details-grid">
+            <div>
+              <strong style="color:var(--color-gold-dark); text-transform:uppercase; font-size:10px; letter-spacing:1px; display:block; margin-bottom:4px;">Billed To (Customer):</strong>
+              <div style="font-weight:700; font-size:15px; color:#111;">${order.customer}</div>
+              <div>Phone: <strong>${order.phone}</strong></div>
+              <div>City: <strong>${order.city}</strong></div>
+              <div>Address: ${order.address || 'Pakistan Delivery'}</div>
+            </div>
+            <div>
+              <strong style="color:var(--color-gold-dark); text-transform:uppercase; font-size:10px; letter-spacing:1px; display:block; margin-bottom:4px;">Order Details & Gold Rate:</strong>
+              <div>Order Reference: <strong>${order.id}</strong></div>
+              <div>Payment Mode: <strong>${order.payment || 'Cash on Delivery'}</strong></div>
+              <div>Delivery Status: <strong style="color:#27ae60;">${order.status}</strong></div>
+              <div>24K Gold Rate at Confirmation: <strong>PKR ${rates.rate24kPerTola.toLocaleString()} / Tola</strong></div>
+            </div>
+          </div>
+
+          <!-- Items Table -->
+          <table class="invoice-table">
+            <thead>
+              <tr>
+                <th style="width:50%;">Description / Piece Details</th>
+                <th>Purity</th>
+                <th>Qty</th>
+                <th style="text-align:right;">Total Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <strong>${order.items}</strong><br>
+                  <span style="font-size:11px; color:#666; font-style:italic;">Certified Hallmark Gold & Insured Courier Dispatch</span>
+                </td>
+                <td>22K Gold / Gem</td>
+                <td>1</td>
+                <td style="text-align:right; font-weight:700;">${order.total > 0 ? 'PKR ' + order.total.toLocaleString() : 'Quotation Price'}</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <!-- Financial Summary -->
+          <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-top:20px; padding-top:16px; border-top:2px solid #eee;">
+            <div style="font-size:11px; color:#666; max-width:340px; line-height:1.5;">
+              • <strong>Guaranteed Quality:</strong> All gold pieces are stamped with 22K/916 or 18K/750 hallmark quality.<br>
+              • <strong>Support Contact:</strong> +92 324 1775662 | support@lavion.pk
+            </div>
+            <div style="text-align:right; min-width:220px;">
+              <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:6px;">
+                <span>Subtotal:</span>
+                <strong>${order.total > 0 ? 'PKR ' + order.total.toLocaleString() : 'Day-of-Delivery'}</strong>
+              </div>
+              <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:6px;">
+                <span>Express Shipping:</span>
+                <strong style="color:#27ae60;">FREE Insured</strong>
+              </div>
+              <div style="display:flex; justify-content:space-between; font-size:18px; font-weight:700; color:var(--color-gold-dark); border-top:2px solid var(--color-gold); padding-top:8px; margin-top:8px;">
+                <span>Total Amount:</span>
+                <span>${order.total > 0 ? 'PKR ' + order.total.toLocaleString() : 'Rate Locked'}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Official Stamp & Sign -->
+          <div class="invoice-footer">
+            <div>
+              <div style="font-family:var(--font-serif); font-size:14px; font-weight:700; color:#1c1a18;">Lavion Gems & Jewellers Ltd.</div>
+              <div>Sarafa Bazaar, Gulberg III, Lahore, Pakistan</div>
+            </div>
+            <div style="text-align:center;">
+              <div style="border-bottom:1px solid #999; width:160px; margin-bottom:4px; font-family:var(--font-serif); font-style:italic; font-size:14px; color:var(--color-gold-dark);">Authorized Signature</div>
+              <div style="font-size:10px; text-transform:uppercase; letter-spacing:1px; color:#888;">Certified Master Craftsman</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    modal.classList.add('active');
+    document.body.style.overflow = 'hidden';
+
+    document.getElementById('inv-close-btn')?.addEventListener('click', () => {
+      modal.classList.remove('active');
+      document.body.style.overflow = '';
+    });
+
+    document.getElementById('inv-print-btn')?.addEventListener('click', () => {
+      window.print();
+    });
+  };
+
   // Initial cart & wishlist badge update on DOM ready
   document.addEventListener('DOMContentLoaded', () => {
     window.updateCartBadge();
@@ -1546,6 +1724,7 @@
   initAdminGoldRateControls();
   initCustomerAuthControls();
 })();
+
 
 
 
