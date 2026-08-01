@@ -203,19 +203,19 @@
      ADMIN PANEL CONTROLLER
   ====================================== */
   const DEFAULT_PRODUCTS = [
-    { id: '1', name: 'Emerald Royale Ring', category: 'rings', price: 800, stock: 8, badge: 'New', img: 'images/featured_rings.png', desc: '22k Gold & Colombian Emerald Ring' },
-    { id: '2', name: 'Diamond Halo Necklace', category: 'necklaces', price: 1750, stock: 4, badge: 'Bestseller', img: 'images/hero_necklace.png', desc: '18k White Gold & Diamond Necklace' },
-    { id: '3', name: 'Celestial Drops Earrings', category: 'earrings', price: 550, stock: 12, badge: '', img: 'images/featured_earrings.png', desc: 'Diamond Pavé Drop Earrings' },
-    { id: '4', name: 'Eternity Bangle', category: 'bracelets', price: 1200, stock: 3, badge: 'Limited', img: 'images/featured_bracelets.png', desc: '22k Gold Diamond-Set Bangle' },
-    { id: '5', name: 'Royal Parure Set', category: 'asian', price: 3500, stock: 2, badge: 'Heritage', img: 'images/hero_campaign.png', desc: 'Full Set — Necklace, Earrings & Ring' },
-    { id: '6', name: 'Ruby Solitaire Ring', category: 'rings', price: 1000, stock: 6, badge: '', img: 'images/featured_rings.png', desc: '22k Gold & Burmese Ruby Ring' },
-    { id: '7', name: 'Certified Ceylon Sapphire', category: 'gems', price: 1250, stock: 5, badge: 'Certified', img: 'images/gems.png', desc: 'Precious unmounted royal blue sapphire' },
-    { id: '8', name: 'GIA Solitaire Diamond Ring', category: 'diamonds', price: 2500, stock: 2, badge: 'New', img: 'images/diamonds.png', desc: 'Platinum & GIA Certified VVS Diamond Ring' },
-    { id: '9', name: 'Kundan Polki Choker Set', category: 'asian', price: 2200, stock: 4, badge: 'Heritage', img: 'images/asian_jewellery.png', desc: 'Heritage 22k Gold Kundan & Polki Choker' },
-    { id: '10', name: 'Art Deco Diamond Cuff', category: 'western', price: 1600, stock: 3, badge: 'Limited', img: 'images/western_jewellery.png', desc: 'Minimalist Platinum & Diamond Art Deco Cuff' },
-    { id: '11', name: 'Bespoke Calligraphy Gold Pendant', category: 'customized', price: 520, stock: 10, badge: 'Custom', img: 'images/hero_campaign.png', desc: 'Handcrafted 22k Gold Custom Arabic/Urdu Name Calligraphy' },
-    { id: '12', name: 'Custom Emerald Bridal Choker', category: 'customized', price: 4100, stock: 5, badge: 'Bespoke', img: 'images/asian_jewellery.png', desc: 'Custom Designed 22k Gold & Colombian Emerald Parure' },
-    { id: '13', name: 'Custom Engagement Solitaire', category: 'customized', price: 2700, stock: 8, badge: 'Bespoke', img: 'images/featured_rings.png', desc: 'Tailor-Made Platinum & GIA Diamond Engagement Ring' }
+    { id: '1', name: 'Emerald Royale Ring', category: 'rings', price: 1150, stock: 8, badge: 'New', img: 'images/featured_rings.png', desc: '22k Yellow Gold & 1.8ct Colombian Emerald Ring' },
+    { id: '2', name: 'Diamond Halo Necklace', category: 'necklaces', price: 1850, stock: 4, badge: 'Bestseller', img: 'images/hero_necklace.png', desc: '18k White Gold & 2.2ct VS1 Diamond Halo Necklace' },
+    { id: '3', name: 'Celestial Drops Earrings', category: 'earrings', price: 750, stock: 12, badge: '', img: 'images/featured_earrings.png', desc: '18k White Gold Diamond Pavé Drop Earrings' },
+    { id: '4', name: 'Eternity Bangle', category: 'bracelets', price: 1400, stock: 3, badge: 'Limited', img: 'images/featured_bracelets.png', desc: '22k Solid Gold Diamond-Set Bangle' },
+    { id: '5', name: 'Royal Parure Set', category: 'asian', price: 3800, stock: 2, badge: 'Heritage', img: 'images/hero_campaign.png', desc: '22k Heritage Gold Full Bridal Set — Choker, Earrings & Ring' },
+    { id: '6', name: 'Ruby Solitaire Ring', category: 'rings', price: 1350, stock: 6, badge: '', img: 'images/featured_rings.png', desc: '22k Gold & 2.1ct Burmese Ruby Ring' },
+    { id: '7', name: 'Certified Ceylon Sapphire', category: 'gems', price: 2600, stock: 5, badge: 'Certified', img: 'images/gems.png', desc: '4.5ct Unmounted Royal Blue Ceylon Sapphire with Certificate' },
+    { id: '8', name: 'GIA Solitaire Diamond Ring', category: 'diamonds', price: 4200, stock: 2, badge: 'New', img: 'images/diamonds.png', desc: 'Platinum & 2.0ct GIA Certified VVS1 Diamond Ring' },
+    { id: '9', name: 'Kundan Polki Choker Set', category: 'asian', price: 2400, stock: 4, badge: 'Heritage', img: 'images/asian_jewellery.png', desc: 'Heritage 22k Gold Kundan & Uncut Diamond Polki Choker' },
+    { id: '10', name: 'Art Deco Diamond Cuff', category: 'western', price: 1750, stock: 3, badge: 'Limited', img: 'images/western_jewellery.png', desc: 'Minimalist Platinum & Diamond Art Deco Cuff Bangle' },
+    { id: '11', name: 'Bespoke Calligraphy Gold Pendant', category: 'customized', price: 650, stock: 10, badge: 'Custom', img: 'images/hero_campaign.png', desc: 'Handcrafted 22k Gold Custom Arabic/Urdu Name Calligraphy' },
+    { id: '12', name: 'Custom Emerald Bridal Choker', category: 'customized', price: 4800, stock: 5, badge: 'Bespoke', img: 'images/asian_jewellery.png', desc: 'Custom Designed 22k Gold & 6.0ct Colombian Emerald Parure' },
+    { id: '13', name: 'Custom Engagement Solitaire', category: 'customized', price: 2900, stock: 8, badge: 'Bespoke', img: 'images/featured_rings.png', desc: 'Tailor-Made Platinum & 1.5ct GIA Diamond Engagement Ring' }
   ];
 
   const DEFAULT_ORDERS = [
@@ -264,18 +264,25 @@
   syncBackendData();
 
   function getProducts() {
-    const saved = localStorage.getItem('lavion_products_v1');
+    const saved = localStorage.getItem('lavion_products_v4');
     if (!saved) {
-      localStorage.setItem('lavion_products_v1', JSON.stringify(DEFAULT_PRODUCTS));
+      localStorage.removeItem('lavion_products_v1');
+      localStorage.removeItem('lavion_products_v2');
+      localStorage.removeItem('lavion_products_v3');
+      localStorage.setItem('lavion_products_v4', JSON.stringify(DEFAULT_PRODUCTS));
       return DEFAULT_PRODUCTS;
     }
     return JSON.parse(saved);
   }
 
+  window.getProducts = getProducts;
+
   function saveProducts(products) {
-    localStorage.setItem('lavion_products_v1', JSON.stringify(products));
+    localStorage.setItem('lavion_products_v4', JSON.stringify(products));
     renderAdmin();
   }
+
+  window.saveProducts = saveProducts;
 
   function getOrders() {
     const saved = localStorage.getItem('lavion_orders_v1');
