@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+
+# Sitemaps
+Sitemap: https://lavion-gems-jewelers.vercel.app/sitemap.xml
+
+# Disallow admin or server-side paths
+Disallow: /server/
+Disallow: /node_modules/
+Disallow: /api/
