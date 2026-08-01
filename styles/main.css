@@ -3011,4 +3011,77 @@ footer {
   .admin-body {
     padding: 14px 10px !important;
   }
+}
+
+/* ======================================
+   NATIVE MOBILE APP BOTTOM NAVIGATION DOCK
+====================================== */
+.mobile-app-dock {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  body {
+    padding-bottom: 68px !important;
+  }
+
+  .mobile-app-dock {
+    display: flex !important;
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    height: 64px !important;
+    background: rgba(18, 16, 14, 0.96) !important;
+    backdrop-filter: blur(16px) !important;
+    -webkit-backdrop-filter: blur(16px) !important;
+    border-top: 1px solid rgba(200, 169, 110, 0.35) !important;
+    z-index: 999 !important;
+    justify-content: space-around !important;
+    align-items: center !important;
+    box-shadow: 0 -10px 25px rgba(0, 0, 0, 0.5) !important;
+  }
+
+  .mobile-dock-item {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    color: rgba(255, 255, 255, 0.65) !important;
+    font-family: var(--font-sans) !important;
+    font-size: 10px !important;
+    font-weight: 600 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
+    gap: 3px !important;
+    position: relative !important;
+    padding: 6px 12px !important;
+    transition: color 0.2s ease !important;
+  }
+
+  .mobile-dock-item.active,
+  .mobile-dock-item:hover {
+    color: var(--color-gold-light) !important;
+  }
+
+  .mobile-dock-icon {
+    font-size: 18px !important;
+    line-height: 1 !important;
+  }
+
+  .mobile-dock-badge {
+    position: absolute !important;
+    top: 2px !important;
+    right: 14px !important;
+    background: var(--color-gold) !important;
+    color: #1c1a18 !important;
+    font-size: 9px !important;
+    font-weight: 800 !important;
+    width: 16px !important;
+    height: 16px !important;
+    border-radius: 50% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
 }

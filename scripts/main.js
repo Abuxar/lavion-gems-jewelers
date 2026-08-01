@@ -666,6 +666,7 @@
     document.querySelectorAll('.icon-badge').forEach(badge => {
       badge.textContent = totalCount;
     });
+    if (typeof window.renderMobileAppDock === 'function') window.renderMobileAppDock();
   };
 
   window.addToCart = function (productId, qty = 1) {
@@ -1775,6 +1776,51 @@
     });
   }
 
+  /* ---- Auto-Inject Native Mobile App Dock ---- */
+  window.renderMobileAppDock = function () {
+    let dock = document.querySelector('.mobile-app-dock');
+    if (!dock) {
+      dock = document.createElement('div');
+      dock.className = 'mobile-app-dock';
+      document.body.appendChild(dock);
+    }
+
+    const currentPath = window.location.pathname.toLowerCase();
+    const isHome = currentPath.endsWith('index.html') || currentPath.endsWith('/') || currentPath === '';
+    const isCatalog = currentPath.includes('collections.html');
+    const isBespoke = currentPath.includes('customized-jewellery.html');
+    const isWishlist = currentPath.includes('wishlist.html');
+    const isCart = currentPath.includes('cart.html');
+
+    const cartCount = window.getCart ? window.getCart().reduce((sum, item) => sum + item.qty, 0) : 0;
+    const wishlistCount = window.getWishlist ? window.getWishlist().length : 0;
+
+    dock.innerHTML = `
+      <a href="index.html" class="mobile-dock-item ${isHome ? 'active' : ''}">
+        <span class="mobile-dock-icon">🏠</span>
+        <span>Home</span>
+      </a>
+      <a href="collections.html" class="mobile-dock-item ${isCatalog ? 'active' : ''}">
+        <span class="mobile-dock-icon">💎</span>
+        <span>Catalog</span>
+      </a>
+      <a href="customized-jewellery.html" class="mobile-dock-item ${isBespoke ? 'active' : ''}">
+        <span class="mobile-dock-icon">✨</span>
+        <span>Bespoke</span>
+      </a>
+      <a href="wishlist.html" class="mobile-dock-item ${isWishlist ? 'active' : ''}">
+        <span class="mobile-dock-icon">💖</span>
+        <span>Wishlist</span>
+        ${wishlistCount > 0 ? `<span class="mobile-dock-badge">${wishlistCount}</span>` : ''}
+      </a>
+      <a href="cart.html" class="mobile-dock-item ${isCart ? 'active' : ''}">
+        <span class="mobile-dock-icon">🛍️</span>
+        <span>Bag</span>
+        ${cartCount > 0 ? `<span class="mobile-dock-badge">${cartCount}</span>` : ''}
+      </a>
+    `;
+  };
+
   // Initial cart & wishlist badge update on DOM ready
   document.addEventListener('DOMContentLoaded', () => {
     window.updateCartBadge();
@@ -1785,6 +1831,7 @@
     initAdminGoldRateControls();
     initCustomerAuthControls();
     initMobileMenu();
+    window.renderMobileAppDock();
   });
   window.updateCartBadge();
   window.updateWishlistBadge();
@@ -1794,6 +1841,7 @@
   initAdminGoldRateControls();
   initCustomerAuthControls();
   initMobileMenu();
+  window.renderMobileAppDock();
 })();
 
 
