@@ -920,6 +920,73 @@
     </div>
   </div>
 
+  <!-- ===================== ADMIN PRODUCT MODAL ===================== -->
+  <div class="admin-modal-backdrop" id="admin-product-modal">
+    <div class="admin-modal-dialog" style="max-width: 600px;">
+      <h3 id="modal-product-title" style="font-family:var(--font-serif); font-size: 24px; color: var(--color-gold-light); margin-bottom: 20px;">
+        Add New Product Item
+      </h3>
+      <form id="admin-product-form">
+        <input type="hidden" id="form-product-id" />
+        
+        <div class="admin-form-group" style="margin-bottom:14px;">
+          <label style="font-size:11px; text-transform:uppercase; color:rgba(255,255,255,0.7); display:block; margin-bottom:6px;">Product Name</label>
+          <input type="text" id="form-product-name" placeholder="e.g. Royal Emerald Ring" style="width:100%; padding:10px; background:#12100e; border:1px solid rgba(200,169,110,0.3); color:#fff; border-radius:6px;" required />
+        </div>
+
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px; margin-bottom:14px;">
+          <div class="admin-form-group">
+            <label style="font-size:11px; text-transform:uppercase; color:rgba(255,255,255,0.7); display:block; margin-bottom:6px;">Category</label>
+            <select id="form-product-category" style="width:100%; padding:10px; background:#12100e; border:1px solid rgba(200,169,110,0.3); color:#fff; border-radius:6px;" required>
+              <option value="rings">Rings</option>
+              <option value="necklaces">Necklaces</option>
+              <option value="earrings">Earrings</option>
+              <option value="bracelets">Bracelets</option>
+              <option value="asian">Asian Jewellery</option>
+              <option value="western">Western Jewellery</option>
+              <option value="gems">Precious Gems</option>
+              <option value="diamonds">Diamonds</option>
+              <option value="customized">Customized</option>
+            </select>
+          </div>
+          <div class="admin-form-group">
+            <label style="font-size:11px; text-transform:uppercase; color:rgba(255,255,255,0.7); display:block; margin-bottom:6px;">Price (PKR)</label>
+            <input type="number" id="form-product-price" placeholder="e.g. 250000" style="width:100%; padding:10px; background:#12100e; border:1px solid rgba(200,169,110,0.3); color:#fff; border-radius:6px;" required />
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px; margin-bottom:14px;">
+          <div class="admin-form-group">
+            <label style="font-size:11px; text-transform:uppercase; color:rgba(255,255,255,0.7); display:block; margin-bottom:6px;">Stock Quantity</label>
+            <input type="number" id="form-product-stock" value="10" min="0" style="width:100%; padding:10px; background:#12100e; border:1px solid rgba(200,169,110,0.3); color:#fff; border-radius:6px;" required />
+          </div>
+          <div class="admin-form-group">
+            <label style="font-size:11px; text-transform:uppercase; color:rgba(255,255,255,0.7); display:block; margin-bottom:6px;">Badge Tag (Optional)</label>
+            <input type="text" id="form-product-badge" placeholder="e.g. New Arrival, Bestseller" style="width:100%; padding:10px; background:#12100e; border:1px solid rgba(200,169,110,0.3); color:#fff; border-radius:6px;" />
+          </div>
+        </div>
+
+        <div class="admin-form-group" style="margin-bottom:14px;">
+          <label style="font-size:11px; text-transform:uppercase; color:rgba(255,255,255,0.7); display:block; margin-bottom:6px;">Product Image Upload / File Picker</label>
+          <input type="file" id="form-product-file" accept="image/*" style="width:100%; padding:8px; background:#12100e; border:1px solid rgba(200,169,110,0.3); color:#fff; border-radius:6px; margin-bottom:8px;" />
+          <div id="form-product-img-preview-wrap" style="text-align:center; margin-bottom:12px;">
+            <img id="form-product-img-preview" src="images/gems.png" style="max-height:100px; border-radius:6px; border:1px solid var(--color-gold); margin:0 auto;" />
+          </div>
+        </div>
+
+        <div class="admin-form-group" style="margin-bottom:14px;">
+          <label style="font-size:11px; text-transform:uppercase; color:rgba(255,255,255,0.7); display:block; margin-bottom:6px;">Description</label>
+          <textarea id="form-product-desc" rows="3" placeholder="Enter product description, gold karatage, gem carats..." style="width:100%; padding:10px; background:#12100e; border:1px solid rgba(200,169,110,0.3); color:#fff; border-radius:6px;"></textarea>
+        </div>
+
+        <div style="display:flex; gap:12px; justify-content:flex-end; margin-top:20px;">
+          <button type="button" class="admin-action-btn" id="modal-cancel-btn" style="padding:10px 20px;">Cancel</button>
+          <button type="submit" class="admin-primary-btn" style="padding:10px 24px;">Save Product Item</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- ===================== ADMIN PANEL OVERLAY ===================== -->
   <div class="admin-overlay" id="admin-overlay">
     <div class="admin-window">
