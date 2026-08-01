@@ -211,6 +211,26 @@
         <a href="#rings" class="btn-link hero-cta" id="hero-cta-3">Shop Rings</a>
       </div>
     </div>
+    <!-- Slide 4 -->
+    <div class="hero-slide">
+      <img src="images/asian_jewellery.png" alt="Live Bullion Gold Calculator" />
+      <div class="hero-content">
+        <span class="hero-label">Live Bullion Estimator</span>
+        <h1 class="hero-title">Custom Gold<br>Weight Estimator</h1>
+        <p class="hero-subtitle">Calculate custom gold & diamond crafting value in Grams or Tola live</p>
+        <a href="#" class="btn-link hero-cta" onclick="window.openGoldCalculator(); return false;">⚖️ Open Live Gold Calculator</a>
+      </div>
+    </div>
+    <!-- Slide 5 -->
+    <div class="hero-slide">
+      <img src="images/western_jewellery.png" alt="Client Testimonials & Connoisseurs" />
+      <div class="hero-content">
+        <span class="hero-label">Client Testimonials</span>
+        <h2 class="hero-title">Loved by Connoisseurs<br>Worldwide</h2>
+        <p class="hero-subtitle">Read & submit verified 5-star purchase reviews from our patrons</p>
+        <a href="#" class="btn-link hero-cta" onclick="window.openSubmitReviewModal(); return false;">✍️ Submit Verified Review</a>
+      </div>
+    </div>
 
     <!-- Arrows -->
     <button class="hero-arrow prev" id="hero-prev" aria-label="Previous slide">
@@ -231,6 +251,8 @@
       <span class="hero-dot active" data-slide="0"></span>
       <span class="hero-dot" data-slide="1"></span>
       <span class="hero-dot" data-slide="2"></span>
+      <span class="hero-dot" data-slide="3"></span>
+      <span class="hero-dot" data-slide="4"></span>
     </div>
   </section>
 
@@ -784,79 +806,6 @@
       <p>An engagement ring, a family heirloom, or an everyday luxury — our master craftsmen will guide you to the ring
         that becomes your signature story. Gold, platinum, diamonds, emeralds, rubies.</p>
       <a href="rings.html" class="btn-link" id="editorial-rings-cta">Explore Rings →</a>
-    </div>
-  <!-- ===================== LIVE GOLD CALCULATOR TRIGGER BANNER ===================== -->
-  <section style="background: linear-gradient(135deg, #1c1a18 0%, #2a2520 100%); border-y: 1px solid rgba(200,169,110,0.3); padding: 30px 0;">
-    <div class="container" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;">
-      <div>
-        <span style="color: var(--color-gold); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px;">✦ Live Bullion Estimator</span>
-        <h3 style="font-family: var(--font-serif); font-size: 24px; color: #fff; margin-top: 4px;">Calculate Custom Jewellery Cost by Metal Weight</h3>
-        <p style="color: rgba(255,255,255,0.7); font-size: 13px;">Estimate gold & diamond crafting rates in Grams/Tola based on live bullion market prices.</p>
-      </div>
-      <button class="admin-primary-btn" id="open-gold-calculator-btn" onclick="window.openGoldCalculator()" style="padding: 12px 24px; font-size: 12px; font-weight: 700;">
-        ⚖️ Open Live Gold Calculator
-      </button>
-    </div>
-  </section>
-
-  <!-- ===================== VERIFIED CUSTOMER REVIEWS ===================== -->
-  <section class="reviews-section" style="padding: 70px 0; background: var(--color-bg-soft);">
-    <div class="container">
-      <div class="section-header reveal" style="text-align: center; margin-bottom: 40px;">
-        <span class="section-eyebrow">Client Testimonials</span>
-        <h2 class="section-title">Loved by Connoisseurs Worldwide</h2>
-        <p class="section-subtitle">Read real verified purchase reviews from our valued patrons</p>
-      </div>
-
-      <div class="reviews-grid" id="reviews-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px;">
-        <div class="review-card" style="background: #ffffff; border: 1px solid var(--color-border); padding: 24px; border-radius: 10px; box-shadow: 0 4px 16px rgba(0,0,0,0.04);">
-          <div style="color: #f1c40f; font-size: 16px; margin-bottom: 8px;">★★★★★</div>
-          <p style="font-family: var(--font-serif); font-size: 15px; font-style: italic; color: #333; line-height: 1.6; margin-bottom: 16px;">
-            "The Kundan Polki Choker Set exceeded my expectations for my daughter's wedding. The craftsmanship and 22k gold hallmarking are top tier!"
-          </p>
-          <div style="display: flex; align-items: center; gap: 10px;">
-            <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--color-dark); color: var(--color-gold-light); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;">M</div>
-            <div>
-              <div style="font-weight: 700; font-size: 13px; color: var(--color-dark);">Mahnoor Chaudhry</div>
-              <div style="font-size: 11px; color: #2ecc71; font-weight: 600;">✓ Verified Buyer — Lahore</div>
-            </div>
-          </div>
-        </div>
-
-        <div class="review-card" style="background: #ffffff; border: 1px solid var(--color-border); padding: 24px; border-radius: 10px; box-shadow: 0 4px 16px rgba(0,0,0,0.04);">
-          <div style="color: #f1c40f; font-size: 16px; margin-bottom: 8px;">★★★★★</div>
-          <p style="font-family: var(--font-serif); font-size: 15px; font-style: italic; color: #333; line-height: 1.6; margin-bottom: 16px;">
-            "Purchased the GIA Certified Solitaire Diamond Ring. Delivery to London was fast and the diamond brilliance is breathtaking."
-          </p>
-          <div style="display: flex; align-items: center; gap: 10px;">
-            <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--color-dark); color: var(--color-gold-light); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;">D</div>
-            <div>
-              <div style="font-weight: 700; font-size: 13px; color: var(--color-dark);">Dr. Farhan Ali</div>
-              <div style="font-size: 11px; color: #2ecc71; font-weight: 600;">✓ Verified Buyer — United Kingdom</div>
-            </div>
-          </div>
-        </div>
-
-        <div class="review-card" style="background: #ffffff; border: 1px solid var(--color-border); padding: 24px; border-radius: 10px; box-shadow: 0 4px 16px rgba(0,0,0,0.04);">
-          <div style="color: #f1c40f; font-size: 16px; margin-bottom: 8px;">★★★★★</div>
-          <p style="font-family: var(--font-serif); font-size: 15px; font-style: italic; color: #333; line-height: 1.6; margin-bottom: 16px;">
-            "Designed a custom Arabic calligraphy gold pendant through Bespoke Studio. Extremely responsive team & prompt updates on WhatsApp!"
-          </p>
-          <div style="display: flex; align-items: center; gap: 10px;">
-            <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--color-dark); color: var(--color-gold-light); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;">S</div>
-            <div>
-              <div style="font-weight: 700; font-size: 13px; color: var(--color-dark);">Sarah Siddiqui</div>
-              <div style="font-size: 11px; color: #2ecc71; font-weight: 600;">✓ Verified Buyer — Dubai, UAE</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div style="text-align: center; margin-top: 30px;">
-        <button class="btn-outline" onclick="window.openSubmitReviewModal()" style="padding: 12px 28px; font-size: 12px; font-weight: 700;">
-          ✍️ Submit Your Verified Review
-        </button>
-      </div>
     </div>
   </section>
 
