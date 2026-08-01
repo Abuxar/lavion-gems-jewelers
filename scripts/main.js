@@ -403,49 +403,60 @@
     }
   });
 
-  modalCancelBtn?.addEventListener('click', () => productModal?.classList.remove('active'));
+  let activeUploadedImageBase64 = null;
 
-  productForm?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const id = document.getElementById('form-product-id').value;
-    const name = document.getElementById('form-product-name').value.trim();
-    const category = document.getElementById('form-product-category').value;
-    const price = parseFloat(document.getElementById('form-product-price').value) || 0;
-    const stock = parseInt(document.getElementById('form-product-stock').value) || 0;
-    const badge = document.getElementById('form-product-badge').value;
-    const desc = document.getElementById('form-product-desc').value.trim();
-    const finalImg = activeUploadedImageBase64 || 'images/hero_campaign.png';
-
-    let products = getProducts();
-    if (id) {
-      products = products.map(p => p.id === id ? { id, name, category, price, stock, badge, img: finalImg, desc } : p);
-      showToast(`Product "${name}" updated under ${category.toUpperCase()} category!`, 'success');
-    } else {
-      const newId = String(Date.now());
-      products.push({ id: newId, name, category, price, stock, badge, img: finalImg, desc });
-      showToast(`New product "${name}" added to ${category.toUpperCase()} category!`, 'success');
+  document.getElementById('form-product-file')?.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        activeUploadedImageBase64 = event.target.result;
+        const preview = document.getElementById('form-product-img-preview');
+        if (preview) preview.src = activeUploadedImageBase64;
+      };
+      reader.readAsDataURL(file);
     }
+  });
 
-    saveProducts(products);
-    productModal?.classList.remove('active');
+  document.body.addEventListener('click', (e) => {
+    if (e.target.id === 'modal-cancel-btn' || e.target.closest('#modal-cancel-btn')) {
+      const modal = document.getElementById('admin-product-modal');
+      modal?.classList.remove('active');
+      document.body.style.overflow = '';
+    }
+  });
 
-    // Also POST to Express/MongoDB backend if active
-    try {
+  document.body.addEventListener('submit', async (e) => {
+    if (e.target.id === 'admin-product-form') {
+      e.preventDefault();
+      const id = document.getElementById('form-product-id')?.value;
+      const name = document.getElementById('form-product-name')?.value.trim();
+      const category = document.getElementById('form-product-category')?.value;
+      const price = parseFloat(document.getElementById('form-product-price')?.value) || 0;
+      const stock = parseInt(document.getElementById('form-product-stock')?.value) || 0;
+      const badge = document.getElementById('form-product-badge')?.value || '';
+      const desc = document.getElementById('form-product-desc')?.value.trim() || '';
+      const finalImg = activeUploadedImageBase64 || 'images/hero_campaign.png';
+
+      let products = getProducts();
       if (id) {
-        await fetch(`http://localhost:5000/api/products/${id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name, category, price, stock, badge, img: finalImg, desc })
-        });
+        products = products.map(p => String(p.id) === String(id) ? { id: String(id), name, category, price, stock, badge, img: finalImg, desc } : p);
+        showToast(`Product "${name}" updated successfully!`, 'success');
       } else {
-        await fetch(`http://localhost:5000/api/products`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name, category, price, stock, badge, img: finalImg, desc })
-        });
+        const newId = String(Date.now());
+        products.unshift({ id: newId, name, category, price, stock, badge, img: finalImg, desc });
+        showToast(`New product "${name}" added to ${category.toUpperCase()} category!`, 'success');
       }
-    } catch (err) {
-      console.log('Product saved to local database.');
+
+      saveProducts(products);
+      
+      const modal = document.getElementById('admin-product-modal');
+      modal?.classList.remove('active');
+      document.body.style.overflow = '';
+
+      // Immediately refresh live admin portal tables & store catalog
+      renderAdmin();
+      if (typeof window.renderProducts === 'function') window.renderProducts();
     }
   });
 
