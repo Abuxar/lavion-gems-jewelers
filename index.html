@@ -138,6 +138,18 @@
 
       <!-- Icons -->
       <div class="nav-icons">
+        <div class="currency-selector-wrap" style="margin-right: 6px;">
+          <span>🌐</span>
+          <select class="currency-selector-dropdown" onchange="window.setActiveCurrency(this.value)">
+            <option value="PKR">PKR (Rs)</option>
+            <option value="USD">USD ($)</option>
+            <option value="AED">AED (Dirham)</option>
+            <option value="GBP">GBP (£)</option>
+            <option value="EUR">EUR (€)</option>
+            <option value="SAR">SAR (Riyal)</option>
+            <option value="CAD">CAD (CA$)</option>
+          </select>
+        </div>
         <a href="#" id="nav-search" aria-label="Search">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
             stroke="currentColor">
