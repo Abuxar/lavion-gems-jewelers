@@ -2,11 +2,12 @@ const express = require('express');
 const router = express.Router();
 const { readData, writeData } = require('../utils/db');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
+const { sendCustomOrderEmail } = require('../utils/email');
 
 // POST /api/custom-orders - Submit bespoke custom request
 router.post('/', (req, res) => {
   try {
-    const { itemType, metal, goldPurity, gemPreference, customText, budgetRange, notes, customerName, customerPhone, customerCity } = req.body;
+    const { itemType, metal, goldPurity, gemPreference, customText, budgetRange, notes, customerName, customerPhone, customerCity, customerEmail } = req.body;
 
     if (!customerName || !customerPhone || !itemType) {
       return res.status(400).json({ success: false, message: 'Name, phone, and item type are required.' });
@@ -17,6 +18,7 @@ router.post('/', (req, res) => {
       id: refId,
       customerName,
       customerPhone,
+      customerEmail: customerEmail || '',
       customerCity: customerCity || 'Pakistan',
       itemType,
       metal: metal || '22k Gold',
@@ -48,6 +50,9 @@ router.post('/', (req, res) => {
     });
 
     writeData(db);
+
+    // Send custom order notification email (non-blocking)
+    sendCustomOrderEmail(newRequest);
 
     res.status(201).json({
       success: true,

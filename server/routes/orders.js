@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { readData, writeData } = require('../utils/db');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
+const { sendOrderConfirmationEmail } = require('../utils/email');
 
 // GET /api/orders - Get all orders (Admin or Customer Filter)
 router.get('/', (req, res) => {
@@ -38,7 +39,7 @@ router.get('/track/:query', (req, res) => {
 // POST /api/orders - Create checkout order
 router.post('/', (req, res) => {
   try {
-    const { customer, phone, city, address, payment, items, total } = req.body;
+    const { customer, phone, email, city, address, payment, items, total } = req.body;
 
     if (!customer || !phone || !city || !address) {
       return res.status(400).json({ success: false, message: 'Customer name, phone, city, and address are required.' });
@@ -49,6 +50,7 @@ router.post('/', (req, res) => {
       id: `ORD-${Math.floor(1000 + Math.random() * 9000)}`,
       customer,
       phone,
+      email: email || '',
       city,
       address,
       payment: payment || 'Cash on Delivery',
@@ -60,6 +62,9 @@ router.post('/', (req, res) => {
 
     db.orders.unshift(newOrder);
     writeData(db);
+
+    // Send order confirmation email (non-blocking)
+    sendOrderConfirmationEmail(newOrder);
 
     res.status(201).json({
       success: true,

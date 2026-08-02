@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const { readData, writeData } = require('../utils/db');
 const { JWT_SECRET, authenticateToken } = require('../middleware/auth');
+const { sendWelcomeEmail, sendNewRegistrationAlert, sendLoginAlert } = require('../utils/email');
 
 // POST /api/auth/register - Register customer
 router.post('/register', async (req, res) => {
@@ -40,6 +41,10 @@ router.post('/register', async (req, res) => {
       JWT_SECRET,
       { expiresIn: '7d' }
     );
+
+    // Send welcome email to user + admin alert (non-blocking)
+    sendWelcomeEmail({ name: newUser.name, email: newUser.email });
+    sendNewRegistrationAlert({ name: newUser.name, email: newUser.email, phone: newUser.phone, city: newUser.city });
 
     res.status(201).json({
       success: true,
@@ -84,6 +89,9 @@ router.post('/login', async (req, res) => {
       JWT_SECRET,
       { expiresIn: '7d' }
     );
+
+    // Send login alert to admin (non-blocking)
+    sendLoginAlert({ name: user.name, email: user.email, phone: user.phone });
 
     res.json({
       success: true,

@@ -11,6 +11,7 @@ const productRoutes = require('./routes/products');
 const orderRoutes = require('./routes/orders');
 const goldRateRoutes = require('./routes/goldRates');
 const customOrderRoutes = require('./routes/customOrders');
+const subscribeRoutes = require('./routes/subscribe');
 
 const { connectDB, isMongoConnected } = require('./config/db');
 
@@ -34,6 +35,7 @@ app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/gold-rates', goldRateRoutes);
 app.use('/api/custom-orders', customOrderRoutes);
+app.use('/api/subscribe', subscribeRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
