@@ -652,13 +652,22 @@
           if (res.ok && data.success) {
             if (typeof showToast === 'function') showToast('WhatsApp request sent — we will message you shortly.','success');
             else alert('WhatsApp request sent — we will message you shortly.');
-          } else {
-            if (typeof showToast === 'function') showToast('Failed to send WhatsApp message.','error');
-            else alert('Failed to send WhatsApp message.');
+            return;
           }
+          console.error('WhatsApp API response error:', data);
         } catch (err) {
-          if (typeof showToast === 'function') showToast('Failed to send WhatsApp message.','error');
-          else alert('Failed to send WhatsApp message.');
+          console.error('WhatsApp API request failed:', err.message || err);
+        }
+
+        // Fallback: open wa.me so user can send the message manually
+        try {
+          const waUrl = `https://wa.me/923241775662?text=${encodeURIComponent(message)}`;
+          window.open(waUrl, '_blank');
+          if (typeof showToast === 'function') showToast('Opened WhatsApp so you can send the message manually.','info');
+          else alert('Opened WhatsApp so you can send the message manually.');
+        } catch (e) {
+          if (typeof showToast === 'function') showToast('Failed to open WhatsApp.','error');
+          else alert('Failed to open WhatsApp.');
         }
       });
 
