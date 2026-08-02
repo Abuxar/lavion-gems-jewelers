@@ -135,13 +135,34 @@
   });
 
   /* ---- Newsletter ---- */
-  document.querySelector('.newsletter-form')?.addEventListener('submit', (e) => {
+  document.querySelector('.newsletter-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const input = e.target.querySelector('input');
-    if (input.value) {
-      input.value = '';
-      input.placeholder = 'Thank you for subscribing!';
-      setTimeout(() => { input.placeholder = 'Your email address'; }, 3000);
+    const input  = e.target.querySelector('input[type="email"]');
+    const btn    = e.target.querySelector('button[type="submit"]');
+    const email  = input?.value.trim();
+    if (!email) return;
+
+    const origBtnText = btn?.textContent;
+    if (btn) { btn.disabled = true; btn.textContent = 'Subscribing…'; }
+
+    try {
+      const res = await fetch('/api/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+      const data = await res.json();
+      if (data.success) {
+        if (input) { input.value = ''; input.placeholder = '✓ Thank you for subscribing!'; }
+        setTimeout(() => { if (input) input.placeholder = 'Your email address'; }, 4000);
+      } else {
+        if (input) { input.placeholder = data.message || 'Something went wrong, try again.'; }
+      }
+    } catch {
+      if (input) { input.placeholder = 'Network error, please try again.'; }
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = origBtnText; }
+      setTimeout(() => { if (input) input.placeholder = 'Your email address'; }, 4000);
     }
   });
 
@@ -1523,6 +1544,13 @@
       const announceBar = document.querySelector('.announcement-bar');
       if (announceBar && announceBar.parentNode) {
         announceBar.parentNode.insertBefore(bar, announceBar.nextSibling);
+      } else {
+        const headerUtility = document.querySelector('.header-utility');
+        if (headerUtility && headerUtility.parentNode) {
+          headerUtility.parentNode.insertBefore(bar, headerUtility);
+        } else {
+          document.body.insertBefore(bar, document.body.firstChild);
+        }
       }
     }
     bar.innerHTML = tickerContent;
@@ -2165,7 +2193,7 @@
 (function injectWhatsAppButton() {
   const wa = document.createElement('a');
   wa.id = 'whatsapp-float-btn';
-  wa.href = 'https://wa.me/923241775662?text=Hello%20Lavion%20Gems%20%26%20Jewellers%2C%20I%27d%20like%20to%20enquire%20about%20your%20jewellery%20collection.';
+  wa.href = 'https://web.whatsapp.com/send?phone=923241775662&text=Hello%20Lavion%20Gems%20%26%20Jewellers%2C%20I%27d%20like%20to%20enquire%20about%20your%20jewellery%20collection.';
   wa.target = '_blank';
   wa.rel = 'noopener noreferrer';
   wa.title = 'Chat with us on WhatsApp';

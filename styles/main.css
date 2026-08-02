@@ -134,23 +134,6 @@ img {
 }
 
 /* ======================================
-   TOP ANNOUNCEMENT BAR
-====================================== */
-.announcement-bar {
-  background: var(--color-dark);
-  color: var(--color-gold-light);
-  text-align: center;
-  padding: 10px 20px;
-  font-family: var(--font-sans);
-  font-size: 10px;
-  font-weight: 400;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  position: relative;
-  z-index: 200;
-}
-
-/* ======================================
    TOP UTILITY HEADER
 ====================================== */
 .header-utility {
@@ -2900,11 +2883,6 @@ footer {
     display: none !important;
   }
 
-  .announcement-bar {
-    font-size: 10px !important;
-    padding: 6px 12px !important;
-  }
-
   .categories-grid {
     grid-template-columns: repeat(2, 1fr) !important;
     gap: 8px !important;
@@ -3530,4 +3508,5 @@ footer {
     align-items: center !important;
     justify-content: center !important;
   }
-}
+}
+

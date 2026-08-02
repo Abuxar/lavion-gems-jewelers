@@ -16,12 +16,6 @@
 
 <body>
 
-  <!-- Announcement Bar -->
-  <div class="announcement-bar">
-    ✦ Complimentary Gift Wrapping on all Orders &nbsp;|&nbsp; Free Delivery above PKR 50,000 &nbsp;|&nbsp; Book a
-    Private Consultation
-  </div>
-
   <!-- Top Utility Header -->
   <div class="header-utility">
     <div class="header-utility-left">
@@ -318,13 +312,13 @@
         function buildBagWhatsAppUrl() {
           const lines = cart.map(i => `• ${i.name} (x${i.qty}) — ${getProductPageUrl(i)}`).join('%0A');
           const msg = encodeURIComponent('Hello Lavion Gems & Jewellers, I would like to request the price for the following items in my shopping bag:\n') + lines + encodeURIComponent('\n\nPlease provide today\'s gold rate price for these items. Thank you!');
-          return `https://wa.me/923241775662?text=${msg}`;
+          return `https://web.whatsapp.com/send?phone=923241775662&text=${msg}`;
         }
 
         const tableRows = cart.map(item => {
           const productUrl = getProductPageUrl(item);
           const waMsg = encodeURIComponent(`Hello Lavion Gems & Jewellers, I would like to enquire about the price for:\n\n• ${item.name} (Qty: ${item.qty})\n\nProduct Page: ${productUrl}\n\nPlease share today's price. Thank you!`);
-          const waUrl = `https://wa.me/923241775662?text=${waMsg}`;
+          const waUrl = `https://web.whatsapp.com/send?phone=923241775662&text=${waMsg}`;
           return `
           <tr>
             <td>
@@ -365,7 +359,7 @@
         const mobileCards = cart.map(item => {
           const productUrl = getProductPageUrl(item);
           const waMsg = encodeURIComponent(`Hello Lavion Gems & Jewellers, I would like to enquire about the price for:\n\n• ${item.name} (Qty: ${item.qty})\n\nProduct Page: ${productUrl}\n\nPlease share today's price. Thank you!`);
-          const waUrl = `https://wa.me/923241775662?text=${waMsg}`;
+          const waUrl = `https://web.whatsapp.com/send?phone=923241775662&text=${waMsg}`;
           return `
           <div class="mobile-cart-card">
             <div style="display:flex; gap:12px; align-items:center; width:100%;">
@@ -540,14 +534,15 @@
         document.body.style.overflow = '';
       });
 
-      document.getElementById('checkout-form')?.addEventListener('submit', (e) => {
+      document.getElementById('checkout-form')?.addEventListener('submit', async (e) => {
         e.preventDefault();
 
-        const name = document.getElementById('cust-name').value.trim();
-        const phone = document.getElementById('cust-phone').value.trim();
-        const city = document.getElementById('cust-city').value.trim();
+        const name    = document.getElementById('cust-name').value.trim();
+        const phone   = document.getElementById('cust-phone').value.trim();
+        const city    = document.getElementById('cust-city').value.trim();
         const address = document.getElementById('cust-address').value.trim();
         const payment = document.getElementById('cust-payment').value;
+        const notes   = document.getElementById('cust-notes')?.value.trim() || '';
 
         const cart = window.getCart();
         if (cart.length === 0) {
@@ -555,64 +550,87 @@
           return;
         }
 
-        const subtotal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
-        const shipping = subtotal >= 50000 ? 0 : 1500;
+        const subtotal       = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+        const shipping       = subtotal >= 50000 ? 0 : 1500;
         const discountAmount = Math.round((subtotal * appliedDiscountPercent) / 100);
-        const total = subtotal + shipping - discountAmount;
+        const total          = subtotal + shipping - discountAmount;
+        const itemsSummary   = cart.map(i => `${i.name} (x${i.qty})`).join(', ');
 
-        const itemsSummary = cart.map(i => `${i.name} (x${i.qty})`).join(', ');
+        // Get logged-in user's email for the confirmation email (optional)
+        const activeUser = (() => {
+          try { return JSON.parse(localStorage.getItem('lavion_user') || 'null'); } catch { return null; }
+        })();
 
-        const orderId = 'ORD-' + Math.floor(1000 + Math.random() * 9000);
-        const today = new Date().toISOString().split('T')[0];
+        // Disable button to prevent double-submit
+        const submitBtn = e.target.querySelector('[type="submit"]');
+        const origText  = submitBtn.textContent;
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Placing Order…';
 
-        const newOrder = {
-          id: orderId,
-          customer: name,
-          phone: phone,
-          city: city,
-          address: address,
-          payment: payment,
-          items: itemsSummary,
-          total: total,
-          status: 'Pending',
-          date: today
-        };
+        try {
+          const response = await fetch('/api/orders', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              customer: name,
+              phone,
+              email: activeUser?.email || '',
+              city,
+              address,
+              payment,
+              items: itemsSummary,
+              total,
+              notes
+            })
+          });
 
-        const orders = window.getOrders();
-        orders.unshift(newOrder);
-        window.saveOrders(orders);
+          const data = await response.json();
 
-        window.clearCart();
-        document.getElementById('checkout-modal')?.classList.remove('active');
-        document.body.style.overflow = '';
+          if (!response.ok || !data.success) {
+            throw new Error(data.message || 'Order failed. Please try again.');
+          }
 
-        // Show receipt with direct invoice PDF generator button
-        const receiptModal = document.getElementById('receipt-modal');
-        const receiptBody = document.getElementById('receipt-body');
-        if (receiptBody) {
-          receiptBody.innerHTML = `
-            <div style="margin-bottom:8px; display:flex; justify-content:space-between;"><span>Order Ref ID:</span><strong style="color:var(--color-gold-light);">${orderId}</strong></div>
-            <div style="margin-bottom:8px; display:flex; justify-content:space-between;"><span>Customer:</span><strong style="color:#fff;">${name}</strong></div>
-            <div style="margin-bottom:8px; display:flex; justify-content:space-between;"><span>Delivery Address:</span><span style="color:rgba(255,255,255,0.8);">${address}, ${city}</span></div>
-            <div style="margin-bottom:8px; display:flex; justify-content:space-between;"><span>Contact Phone:</span><span style="color:#fff;">${phone}</span></div>
-            <div style="margin-bottom:8px; display:flex; justify-content:space-between;"><span>Payment Mode:</span><span style="color:#fff;">${payment}</span></div>
-            <div style="font-size:16px; font-weight:bold; color:var(--color-gold-light); margin-top:12px; border-top:1px dashed rgba(200,169,110,0.3); padding-top:8px; display:flex; justify-content:space-between;">
-              <span>Total Payable:</span> <span>PKR ${total.toLocaleString()}</span>
-            </div>
-            
-            <div style="display:flex; gap:10px; margin-top:20px; flex-wrap:wrap;">
-              <button onclick="window.generateInvoice('${orderId}')" class="admin-primary-btn" style="flex:1; justify-content:center; background:var(--color-gold); color:#1c1a18; font-weight:700;">
-                📄 Download Invoice PDF
-              </button>
-              <a href="https://wa.me/923241775662?text=Hello%20Lavion%20Gems%2C%20I%20just%20placed%20order%20${orderId}" target="_blank" rel="noopener noreferrer" class="admin-action-btn edit" style="padding:10px 14px; text-decoration:none; display:flex; align-items:center; gap:6px;">
-                💬 WhatsApp Us
-              </a>
-            </div>
-          `;
+          const orderId = data.order?.id || ('ORD-' + Math.floor(1000 + Math.random() * 9000));
+          const today   = data.order?.date || new Date().toISOString().split('T')[0];
+
+          window.clearCart();
+          document.getElementById('checkout-modal')?.classList.remove('active');
+          document.body.style.overflow = '';
+
+          // Show receipt
+          const receiptModal = document.getElementById('receipt-modal');
+          const receiptBody  = document.getElementById('receipt-body');
+          if (receiptBody) {
+            receiptBody.innerHTML = `
+              <div style="margin-bottom:8px; display:flex; justify-content:space-between;"><span>Order Ref ID:</span><strong style="color:var(--color-gold-light);">${orderId}</strong></div>
+              <div style="margin-bottom:8px; display:flex; justify-content:space-between;"><span>Customer:</span><strong style="color:#fff;">${name}</strong></div>
+              <div style="margin-bottom:8px; display:flex; justify-content:space-between;"><span>Delivery Address:</span><span style="color:rgba(255,255,255,0.8);">${address}, ${city}</span></div>
+              <div style="margin-bottom:8px; display:flex; justify-content:space-between;"><span>Contact Phone:</span><span style="color:#fff;">${phone}</span></div>
+              <div style="margin-bottom:8px; display:flex; justify-content:space-between;"><span>Payment Mode:</span><span style="color:#fff;">${payment}</span></div>
+              <div style="font-size:16px; font-weight:bold; color:var(--color-gold-light); margin-top:12px; border-top:1px dashed rgba(200,169,110,0.3); padding-top:8px; display:flex; justify-content:space-between;">
+                <span>Total Payable:</span> <span>PKR ${total.toLocaleString()}</span>
+              </div>
+
+              <div style="display:flex; gap:10px; margin-top:20px; flex-wrap:wrap;">
+                <button onclick="window.generateInvoice('${orderId}')" class="admin-primary-btn" style="flex:1; justify-content:center; background:var(--color-gold); color:#1c1a18; font-weight:700;">
+                  📄 Download Invoice PDF
+                </button>
+                <a href="https://web.whatsapp.com/send?phone=923241775662&text=Hello%20Lavion%20Gems%2C%20I%20just%20placed%20order%20${orderId}" target="_blank" rel="noopener noreferrer" class="admin-action-btn edit" style="padding:10px 14px; text-decoration:none; display:flex; align-items:center; gap:6px;">
+                  💬 WhatsApp Us
+                </a>
+              </div>
+            `;
+          }
+
+          receiptModal?.classList.add('active');
+          renderCart();
+
+        } catch (err) {
+          window.showToast(err.message || 'Something went wrong. Please try again.', 'error');
+        } finally {
+          submitBtn.disabled = false;
+          submitBtn.textContent = origText;
         }
-
-        receiptModal?.classList.add('active');
-        renderCart();
       });
 
       document.addEventListener('DOMContentLoaded', renderCart);
@@ -622,3 +640,4 @@
 </body>
 
 </html>
+
