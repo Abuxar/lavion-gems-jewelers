@@ -312,13 +312,13 @@
         function buildBagWhatsAppUrl() {
           const lines = cart.map(i => `• ${i.name} (x${i.qty}) — ${getProductPageUrl(i)}`).join('%0A');
           const msg = encodeURIComponent('Hello Lavion Gems & Jewellers, I would like to request the price for the following items in my shopping bag:\n') + lines + encodeURIComponent('\n\nPlease provide today\'s gold rate price for these items. Thank you!');
-          return `https://web.whatsapp.com/send?phone=923241775662&text=${msg}`;
+          return `https://wa.me/923241775662?text=${msg}`;
         }
 
         const tableRows = cart.map(item => {
           const productUrl = getProductPageUrl(item);
           const waMsg = encodeURIComponent(`Hello Lavion Gems & Jewellers, I would like to enquire about the price for:\n\n• ${item.name} (Qty: ${item.qty})\n\nProduct Page: ${productUrl}\n\nPlease share today's price. Thank you!`);
-          const waUrl = `https://web.whatsapp.com/send?phone=923241775662&text=${waMsg}`;
+          const waUrl = `https://wa.me/923241775662?text=${waMsg}`;
           return `
           <tr>
             <td>
@@ -359,7 +359,7 @@
         const mobileCards = cart.map(item => {
           const productUrl = getProductPageUrl(item);
           const waMsg = encodeURIComponent(`Hello Lavion Gems & Jewellers, I would like to enquire about the price for:\n\n• ${item.name} (Qty: ${item.qty})\n\nProduct Page: ${productUrl}\n\nPlease share today's price. Thank you!`);
-          const waUrl = `https://web.whatsapp.com/send?phone=923241775662&text=${waMsg}`;
+          const waUrl = `https://wa.me/923241775662?text=${waMsg}`;
           return `
             <div style="display:flex; gap:12px; align-items:center; width:100%;">
               <img src="${item.img}" alt="${item.name}" class="mobile-cart-img" />
@@ -615,7 +615,7 @@
                 <button onclick="window.generateInvoice('${orderId}')" class="admin-primary-btn" style="flex:1; justify-content:center; background:var(--color-gold); color:#1c1a18; font-weight:700;">
                   📄 Download Invoice PDF
                 </button>
-                <a href="https://web.whatsapp.com/send?phone=923241775662&text=Hello%20Lavion%20Gems%2C%20I%20just%20placed%20order%20${orderId}" target="_blank" rel="noopener noreferrer" class="admin-action-btn edit" style="padding:10px 14px; text-decoration:none; display:flex; align-items:center; gap:6px;">
+                <a href="https://wa.me/923241775662?text=Hello%20Lavion%20Gems%2C%20I%20just%20placed%20order%20${orderId}" target="_blank" rel="noopener noreferrer" class="admin-action-btn edit" style="padding:10px 14px; text-decoration:none; display:flex; align-items:center; gap:6px;">
                   💬 WhatsApp Us
                 </a>
               </div>

@@ -2193,7 +2193,14 @@
 (function injectWhatsAppButton() {
   const wa = document.createElement('a');
   wa.id = 'whatsapp-float-btn';
-  wa.href = 'https://web.whatsapp.com/send?phone=923241775662&text=Hello%20Lavion%20Gems%20%26%20Jewellers%2C%20I%27d%20like%20to%20enquire%20about%20your%20jewellery%20collection.';
+  function buildWhatsAppHref(number, text) {
+    const encoded = encodeURIComponent(text);
+    const isMobile = /Mobi|Android|iPhone|iPad|iPod|Windows Phone/i.test(navigator.userAgent || '');
+    if (isMobile) return `whatsapp://send?phone=${number}&text=${encoded}`;
+    return `https://wa.me/${number}?text=${encoded}`;
+  }
+
+  wa.href = buildWhatsAppHref('923241775662', "Hello Lavion Gems & Jewellers, I'd like to enquire about your jewellery collection.");
   wa.target = '_blank';
   wa.rel = 'noopener noreferrer';
   wa.title = 'Chat with us on WhatsApp';
@@ -2245,6 +2252,21 @@
   `;
 
   document.head.appendChild(style);
+
+  // Rewrite any existing wa.me links on the page to prefer the WhatsApp app on mobile
+  try {
+    document.querySelectorAll('a[href*="wa.me/"]').forEach(a => {
+      try {
+        const href = a.getAttribute('href');
+        const m = href.match(/wa.me\/(\d+)(?:\?text=(.*))?/);
+        if (!m) return;
+        const num = m[1];
+        const text = m[2] ? decodeURIComponent(m[2]) : '';
+        a.setAttribute('href', buildWhatsAppHref(num, text));
+      } catch (e) { /* ignore per-link errors */ }
+    });
+  } catch (e) { /* ignore */ }
+
   document.body.appendChild(wa);
 })();
 
