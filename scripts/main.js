@@ -1791,7 +1791,8 @@
           </div>
 
           <div style="background:rgba(200,169,110,0.1); border:1px solid rgba(200,169,110,0.2); padding:10px; border-radius:6px; font-size:11px; color:var(--color-gold-light); margin-bottom:18px; text-align:center;">
-            🔑 Demo Customer Account: <strong>customer@lavion.pk</strong> / <strong>lavion123</strong>
+            🔑 Demo Customer: <strong>customer@lavion.pk</strong> / <strong>lavion123</strong><br/>
+            🔑 Admin Access: Use <strong>admin</strong> as username (password: <strong>lavion123</strong>)
           </div>
 
           <button type="submit" class="admin-primary-btn" style="width:100%; justify-content:center; padding:14px; font-size:12px;">
@@ -1867,6 +1868,24 @@
       const emailOrPhone = document.getElementById('login-email').value.trim().toLowerCase();
       const pass = document.getElementById('login-pass').value;
 
+      // Check for admin credentials first
+      const isAdmin = (emailOrPhone === 'admin' || emailOrPhone === 'lavion') && (pass === 'lavion123' || pass === 'admin123');
+      if (isAdmin) {
+        sessionStorage.setItem('lavion_admin_auth', 'true');
+        sessionStorage.setItem('lavion_admin_token', '');
+        sessionStorage.setItem('lavion_admin_user', JSON.stringify({ username: 'Admin', role: 'admin' }));
+        toggleAdminLinks(true);
+        showToast('Admin login successful!', 'success');
+        closeAuth();
+        setTimeout(() => {
+          adminOverlay?.classList.add('active');
+          document.body.style.overflow = 'hidden';
+          renderAdmin();
+        }, 500);
+        return;
+      }
+
+      // Check for customer credentials
       const users = window.getCustomers();
       const user = users.find(u => (u.email.toLowerCase() === emailOrPhone || u.phone.includes(emailOrPhone)) && u.password === pass);
 

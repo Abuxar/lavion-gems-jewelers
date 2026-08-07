@@ -64,14 +64,8 @@ app.get('*', (req, res) => {
   if (req.path.startsWith('/api')) {
     return res.status(404).json({ success: false, message: 'API endpoint not found.' });
   }
-  // Serve index.html for all other routes (SPA)
-  const indexPath = path.join(__dirname, '../index.html');
-  res.set('Content-Type', 'text/html; charset=utf-8');
-  res.sendFile(indexPath, (err) => {
-    if (err) {
-      res.status(404).json({ error: 'Page not found' });
-    }
-  });
+  // Redirect all non-API requests to home for SPA routing
+  res.redirect('/');
 });
 
 // Start Server
