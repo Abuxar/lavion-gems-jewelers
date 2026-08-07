@@ -1,6 +1,8 @@
 const dns = require('dns');
 try { dns.setServers(['8.8.8.8', '1.1.1.1']); } catch (e) {}
 
+const fs = require('fs');
+
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
@@ -27,19 +29,16 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Determine the correct path for static files
-const staticPath = process.env.VERCEL 
-  ? path.join(__dirname, '../') 
-  : path.join(__dirname, '../');
-
 // Direct admin access routes (before static files)
 app.get(['/admin', '/admin-panel'], (req, res) => {
-  // Redirect to home page with admin param - client-side will handle opening admin modal
   res.redirect('/?admin=true');
 });
 
 // Serve frontend static files from root directory
-app.use(express.static(staticPath));
+app.use(express.static(path.join(__dirname, '../'), {
+  index: 'index.html',
+  maxAge: '1h'
+}));
 
 // API Routes
 app.use('/api/auth', authRoutes);
@@ -60,16 +59,19 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Fallback to index.html for SPA routes
+// Fallback to home for SPA routes
 app.get('*', (req, res) => {
   if (req.path.startsWith('/api')) {
     return res.status(404).json({ success: false, message: 'API endpoint not found.' });
   }
-  try {
-    res.sendFile(path.resolve(staticPath, 'index.html'));
-  } catch (error) {
-    res.status(500).json({ error: 'Page not found' });
-  }
+  // Serve index.html for all other routes (SPA)
+  const indexPath = path.join(__dirname, '../index.html');
+  res.set('Content-Type', 'text/html; charset=utf-8');
+  res.sendFile(indexPath, (err) => {
+    if (err) {
+      res.status(404).json({ error: 'Page not found' });
+    }
+  });
 });
 
 // Start Server
