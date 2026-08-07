@@ -34,11 +34,8 @@ const staticPath = process.env.VERCEL
 
 // Direct admin access routes (before static files)
 app.get(['/admin', '/admin-panel'], (req, res) => {
-  try {
-    res.sendFile(path.resolve(staticPath, 'index.html'));
-  } catch (error) {
-    res.status(500).json({ error: 'Admin page not found' });
-  }
+  // Redirect to home page with admin param - client-side will handle opening admin modal
+  res.redirect('/?admin=true');
 });
 
 // Serve frontend static files from root directory

@@ -335,7 +335,9 @@
 
   function isDirectAdminRoute() {
     const path = window.location.pathname.toLowerCase();
-    return path === '/admin' || path === '/admin-panel' || path.endsWith('/admin') || path.endsWith('/admin-panel');
+    const isAdminPath = path === '/admin' || path === '/admin-panel' || path.endsWith('/admin') || path.endsWith('/admin-panel');
+    const hasAdminParam = new URLSearchParams(window.location.search).get('admin') === 'true';
+    return isAdminPath || hasAdminParam;
   }
 
   function openAdminLoginDirectly() {
@@ -449,6 +451,11 @@
 
   window.addEventListener('load', () => {
     if (isDirectAdminRoute()) {
+      // Clean up the URL to remove admin param
+      if (window.history && window.history.replaceState) {
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+      
       if (isAuthenticated()) {
         adminOverlay?.classList.add('active');
         document.body.style.overflow = 'hidden';
