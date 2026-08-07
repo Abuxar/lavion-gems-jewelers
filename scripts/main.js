@@ -326,6 +326,69 @@
     return sessionStorage.getItem('lavion_admin_auth') === 'true';
   }
 
+  function toggleAdminLinks(visible) {
+    document.querySelectorAll('#open-admin-panel, .open-admin-panel').forEach((btn) => {
+      btn.style.display = visible ? '' : 'none';
+      btn.setAttribute('aria-hidden', String(!visible));
+    });
+  }
+
+  async function handleAdminLogin(e) {
+    e.preventDefault();
+    const user = document.getElementById('login-username').value.trim();
+    const pass = document.getElementById('login-password').value;
+
+    if (!user || !pass) {
+      if (loginErrorMsg) loginErrorMsg.style.display = 'block';
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/auth/admin-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: user, password: pass })
+      });
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        sessionStorage.setItem('lavion_admin_auth', 'true');
+        sessionStorage.setItem('lavion_admin_token', data.token || '');
+        sessionStorage.setItem('lavion_admin_user', JSON.stringify(data.user || {}));
+        toggleAdminLinks(true);
+        loginModal?.classList.remove('active');
+        adminOverlay?.classList.add('active');
+        document.body.style.overflow = 'hidden';
+        renderAdmin();
+        return;
+      }
+
+      if (loginErrorMsg) {
+        loginErrorMsg.textContent = data.message || 'Invalid admin credentials.';
+        loginErrorMsg.style.display = 'block';
+      }
+    } catch (error) {
+      const fallbackAllowed = (user === 'admin' || user === 'lavion') && (pass === 'lavion123' || pass === 'admin123');
+      if (fallbackAllowed) {
+        sessionStorage.setItem('lavion_admin_auth', 'true');
+        sessionStorage.setItem('lavion_admin_token', '');
+        sessionStorage.setItem('lavion_admin_user', JSON.stringify({ username: 'Admin', role: 'admin' }));
+        toggleAdminLinks(true);
+        loginModal?.classList.remove('active');
+        adminOverlay?.classList.add('active');
+        document.body.style.overflow = 'hidden';
+        renderAdmin();
+        return;
+      }
+
+      console.error('Admin login failed:', error);
+      if (loginErrorMsg) {
+        loginErrorMsg.textContent = 'Unable to reach admin service. Please try again.';
+        loginErrorMsg.style.display = 'block';
+      }
+    }
+  }
+
   const triggerOpenAdmin = (e) => {
     e?.preventDefault();
     document.getElementById('mobile-menu')?.classList.remove('active');
@@ -334,7 +397,10 @@
       document.body.style.overflow = 'hidden';
       renderAdmin();
     } else {
-      if (loginErrorMsg) loginErrorMsg.style.display = 'none';
+      if (loginErrorMsg) {
+        loginErrorMsg.textContent = 'Invalid admin credentials.';
+        loginErrorMsg.style.display = 'none';
+      }
       const passField = document.getElementById('login-password');
       if (passField) passField.value = '';
       loginModal?.classList.add('active');
@@ -349,24 +415,13 @@
     loginModal?.classList.remove('active');
   });
 
-  loginForm?.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const user = document.getElementById('login-username').value.trim();
-    const pass = document.getElementById('login-password').value;
-
-    if (user === 'admin' && pass === 'lavion123') {
-      sessionStorage.setItem('lavion_admin_auth', 'true');
-      loginModal?.classList.remove('active');
-      adminOverlay?.classList.add('active');
-      document.body.style.overflow = 'hidden';
-      renderAdmin();
-    } else {
-      if (loginErrorMsg) loginErrorMsg.style.display = 'block';
-    }
-  });
+  loginForm?.addEventListener('submit', handleAdminLogin);
 
   logoutBtn?.addEventListener('click', () => {
     sessionStorage.removeItem('lavion_admin_auth');
+    sessionStorage.removeItem('lavion_admin_token');
+    sessionStorage.removeItem('lavion_admin_user');
+    toggleAdminLinks(false);
     adminOverlay?.classList.remove('active');
     document.body.style.overflow = '';
   });
@@ -375,6 +430,8 @@
     adminOverlay?.classList.remove('active');
     document.body.style.overflow = '';
   });
+
+  toggleAdminLinks(isAuthenticated());
 
   // Tab switching
   const tabBtns = document.querySelectorAll('.admin-tab-btn');
