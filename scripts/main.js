@@ -1569,13 +1569,13 @@
      LIVE DYNAMIC GOLD RATE MARKET ENGINE
   ====================================== */
   const DEFAULT_GOLD_RATES = {
-    rate24kPerTola: 428500,
-    rate24kPer10g: 367376,
-    rate24kPer1g: 36738,
-    rate22kPerTola: 392790,
-    rate18kPerTola: 321375,
+    rate24kPerTola: 463800,
+    rate24kPer10g: 397641,
+    rate24kPer1g: 39764,
+    rate22kPerTola: 425150,
+    rate18kPerTola: 347850,
     rateSilverPerTola: 4850,
-    lastUpdated: 'Live Sarafa Market'
+    lastUpdated: 'Live Sarafa Market PK'
   };
 
   window.getGoldRates = function () {
@@ -1593,19 +1593,63 @@
     if (typeof renderAdmin === 'function') renderAdmin();
   };
 
+  window.fetchLiveGoldRates = async function (silent = true) {
+    try {
+      const res = await fetch('/api/gold-rates');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.goldRates) {
+          window.saveGoldRates(data.goldRates);
+          if (!silent) showToast(`Live Gold Rates synced! PKR ${data.goldRates.rate24kPerTola.toLocaleString()} / Tola`, 'success');
+          return data.goldRates;
+        }
+      }
+    } catch (e) {
+      console.warn('Backend gold API unavailable, using direct live fallback...');
+    }
+
+    // Direct client-side live fetch fallback
+    try {
+      const [goldRes, fxRes] = await Promise.all([
+        fetch('https://api.gold-api.com/price/XAU').then(r => r.json()).catch(() => null),
+        fetch('https://open.er-api.com/v6/latest/USD').then(r => r.json()).catch(() => null)
+      ]);
+
+      if (goldRes?.price && fxRes?.rates?.PKR) {
+        const xauUsd = parseFloat(goldRes.price);
+        const usdPkr = parseFloat(fxRes.rates.PKR);
+        const r24 = Math.round(xauUsd * usdPkr * 0.375 * 1.025);
+        const rates = {
+          rate24kPerTola: r24,
+          rate24kPer10g: Math.round(r24 / 1.16638),
+          rate24kPer1g: Math.round(r24 / 11.6638),
+          rate22kPerTola: Math.round(r24 * (22 / 24)),
+          rate18kPerTola: Math.round(r24 * (18 / 24)),
+          rateSilverPerTola: Math.round(30 * usdPkr * 0.375) || 4850,
+          lastUpdated: new Date().toLocaleTimeString('en-PK', { timeZone: 'Asia/Karachi', hour: '2-digit', minute: '2-digit' }) + ' PKT (Auto)'
+        };
+        window.saveGoldRates(rates);
+        if (!silent) showToast(`Live Gold Rates synced! PKR ${r24.toLocaleString()} / Tola`, 'success');
+        return rates;
+      }
+    } catch (e) {}
+
+    return window.getGoldRates();
+  };
+
   window.updateGoldRateFrom24k = function (rate24k) {
-    const r24 = parseFloat(rate24k) || 428500;
+    const r24 = parseFloat(rate24k) || 463800;
     const rates = {
       rate24kPerTola: Math.round(r24),
-      rate24kPer10g: Math.round(r24 / 1.1664),
-      rate24kPer1g: Math.round(r24 / 11.664),
+      rate24kPer10g: Math.round(r24 / 1.16638),
+      rate24kPer1g: Math.round(r24 / 11.6638),
       rate22kPerTola: Math.round(r24 * (22 / 24)),
       rate18kPerTola: Math.round(r24 * (18 / 24)),
       rateSilverPerTola: 4850,
-      lastUpdated: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ' PKT'
+      lastUpdated: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ' PKT (Manual)'
     };
     window.saveGoldRates(rates);
-    showToast(`Live Gold Rates updated! 24K: PKR ${r24.toLocaleString()} / Tola`, 'success');
+    showToast(`Gold Rates updated! 24K: PKR ${r24.toLocaleString()} / Tola`, 'success');
   };
 
   window.renderGoldRateBar = function () {
@@ -1646,6 +1690,10 @@
     bar.innerHTML = tickerContent;
   };
 
+  // Auto-fetch live market rate on load & auto-refresh every 5 minutes
+  setTimeout(() => window.fetchLiveGoldRates(true), 1000);
+  setInterval(() => window.fetchLiveGoldRates(true), 5 * 60 * 1000);
+
   function initAdminGoldRateControls() {
     const rates = window.getGoldRates();
     const input24k = document.getElementById('admin-gold-24k-input');
@@ -1655,9 +1703,9 @@
     if (input24k) input24k.value = rates.rate24kPerTola;
 
     const updateAdminLabels = () => {
-      const val = parseFloat(input24k?.value) || 428500;
-      const g10 = Math.round(val / 1.1664);
-      const g1 = Math.round(val / 11.664);
+      const val = parseFloat(input24k?.value) || 463800;
+      const g10 = Math.round(val / 1.16638);
+      const g1 = Math.round(val / 11.6638);
       const k22 = Math.round(val * (22 / 24));
 
       const el10g = document.getElementById('admin-rate-10g');
@@ -1673,11 +1721,11 @@
     btnSave?.addEventListener('click', () => {
       window.updateGoldRateFrom24k(input24k.value);
     });
-    btnSync?.addEventListener('click', () => {
-      window.updateGoldRateFrom24k(428500);
-      if (input24k) input24k.value = 428500;
+    btnSync?.addEventListener('click', async () => {
+      showToast('Fetching latest live market gold rate...', 'info');
+      const newRates = await window.fetchLiveGoldRates(false);
+      if (newRates && input24k) input24k.value = newRates.rate24kPerTola;
       updateAdminLabels();
-      showToast('Synced with latest Sarmaaya live market rate (Rs. 428,500/Tola)', 'success');
     });
 
     updateAdminLabels();
