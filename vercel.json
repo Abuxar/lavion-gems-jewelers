@@ -2,15 +2,7 @@
   "version": 2,
   "rewrites": [
     {
-      "source": "/api/(.*)",
-      "destination": "/api/index.js"
-    },
-    {
-      "source": "/admin",
-      "destination": "/api/index.js"
-    },
-    {
-      "source": "/admin-panel",
+      "source": "/(.*)",
       "destination": "/api/index.js"
     }
   ]
