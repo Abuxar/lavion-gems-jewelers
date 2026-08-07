@@ -27,6 +27,11 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Direct admin access routes (before static files)
+app.get(['/admin', '/admin-panel'], (req, res) => {
+  res.sendFile(path.join(__dirname, '../index.html'));
+});
+
 // Serve frontend static files from root directory
 app.use(express.static(path.join(__dirname, '../')));
 
@@ -47,11 +52,6 @@ app.get('/api/health', (req, res) => {
     database: isMongoConnected() ? 'MongoDB' : 'File DB Fallback',
     time: new Date().toISOString()
   });
-});
-
-// Direct admin access routes
-app.get(['/admin', '/admin-panel'], (req, res) => {
-  res.sendFile(path.join(__dirname, '../index.html'));
 });
 
 // Fallback to index.html for SPA routes
