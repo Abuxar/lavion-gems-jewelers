@@ -34,13 +34,7 @@ app.get(['/admin', '/admin-panel'], (req, res) => {
   res.redirect('/?admin=true');
 });
 
-// Serve frontend static files from root directory
-app.use(express.static(path.join(__dirname, '../'), {
-  index: 'index.html',
-  maxAge: '1h'
-}));
-
-// API Routes
+// API Routes (handle before static fallback)
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
@@ -59,13 +53,28 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Fallback to home for SPA routes
-app.get('*', (req, res) => {
+// Serve frontend static files from root directory
+const staticOptions = {
+  index: 'index.html',
+  maxAge: '1h',
+  fallthrough: true // Allow fallthrough to next middleware
+};
+app.use(express.static(path.join(__dirname, '../'), staticOptions));
+
+// Handle SPA routing - serve index.html for all non-API routes
+app.use((req, res, next) => {
   if (req.path.startsWith('/api')) {
     return res.status(404).json({ success: false, message: 'API endpoint not found.' });
   }
-  // Redirect all non-API requests to home for SPA routing
-  res.redirect('/');
+  // Read and serve index.html
+  const indexPath = path.join(__dirname, '../index.html');
+  try {
+    const content = fs.readFileSync(indexPath, 'utf8');
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.send(content);
+  } catch (err) {
+    res.status(404).json({ error: 'Page not found' });
+  }
 });
 
 // Start Server
