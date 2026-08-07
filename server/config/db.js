@@ -8,12 +8,22 @@ const { readData } = require('../utils/db');
 let isConnected = false;
 
 async function connectDB() {
-  const mongoURI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/lavion_jewellers';
+  if (mongoose.connection && mongoose.connection.readyState >= 1) {
+    isConnected = true;
+    return;
+  }
+
+  const mongoURI = process.env.MONGO_URI;
+  if (!mongoURI) {
+    isConnected = false;
+    console.log(' ℹ️ MONGO_URI not set. Operating in File DB mode.');
+    return;
+  }
 
   try {
     mongoose.set('strictQuery', false);
     await mongoose.connect(mongoURI, {
-      serverSelectionTimeoutMS: 5000
+      serverSelectionTimeoutMS: 3000
     });
     isConnected = true;
     console.log(' 🍃 MongoDB Connected Successfully!');

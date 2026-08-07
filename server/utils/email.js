@@ -1,10 +1,13 @@
-const { Resend } = require('resend');
-const nodemailer = require('nodemailer');
+let Resend;
+try { Resend = require('resend').Resend; } catch (e) {}
+
+let nodemailer;
+try { nodemailer = require('nodemailer'); } catch (e) {}
 
 // Lazy-initialize so dotenv has loaded the key before Resend is constructed
 let _resend;
 function getResend() {
-  if (!_resend && process.env.RESEND_API_KEY) _resend = new Resend(process.env.RESEND_API_KEY);
+  if (!_resend && process.env.RESEND_API_KEY && Resend) _resend = new Resend(process.env.RESEND_API_KEY);
   return _resend;
 }
 
@@ -16,6 +19,7 @@ const ADMIN_EMAIL = () => process.env.ADMIN_EMAIL || 'laviongems.jewellers@gmail
 const CUSTOM_DOMAIN = () => process.env.RESEND_FROM_EMAIL && process.env.RESEND_FROM_EMAIL !== 'onboarding@resend.dev';
 
 function getSmtpTransport() {
+  if (!nodemailer) return null;
   const user = process.env.GMAIL_USER;
   const pass = process.env.GMAIL_PASS;
   if (!user || !pass) return null;

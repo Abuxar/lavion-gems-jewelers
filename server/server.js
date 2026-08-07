@@ -1,6 +1,3 @@
-const dns = require('dns');
-try { dns.setServers(['8.8.8.8', '1.1.1.1']); } catch (e) {}
-
 const fs = require('fs');
 
 const express = require('express');
@@ -21,8 +18,8 @@ const { connectDB, isMongoConnected } = require('./config/db');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Connect MongoDB Database
-connectDB();
+// Connect MongoDB Database (non-blocking with error catch)
+connectDB().catch(err => console.error('DB Init Error:', err.message));
 
 // Middleware
 app.use(cors());
@@ -62,8 +59,8 @@ app.get('/api/*', (req, res) => {
   res.status(404).json({ success: false, message: 'API endpoint not found.' });
 });
 
-// Start Server
-if (process.env.NODE_ENV !== 'production' || require.main === module) {
+// Start Server (only when run directly, not when imported by Vercel serverless function)
+if (require.main === module) {
   app.listen(PORT, () => {
     console.log(`=================================================`);
     console.log(` 💎 Lavion Gems & Jewellers Node.js Server Active`);

@@ -1,9 +1,14 @@
-const twilio = require('twilio');
+let twilio;
+try {
+  twilio = require('twilio');
+} catch (e) {
+  console.log('[WhatsApp] twilio package not installed or failed to load.');
+}
 
 function getClient() {
   const sid = process.env.TWILIO_ACCOUNT_SID;
   const token = process.env.TWILIO_AUTH_TOKEN;
-  if (!sid || !token) return null;
+  if (!sid || !token || !twilio) return null;
   return twilio(sid, token);
 }
 
