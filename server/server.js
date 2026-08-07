@@ -49,6 +49,11 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// Direct admin access routes
+app.get(['/admin', '/admin-panel'], (req, res) => {
+  res.sendFile(path.join(__dirname, '../index.html'));
+});
+
 // Fallback to index.html for SPA routes
 app.get('*', (req, res) => {
   if (req.path.startsWith('/api')) {

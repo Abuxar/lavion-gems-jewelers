@@ -333,6 +333,20 @@
     });
   }
 
+  function isDirectAdminRoute() {
+    const path = window.location.pathname.toLowerCase();
+    return path === '/admin' || path === '/admin-panel' || path.endsWith('/admin') || path.endsWith('/admin-panel');
+  }
+
+  function openAdminLoginDirectly() {
+    if (!isDirectAdminRoute()) return;
+    if (loginErrorMsg) loginErrorMsg.style.display = 'none';
+    const passField = document.getElementById('login-password');
+    if (passField) passField.value = '';
+    loginModal?.classList.add('active');
+    document.body.style.overflow = 'hidden';
+  }
+
   async function handleAdminLogin(e) {
     e.preventDefault();
     const user = document.getElementById('login-username').value.trim();
@@ -432,6 +446,18 @@
   });
 
   toggleAdminLinks(isAuthenticated());
+
+  window.addEventListener('load', () => {
+    if (isDirectAdminRoute()) {
+      if (isAuthenticated()) {
+        adminOverlay?.classList.add('active');
+        document.body.style.overflow = 'hidden';
+        renderAdmin();
+      } else {
+        openAdminLoginDirectly();
+      }
+    }
+  });
 
   // Tab switching
   const tabBtns = document.querySelectorAll('.admin-tab-btn');
