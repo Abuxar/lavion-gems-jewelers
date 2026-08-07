@@ -27,13 +27,22 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Determine the correct path for static files
+const staticPath = process.env.VERCEL 
+  ? path.join(__dirname, '../') 
+  : path.join(__dirname, '../');
+
 // Direct admin access routes (before static files)
 app.get(['/admin', '/admin-panel'], (req, res) => {
-  res.sendFile(path.join(__dirname, '../index.html'));
+  try {
+    res.sendFile(path.resolve(staticPath, 'index.html'));
+  } catch (error) {
+    res.status(500).json({ error: 'Admin page not found' });
+  }
 });
 
 // Serve frontend static files from root directory
-app.use(express.static(path.join(__dirname, '../')));
+app.use(express.static(staticPath));
 
 // API Routes
 app.use('/api/auth', authRoutes);
@@ -59,7 +68,11 @@ app.get('*', (req, res) => {
   if (req.path.startsWith('/api')) {
     return res.status(404).json({ success: false, message: 'API endpoint not found.' });
   }
-  res.sendFile(path.join(__dirname, '../index.html'));
+  try {
+    res.sendFile(path.resolve(staticPath, 'index.html'));
+  } catch (error) {
+    res.status(500).json({ error: 'Page not found' });
+  }
 });
 
 // Start Server
