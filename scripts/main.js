@@ -1781,8 +1781,8 @@
         <!-- Login Form -->
         <form id="customer-login-form">
           <div class="admin-form-group">
-            <label>Email Address or Phone Number</label>
-            <input type="text" id="login-email" value="customer@lavion.pk" placeholder="e.g. customer@lavion.pk or +92 300 1234567" required />
+            <label>Email, Phone, or Admin Username</label>
+            <input type="text" id="login-email" value="customer@lavion.pk" placeholder="e.g. customer@lavion.pk, +92 300 1234567, or admin" required />
           </div>
 
           <div class="admin-form-group">
