@@ -54,27 +54,12 @@ app.get('/api/health', (req, res) => {
 });
 
 // Serve frontend static files from root directory
-const staticOptions = {
-  index: 'index.html',
-  maxAge: '1h',
-  fallthrough: true // Allow fallthrough to next middleware
-};
-app.use(express.static(path.join(__dirname, '../'), staticOptions));
+app.use(express.static(path.join(__dirname, '../')));
 
-// Handle SPA routing - serve index.html for all non-API routes
-app.use((req, res, next) => {
-  if (req.path.startsWith('/api')) {
-    return res.status(404).json({ success: false, message: 'API endpoint not found.' });
-  }
-  // Read and serve index.html
-  const indexPath = path.join(__dirname, '../index.html');
-  try {
-    const content = fs.readFileSync(indexPath, 'utf8');
-    res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    res.send(content);
-  } catch (err) {
-    res.status(404).json({ error: 'Page not found' });
-  }
+// For all other routes (SPA fallback), Vercel's rewrite handles it
+// This is just a catch-all for API 404s
+app.get('/api/*', (req, res) => {
+  res.status(404).json({ success: false, message: 'API endpoint not found.' });
 });
 
 // Start Server
