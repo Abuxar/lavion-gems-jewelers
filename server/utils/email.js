@@ -8,8 +8,9 @@ try {
 // Lazy-initialize so dotenv has loaded before Resend is constructed
 let _resend;
 function getResend() {
-  if (!_resend && process.env.RESEND_API_KEY && Resend) {
-    _resend = new Resend(process.env.RESEND_API_KEY);
+  const key = process.env.RESEND_API_KEY;
+  if (!_resend && key && Resend) {
+    _resend = new Resend(key);
   }
   return _resend;
 }
@@ -18,11 +19,6 @@ const FROM_EMAIL = () => process.env.RESEND_FROM_EMAIL || 'Lavion Gems & Jewelle
 const ADMIN_EMAIL = () => process.env.ADMIN_EMAIL || 'laviongems.jewellers@gmail.com';
 
 async function sendEmailMessage({ to, subject, html }) {
-  if (!process.env.RESEND_API_KEY) {
-    console.warn('[Email] RESEND_API_KEY is not configured in environment. Skipping email dispatch.');
-    return false;
-  }
-
   const resend = getResend();
   if (!resend) {
     console.error('[Email] Resend SDK client missing or failed to initialize.');
@@ -40,8 +36,20 @@ async function sendEmailMessage({ to, subject, html }) {
     if (data.error) {
       const msg = data.error.message || JSON.stringify(data.error);
       console.error('[Email] Resend API response error:', msg);
-      if (msg.includes('only send testing emails')) {
-        console.warn(' ℹ️ [Resend Note] Free onboarding domain (onboarding@resend.dev) restricts delivery to your verified account email (laviongems.jewellers@gmail.com). To send to all customer emails, verify your domain at https://resend.com/domains.');
+
+      // Automatic Redirect Fallback for testing mode (onboarding@resend.dev)
+      if (to !== ADMIN_EMAIL()) {
+        console.warn(` 🔄 [Resend Redirect] Redirecting test email intended for ${to} to verified admin address (${ADMIN_EMAIL()})...`);
+        const fallbackHtml = `
+          <div style="background:#2a1b00;border:1px solid #c9a84c;padding:12px;margin-bottom:20px;color:#f0d080;font-family:sans-serif;font-size:12px;border-radius:6px;">
+            ⚠️ <strong>Resend Test Mode Note:</strong> This email was intended for customer <code>${to}</code>. Because the <code>onboarding@resend.dev</code> sender only permits delivery to your verified account email, it was delivered to your admin inbox (<code>${ADMIN_EMAIL()}</code>).
+          </div>
+        ` + html;
+        return sendEmailMessage({
+          to: ADMIN_EMAIL(),
+          subject: `[For: ${to}] ${subject}`,
+          html: fallbackHtml
+        });
       }
       return false;
     }
