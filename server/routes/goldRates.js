@@ -10,6 +10,7 @@ async function fetchLiveGoldRatesFromMarket() {
   try {
     let xauUsd = 0;
     let usdPkr = 0;
+    let usdGbp = 0;
 
     // Fetch Gold Spot Price (XAU/USD)
     try {
@@ -28,40 +29,56 @@ async function fetchLiveGoldRatesFromMarket() {
       } catch (e) {}
     }
 
-    // Fetch Live USD to PKR Exchange Rate
+    // Fetch Live Exchange Rates (USD to PKR & GBP)
     try {
       const fxRes = await fetch('https://open.er-api.com/v6/latest/USD').then(r => r.json());
-      if (fxRes && fxRes.rates && fxRes.rates.PKR) usdPkr = parseFloat(fxRes.rates.PKR);
+      if (fxRes && fxRes.rates) {
+        if (fxRes.rates.PKR) usdPkr = parseFloat(fxRes.rates.PKR);
+        if (fxRes.rates.GBP) usdGbp = parseFloat(fxRes.rates.GBP);
+      }
     } catch (e) {
       console.error('[GoldRate] FX API error:', e.message);
     }
 
-    if (!usdPkr) {
+    if (!usdPkr || !usdGbp) {
       try {
         const fxFallback = await fetch('https://api.exchangerate-api.com/v4/latest/USD').then(r => r.json());
-        if (fxFallback && fxFallback.rates && fxFallback.rates.PKR) usdPkr = parseFloat(fxFallback.rates.PKR);
+        if (fxFallback && fxFallback.rates) {
+          if (!usdPkr && fxFallback.rates.PKR) usdPkr = parseFloat(fxFallback.rates.PKR);
+          if (!usdGbp && fxFallback.rates.GBP) usdGbp = parseFloat(fxFallback.rates.GBP);
+        }
       } catch (e) {}
     }
 
     // Default fallbacks if network unreachable
     if (!xauUsd) xauUsd = 4340;
     if (!usdPkr) usdPkr = 277.8;
+    if (!usdGbp) usdGbp = 0.743;
 
-    // Gujranwala Sarafa Bazaar & All Pakistan Supreme Gems & Jewellers Association formula
-    // 1 Tola = 11.6638038g = 0.375 Troy Ounce with local Gujranwala Sarafa market calibration ratio (0.3621)
+    // Live Gold Market calculation (PKR & GBP)
     const baseTolaPkr = xauUsd * usdPkr * 0.3621;
-    const r24 = Math.round(baseTolaPkr);
+    const baseTolaGbp = xauUsd * usdGbp * 0.3621;
+
+    const r24Pkr = Math.round(baseTolaPkr);
+    const r24Gbp = Math.round(baseTolaGbp);
 
     const rates = {
-      rate24kPerTola: r24,
-      rate24kPer10g: Math.round(r24 / 1.16638),
-      rate24kPer1g: Math.round(r24 / 11.6638),
-      rate22kPerTola: Math.round(r24 * (22 / 24)),
-      rate18kPerTola: Math.round(r24 * (18 / 24)),
+      rate24kPerTola: r24Pkr,
+      rate24kPer10g: Math.round(r24Pkr / 1.16638),
+      rate24kPer1g: Math.round(r24Pkr / 11.6638),
+      rate22kPerTola: Math.round(r24Pkr * (22 / 24)),
+      rate18kPerTola: Math.round(r24Pkr * (18 / 24)),
       rateSilverPerTola: Math.round(30 * usdPkr * 0.3621) || 4850,
+      // GBP (£) Rates
+      rate24kPerTolaGBP: r24Gbp,
+      rate24kPer10gGBP: Math.round(r24Gbp / 1.16638),
+      rate24kPer1gGBP: Math.round(r24Gbp / 11.6638),
+      rate22kPerTolaGBP: Math.round(r24Gbp * (22 / 24)),
+      rate18kPerTolaGBP: Math.round(r24Gbp * (18 / 24)),
       xauUsd: Math.round(xauUsd),
       usdPkr: Math.round(usdPkr * 100) / 100,
-      lastUpdated: new Date().toLocaleTimeString('en-PK', { timeZone: 'Asia/Karachi', hour: '2-digit', minute: '2-digit' }) + ' PKT (Gujranwala Sarafa Live)'
+      usdGbp: Math.round(usdGbp * 1000) / 1000,
+      lastUpdated: new Date().toLocaleTimeString('en-PK', { timeZone: 'Asia/Karachi', hour: '2-digit', minute: '2-digit' }) + ' PKT (Live Gold Market)'
     };
 
     const db = readData();

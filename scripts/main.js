@@ -1593,6 +1593,7 @@
     if (typeof renderAdmin === 'function') renderAdmin();
   };
 
+  // Direct client-side live fetch fallback
   window.fetchLiveGoldRates = async function (silent = true) {
     try {
       const res = await fetch('/api/gold-rates');
@@ -1600,7 +1601,7 @@
         const data = await res.json();
         if (data.success && data.goldRates) {
           window.saveGoldRates(data.goldRates);
-          if (!silent) showToast(`Live Gujranwala Sarafa Gold Rates synced! PKR ${data.goldRates.rate24kPerTola.toLocaleString()} / Tola`, 'success');
+          if (!silent) showToast(`Live Gold Market rates synced! PKR ${data.goldRates.rate24kPerTola.toLocaleString()} / Tola`, 'success');
           return data.goldRates;
         }
       }
@@ -1608,7 +1609,6 @@
       console.warn('Backend gold API unavailable, using direct live fallback...');
     }
 
-    // Direct client-side live fetch fallback with Gujranwala Sarafa Market formula
     try {
       const [goldRes, fxRes] = await Promise.all([
         fetch('https://api.gold-api.com/price/XAU').then(r => r.json()).catch(() => null),
@@ -1618,18 +1618,27 @@
       if (goldRes?.price && fxRes?.rates?.PKR) {
         const xauUsd = parseFloat(goldRes.price);
         const usdPkr = parseFloat(fxRes.rates.PKR);
-        const r24 = Math.round(xauUsd * usdPkr * 0.3621);
+        const usdGbp = parseFloat(fxRes.rates.GBP || 0.743);
+
+        const r24Pkr = Math.round(xauUsd * usdPkr * 0.3621);
+        const r24Gbp = Math.round(xauUsd * usdGbp * 0.3621);
+
         const rates = {
-          rate24kPerTola: r24,
-          rate24kPer10g: Math.round(r24 / 1.16638),
-          rate24kPer1g: Math.round(r24 / 11.6638),
-          rate22kPerTola: Math.round(r24 * (22 / 24)),
-          rate18kPerTola: Math.round(r24 * (18 / 24)),
+          rate24kPerTola: r24Pkr,
+          rate24kPer10g: Math.round(r24Pkr / 1.16638),
+          rate24kPer1g: Math.round(r24Pkr / 11.6638),
+          rate22kPerTola: Math.round(r24Pkr * (22 / 24)),
+          rate18kPerTola: Math.round(r24Pkr * (18 / 24)),
           rateSilverPerTola: Math.round(30 * usdPkr * 0.3621) || 4850,
-          lastUpdated: new Date().toLocaleTimeString('en-PK', { timeZone: 'Asia/Karachi', hour: '2-digit', minute: '2-digit' }) + ' PKT (Gujranwala Live)'
+          rate24kPerTolaGBP: r24Gbp,
+          rate24kPer10gGBP: Math.round(r24Gbp / 1.16638),
+          rate24kPer1gGBP: Math.round(r24Gbp / 11.6638),
+          rate22kPerTolaGBP: Math.round(r24Gbp * (22 / 24)),
+          rate18kPerTolaGBP: Math.round(r24Gbp * (18 / 24)),
+          lastUpdated: new Date().toLocaleTimeString('en-PK', { timeZone: 'Asia/Karachi', hour: '2-digit', minute: '2-digit' }) + ' PKT (Live Gold Market)'
         };
         window.saveGoldRates(rates);
-        if (!silent) showToast(`Live Gold Rates synced! PKR ${r24.toLocaleString()} / Tola`, 'success');
+        if (!silent) showToast(`Live Gold Rates synced! PKR ${r24Pkr.toLocaleString()} / Tola`, 'success');
         return rates;
       }
     } catch (e) {}
@@ -1639,6 +1648,7 @@
 
   window.updateGoldRateFrom24k = function (rate24k) {
     const r24 = parseFloat(rate24k) || 437000;
+    const r24Gbp = Math.round(r24 / 374);
     const rates = {
       rate24kPerTola: Math.round(r24),
       rate24kPer10g: Math.round(r24 / 1.16638),
@@ -1646,6 +1656,11 @@
       rate22kPerTola: Math.round(r24 * (22 / 24)),
       rate18kPerTola: Math.round(r24 * (18 / 24)),
       rateSilverPerTola: 4850,
+      rate24kPerTolaGBP: r24Gbp,
+      rate24kPer10gGBP: Math.round(r24Gbp / 1.16638),
+      rate24kPer1gGBP: Math.round(r24Gbp / 11.6638),
+      rate22kPerTolaGBP: Math.round(r24Gbp * (22 / 24)),
+      rate18kPerTolaGBP: Math.round(r24Gbp * (18 / 24)),
       lastUpdated: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ' PKT (Manual)'
     };
     window.saveGoldRates(rates);
@@ -1656,19 +1671,25 @@
     let bar = document.querySelector('.gold-rate-bar');
     const rates = window.getGoldRates();
 
+    const gbp24kTola = rates.rate24kPerTolaGBP || Math.round(rates.rate24kPerTola / 374);
+    const gbp24k10g = rates.rate24kPer10gGBP || Math.round(rates.rate24kPer10g / 374);
+    const gbp24k1g = rates.rate24kPer1gGBP || Math.round(rates.rate24kPer1g / 374);
+    const gbp22kTola = rates.rate22kPerTolaGBP || Math.round(rates.rate22kPerTola / 374);
+    const gbp18kTola = rates.rate18kPerTolaGBP || Math.round(rates.rate18kPerTola / 374);
+
     const tickerContent = `
       <div class="gold-rate-ticker">
-        <span class="gold-rate-item"><span class="gold-rate-tag">GUJRANWALA SARAFA BAZAAR LIVE</span> 24K Gold: <strong>PKR ${rates.rate24kPerTola.toLocaleString()} / Tola</strong></span>
+        <span class="gold-rate-item"><span class="gold-rate-tag">LIVE GOLD MARKET</span> 24K Gold: <strong>PKR ${rates.rate24kPerTola.toLocaleString()} (£${gbp24kTola.toLocaleString()}) / Tola</strong></span>
         <span>✦</span>
-        <span class="gold-rate-item">10 Grams 24K: <strong>PKR ${rates.rate24kPer10g.toLocaleString()}</strong></span>
+        <span class="gold-rate-item">10 Grams 24K: <strong>PKR ${rates.rate24kPer10g.toLocaleString()} (£${gbp24k10g.toLocaleString()})</strong></span>
         <span>✦</span>
-        <span class="gold-rate-item">1 Gram 24K: <strong>PKR ${rates.rate24kPer1g.toLocaleString()}</strong></span>
+        <span class="gold-rate-item">1 Gram 24K: <strong>PKR ${rates.rate24kPer1g.toLocaleString()} (£${gbp24k1g.toLocaleString()})</strong></span>
         <span>✦</span>
-        <span class="gold-rate-item">22K Gold: <strong>PKR ${rates.rate22kPerTola.toLocaleString()} / Tola</strong></span>
+        <span class="gold-rate-item">22K Gold: <strong>PKR ${rates.rate22kPerTola.toLocaleString()} (£${gbp22kTola.toLocaleString()}) / Tola</strong></span>
         <span>✦</span>
-        <span class="gold-rate-item">18K Gold: <strong>PKR ${rates.rate18kPerTola.toLocaleString()} / Tola</strong></span>
+        <span class="gold-rate-item">18K Gold: <strong>PKR ${rates.rate18kPerTola.toLocaleString()} (£${gbp18kTola.toLocaleString()}) / Tola</strong></span>
         <span>✦</span>
-        <span class="gold-rate-item"><span class="gold-rate-tag">LIVE STATUS</span> Updated ${rates.lastUpdated} &nbsp;|&nbsp; Official Gujranwala Sarafa Market Rates</span>
+        <span class="gold-rate-item"><span class="gold-rate-tag">LIVE MARKET</span> Updated ${rates.lastUpdated} &nbsp;|&nbsp; Dual PKR & GBP (£) Live Rates</span>
       </div>
     `;
 
