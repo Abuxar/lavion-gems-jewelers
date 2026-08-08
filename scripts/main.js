@@ -2017,7 +2017,7 @@
         <div style="color:rgba(255,255,255,0.9); font-weight:600; font-size:13px; margin-bottom:6px; line-height:1.4;">${o.items}</div>
         <div style="color:rgba(255,255,255,0.5); font-size:12px; display:flex; justify-content:space-between; border-top:1px solid rgba(255,255,255,0.06); padding-top:6px; margin-top:6px;">
           <span>Placed on: <strong style="color:rgba(255,255,255,0.75);">${o.date || 'Recent'}</strong></span>
-          <span>Total: <strong style="color:var(--color-gold-light);">PKR ${Number(o.total || 0).toLocaleString()}</strong></span>
+          <span>Total: <strong style="color:var(--color-gold-light);">📞 Price on Request</strong></span>
         </div>
       </div>
     `).join('') : '<div style="color:rgba(255,255,255,0.5); font-size:13px; font-style:italic; padding:20px 0; text-align:center;">No past order history found.</div>';
