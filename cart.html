@@ -178,13 +178,18 @@
           <input type="text" id="cust-address" placeholder="Street address, house/apartment number..." required />
         </div>
 
-        <div class="admin-form-group">
+        <div class="admin-form-group" style="margin-bottom: 12px;">
           <label>Payment Method</label>
           <select id="cust-payment" required>
             <option value="Cash on Delivery (COD)">Cash on Delivery (COD)</option>
-            <option value="Direct Bank Transfer">Direct Bank Transfer</option>
-            <option value="Credit / Debit Card">Credit / Debit Card</option>
+            <option value="Direct Bank Transfer">Direct Bank Transfer (IBFT)</option>
+            <option value="Credit / Debit Card">Credit / Debit Card (Visa / Mastercard)</option>
           </select>
+        </div>
+
+        <!-- Dynamic Payment Details Container -->
+        <div id="payment-details-container" style="margin-bottom: 18px;">
+          <!-- Rendered dynamically by JavaScript -->
         </div>
 
         <div class="admin-form-group">
@@ -527,8 +532,71 @@
           const modal = document.getElementById('checkout-modal');
           modal?.classList.add('active');
           document.body.style.overflow = 'hidden';
+          renderPaymentDetails();
         });
       }
+
+      const paymentSelect = document.getElementById('cust-payment');
+      const detailsContainer = document.getElementById('payment-details-container');
+
+      function renderPaymentDetails() {
+        const method = paymentSelect ? paymentSelect.value : 'Cash on Delivery (COD)';
+        if (!detailsContainer) return;
+
+        if (method.includes('Bank Transfer')) {
+          detailsContainer.innerHTML = `
+            <div style="background: rgba(200,169,110,0.08); border: 1px solid var(--color-gold); border-radius: 8px; padding: 14px; font-size: 13px; color: #fff;">
+              <div style="font-weight: 700; color: var(--color-gold-light); font-size: 13px; margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+                🏦 Official Bank Transfer Details (IBFT)
+              </div>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; font-size: 12px; line-height: 1.5; margin-bottom: 10px;">
+                <div><span style="color: rgba(255,255,255,0.6);">Bank:</span> <strong>Meezan Bank</strong></div>
+                <div><span style="color: rgba(255,255,255,0.6);">Title:</span> <strong>Lavion Gems & Jewellers</strong></div>
+                <div style="grid-column: 1 / -1;"><span style="color: rgba(255,255,255,0.6);">IBAN:</span> <strong style="color: var(--color-gold-light); font-family: monospace; font-size: 13px;">PK36 MEZN 0001 0203 0405 0607</strong></div>
+              </div>
+              <div class="admin-form-group" style="margin-top: 8px; margin-bottom: 0;">
+                <label style="color: var(--color-gold-light); font-size: 11px;">Transaction Ref / IBFT Receipt ID <span style="color:#e74c3c">*</span></label>
+                <input type="text" id="bank-tx-id" placeholder="e.g. FT2622094857" style="background:#141210; border:1px solid rgba(200,169,110,0.4); color:#fff; padding:8px; font-size:13px; border-radius:6px;" required />
+              </div>
+            </div>
+          `;
+        } else if (method.includes('Credit / Debit Card')) {
+          detailsContainer.innerHTML = `
+            <div style="background: rgba(200,169,110,0.08); border: 1px solid var(--color-gold); border-radius: 8px; padding: 14px; font-size: 13px; color: #fff;">
+              <div style="font-weight: 700; color: var(--color-gold-light); font-size: 13px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+                <span>💳 Card Payment Details</span>
+                <span style="font-size: 10px; color: #2ecc71; background: rgba(46,204,113,0.15); padding: 2px 6px; border-radius: 4px;">🔒 256-Bit SSL</span>
+              </div>
+              <div class="admin-form-group" style="margin-bottom: 10px;">
+                <label style="color: var(--color-gold-light); font-size: 11px;">Cardholder Name <span style="color:#e74c3c">*</span></label>
+                <input type="text" id="card-name" placeholder="Name on card" style="background:#141210; border:1px solid rgba(200,169,110,0.4); color:#fff; padding:8px; font-size:13px; border-radius:6px;" required />
+              </div>
+              <div class="admin-form-group" style="margin-bottom: 10px;">
+                <label style="color: var(--color-gold-light); font-size: 11px;">Card Number <span style="color:#e74c3c">*</span></label>
+                <input type="text" id="card-number" placeholder="4000 1234 5678 9010" maxlength="19" style="background:#141210; border:1px solid rgba(200,169,110,0.4); color:#fff; padding:8px; font-size:13px; font-family:monospace; border-radius:6px;" required />
+              </div>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div class="admin-form-group" style="margin:0;">
+                  <label style="color: var(--color-gold-light); font-size: 11px;">Expiry (MM/YY) <span style="color:#e74c3c">*</span></label>
+                  <input type="text" id="card-expiry" placeholder="12/28" maxlength="5" style="background:#141210; border:1px solid rgba(200,169,110,0.4); color:#fff; padding:8px; font-size:13px; text-align:center; border-radius:6px;" required />
+                </div>
+                <div class="admin-form-group" style="margin:0;">
+                  <label style="color: var(--color-gold-light); font-size: 11px;">CVV <span style="color:#e74c3c">*</span></label>
+                  <input type="password" id="card-cvv" placeholder="•••" maxlength="4" style="background:#141210; border:1px solid rgba(200,169,110,0.4); color:#fff; padding:8px; font-size:13px; text-align:center; border-radius:6px;" required />
+                </div>
+              </div>
+            </div>
+          `;
+        } else {
+          detailsContainer.innerHTML = `
+            <div style="background: rgba(46, 204, 113, 0.08); border: 1px solid rgba(46, 204, 113, 0.3); border-radius: 6px; padding: 10px 12px; font-size: 12px; color: #d4c5a9;">
+              💵 <strong>Cash on Delivery (COD):</strong> Pay cash upon delivery to the courier agent. Includes tamper-proof security seal and insured transport.
+            </div>
+          `;
+        }
+      }
+
+      paymentSelect?.addEventListener('change', renderPaymentDetails);
 
       document.getElementById('checkout-cancel-btn')?.addEventListener('click', () => {
         document.getElementById('checkout-modal')?.classList.remove('active');
@@ -543,8 +611,18 @@
         const phone   = document.getElementById('cust-phone').value.trim();
         const city    = document.getElementById('cust-city').value.trim();
         const address = document.getElementById('cust-address').value.trim();
-        const payment = document.getElementById('cust-payment').value;
+        const rawPayment = document.getElementById('cust-payment').value;
         const notes   = document.getElementById('cust-notes')?.value.trim() || '';
+
+        let paymentFormatted = rawPayment;
+        if (rawPayment.includes('Bank Transfer')) {
+          const txId = document.getElementById('bank-tx-id')?.value.trim() || 'Pending';
+          paymentFormatted = `Direct Bank Transfer (IBFT Ref: ${txId})`;
+        } else if (rawPayment.includes('Credit / Debit Card')) {
+          const cardNum = document.getElementById('card-number')?.value.trim() || '';
+          const last4 = cardNum.slice(-4) || '****';
+          paymentFormatted = `Credit/Debit Card (Online Payment - Ending in ${last4})`;
+        }
 
         const cart = window.getCart();
         if (cart.length === 0) {
@@ -578,7 +656,7 @@
               phone,
               city,
               address,
-              payment,
+              payment: paymentFormatted,
               items: itemsSummary,
               total,
               notes
