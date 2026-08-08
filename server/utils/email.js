@@ -38,7 +38,11 @@ async function sendEmailMessage({ to, subject, html }) {
     });
 
     if (data.error) {
-      console.error('[Email] Resend API response error:', data.error.message || data.error);
+      const msg = data.error.message || JSON.stringify(data.error);
+      console.error('[Email] Resend API response error:', msg);
+      if (msg.includes('only send testing emails')) {
+        console.warn(' ℹ️ [Resend Note] Free onboarding domain (onboarding@resend.dev) restricts delivery to your verified account email (laviongems.jewellers@gmail.com). To send to all customer emails, verify your domain at https://resend.com/domains.');
+      }
       return false;
     }
 
