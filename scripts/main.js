@@ -804,35 +804,9 @@
       `).join('') || `<tr><td colspan="8" style="text-align:center;padding:24px;color:rgba(255,255,255,0.5);">No orders found</td></tr>`;
 
       ordersTbody.querySelectorAll('.set-order-price').forEach(btn => {
-        btn.addEventListener('click', async () => {
+        btn.addEventListener('click', () => {
           const id = btn.getAttribute('data-id');
-          const ords = getOrders();
-          const ord = ords.find(o => String(o.id) === String(id));
-          if (!ord) return;
-
-          const inputVal = prompt(`💰 Enter agreed PKR price for Order "${id}" (Customer: ${ord.customer}):`, ord.total || '');
-          if (inputVal === null) return;
-          const agreedPrice = parseFloat(inputVal);
-          if (isNaN(agreedPrice) || agreedPrice < 0) {
-            showToast('Invalid price entered.', 'error');
-            return;
-          }
-
-          ord.total = agreedPrice;
-          ord.priceConfirmed = true;
-          ord.status = 'Price Confirmed';
-          saveOrders(ords);
-
-          try {
-            await fetch(`/api/orders/${id}/price`, {
-              method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ price: agreedPrice, status: 'Price Confirmed' })
-            });
-          } catch (e) {}
-
-          showToast(`Order ${id} agreed price set to PKR ${agreedPrice.toLocaleString()}!`, 'success');
-          renderAdmin();
+          window.openSetOrderPriceModal(id);
         });
       });
 
@@ -2020,8 +1994,120 @@
   }
 
   /* ======================================
-     LUXURY INVOICE & RECEIPT SYSTEM
+     LUXURY ADMIN SET AGREED PRICE MODAL
   ====================================== */
+  window.openSetOrderPriceModal = function (orderId) {
+    const ords = window.getOrders();
+    const ord = ords.find(o => String(o.id).toLowerCase() === String(orderId).toLowerCase());
+    if (!ord) return;
+
+    let modal = document.getElementById('set-price-modal');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 'set-price-modal';
+      modal.className = 'admin-modal-backdrop';
+      document.body.appendChild(modal);
+    }
+
+    modal.innerHTML = `
+      <div class="admin-modal-dialog" style="max-width:520px; background:#181614; border:1px solid var(--color-gold); border-radius:12px; padding:24px; box-shadow:0 10px 40px rgba(0,0,0,0.8);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; border-bottom:1px solid rgba(200,169,110,0.3); padding-bottom:12px;">
+          <h3 style="font-family:var(--font-serif); font-size:22px; color:var(--color-gold-light); margin:0; display:flex; align-items:center; gap:8px;">
+            💰 Set Agreed Quotation Price
+          </h3>
+          <button id="set-price-close" class="admin-action-btn" style="padding:4px 10px; font-size:16px;">&times;</button>
+        </div>
+
+        <div style="background:#12100e; border:1px solid rgba(200,169,110,0.2); border-radius:8px; padding:14px; margin-bottom:20px; font-size:13px; color:rgba(255,255,255,0.85);">
+          <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+            <span>Order Ref:</span> <strong style="color:var(--color-gold-light);">${ord.id}</strong>
+          </div>
+          <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+            <span>Customer Name:</span> <strong style="color:#fff;">${ord.customer} (${ord.phone})</strong>
+          </div>
+          <div style="display:flex; justify-content:space-between;">
+            <span>Items Ordered:</span> <span style="color:rgba(255,255,255,0.7);">${ord.items}</span>
+          </div>
+        </div>
+
+        <form id="set-price-form">
+          <div class="admin-form-group" style="margin-bottom:16px;">
+            <label style="color:var(--color-gold-light); font-weight:700; font-size:12px; text-transform:uppercase; letter-spacing:0.5px; display:block; margin-bottom:6px;">
+              Agreed Final Price (PKR) <span style="color:#e74c3c">*</span>
+            </label>
+            <input type="number" id="agreed-price-input" value="${ord.total || ''}" placeholder="e.g. 450000" min="1" step="100" style="width:100%; padding:12px; background:#12100e; border:1px solid var(--color-gold); color:#fff; font-size:16px; font-weight:700; border-radius:6px; box-sizing:border-box;" required autofocus />
+            <div id="price-formatted-preview" style="font-size:12px; color:var(--color-gold-light); margin-top:6px; font-style:italic;">
+              ${ord.total ? 'Formatted: PKR ' + Number(ord.total).toLocaleString() : 'Formatted: PKR 0'}
+            </div>
+          </div>
+
+          <p style="font-size:11px; color:rgba(255,255,255,0.5); line-height:1.4; margin-bottom:20px;">
+            ✦ Once saved, the order status updates to <strong>Price Confirmed ✓</strong> and customer invoices/receipts will display this agreed price.
+          </p>
+
+          <div style="display:flex; gap:10px;">
+            <button type="submit" class="admin-primary-btn" style="flex:1; justify-content:center; padding:12px; background:linear-gradient(135deg,#c9a84c,#f0d080); color:#0a0a0a; font-size:13px; font-weight:700; border:none; border-radius:6px; cursor:pointer;">
+              🔒 Save & Lock Agreed Price
+            </button>
+            <button type="button" id="set-price-cancel" class="admin-action-btn delete" style="padding:12px 18px; font-size:13px;">
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
+    `;
+
+    modal.classList.add('active');
+    modal.style.zIndex = '25000';
+    document.body.style.overflow = 'hidden';
+
+    const priceInput = document.getElementById('agreed-price-input');
+    const preview = document.getElementById('price-formatted-preview');
+
+    priceInput?.addEventListener('input', () => {
+      const val = parseFloat(priceInput.value);
+      preview.textContent = isNaN(val) || val <= 0 ? 'Formatted: PKR 0' : `Formatted: PKR ${val.toLocaleString()}`;
+    });
+
+    const closeModal = () => {
+      modal.classList.remove('active');
+      document.body.style.overflow = '';
+    };
+
+    document.getElementById('set-price-close')?.addEventListener('click', closeModal);
+    document.getElementById('set-price-cancel')?.addEventListener('click', closeModal);
+
+    document.getElementById('set-price-form')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const agreedPrice = parseFloat(priceInput.value);
+      if (isNaN(agreedPrice) || agreedPrice <= 0) {
+        showToast('Please enter a valid price.', 'error');
+        return;
+      }
+
+      const allOrds = window.getOrders();
+      const target = allOrds.find(o => String(o.id).toLowerCase() === String(orderId).toLowerCase());
+      if (target) {
+        target.total = agreedPrice;
+        target.priceConfirmed = true;
+        target.status = 'Price Confirmed';
+        saveOrders(allOrds);
+      }
+
+      try {
+        await fetch(`/api/orders/${orderId}/price`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ price: agreedPrice, status: 'Price Confirmed' })
+        });
+      } catch (err) {}
+
+      showToast(`Order ${orderId} agreed price set to PKR ${agreedPrice.toLocaleString()}!`, 'success');
+      closeModal();
+      renderAdmin();
+    });
+  };
+
   /* ======================================
      LUXURY INVOICE & RECEIPT SYSTEM
   ====================================== */
