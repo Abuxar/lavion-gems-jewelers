@@ -887,6 +887,81 @@
     if (typeof window.renderMobileAppDock === 'function') window.renderMobileAppDock();
   };
 
+  function showCartPromptModal(product, qty) {
+    const existing = document.getElementById('cart-prompt-modal');
+    if (existing) existing.remove();
+
+    const totalCartCount = window.getCart().reduce((sum, item) => sum + item.qty, 0);
+    const formattedPrice = (typeof product.price === 'number') ? `PKR ${product.price.toLocaleString()}` : product.price;
+
+    const modal = document.createElement('div');
+    modal.id = 'cart-prompt-modal';
+    modal.className = 'cart-prompt-backdrop';
+    modal.innerHTML = `
+      <div class="cart-prompt-dialog" role="dialog" aria-modal="true" aria-labelledby="cart-prompt-title">
+        <button class="cart-prompt-close" id="cart-prompt-close-btn" aria-label="Close modal">&times;</button>
+        
+        <div class="cart-prompt-header">
+          <div class="cart-prompt-icon-wrap">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </div>
+          <h3 id="cart-prompt-title" class="cart-prompt-title">Added to Shopping Bag!</h3>
+        </div>
+
+        <div class="cart-prompt-body">
+          <div class="cart-prompt-item">
+            <img src="${product.img || 'images/rings/solitaire-diamond-ring.jpg'}" alt="${product.name}" class="cart-prompt-item-img" onerror="this.src='images/rings/solitaire-diamond-ring.jpg'" />
+            <div class="cart-prompt-item-info">
+              <h4 class="cart-prompt-item-name">${product.name}</h4>
+              <p class="cart-prompt-item-meta">${product.category ? product.category.toUpperCase() : 'LUXURY JEWELLERY'}</p>
+              <div class="cart-prompt-item-price-qty">
+                <span class="cart-prompt-price">${formattedPrice}</span>
+                <span class="cart-prompt-qty">Qty: ${qty}</span>
+              </div>
+            </div>
+          </div>
+
+          <p class="cart-prompt-question">
+            Would you like to open your Shopping Bag now or continue browsing?
+          </p>
+        </div>
+
+        <div class="cart-prompt-actions">
+          <button class="cart-prompt-btn secondary" id="cart-prompt-continue-btn">Continue Browsing</button>
+          <a href="cart.html" class="cart-prompt-btn primary" id="cart-prompt-open-btn">
+            Open Shopping Bag (${totalCartCount})
+          </a>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    setTimeout(() => modal.classList.add('active'), 10);
+
+    const closeModal = () => {
+      modal.classList.remove('active');
+      setTimeout(() => modal.remove(), 300);
+    };
+
+    document.getElementById('cart-prompt-close-btn')?.addEventListener('click', closeModal);
+    document.getElementById('cart-prompt-continue-btn')?.addEventListener('click', closeModal);
+    
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) closeModal();
+    });
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        closeModal();
+        document.removeEventListener('keydown', handleKeyDown);
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+  }
+
   window.addToCart = function (productId, qty = 1) {
     const products = window.getProducts();
     const product = products.find(p => p.id === String(productId));
@@ -927,7 +1002,12 @@
     }
 
     window.saveCart(cart);
-    showToast(`Added "${product.name}" to your Shopping Bag!`, 'success');
+    if (window.location.pathname.endsWith('cart.html')) {
+      showToast(`Added "${product.name}" to your Shopping Bag!`, 'success');
+      if (typeof window.renderCart === 'function') window.renderCart();
+    } else {
+      showCartPromptModal(product, qty);
+    }
   };
 
   window.removeFromCart = function (productId) {
