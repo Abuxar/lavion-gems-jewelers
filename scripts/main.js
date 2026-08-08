@@ -58,8 +58,14 @@
     };
 
     prevBtn?.addEventListener('click', () => { if (pos > 0) { pos--; update(); } });
-    nextBtn?.addEventListener('click', () => { if (pos < getMax()) { pos++; update(); } });
-    window.addEventListener('resize', () => { pos = Math.min(pos, getMax()); update(); });
+    let resizeTimer;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        pos = Math.min(pos, getMax());
+        update();
+      }, 100);
+    });
     update();
   });
 
@@ -1623,9 +1629,10 @@
     bar.innerHTML = tickerContent;
   };
 
-  // Auto-fetch live market rate on load & auto-refresh every 5 minutes
+  // Auto-fetch live market rate on load & auto-refresh every 5 minutes safely
+  if (window.goldRateTimer) clearInterval(window.goldRateTimer);
   setTimeout(() => window.fetchLiveGoldRates(true), 1000);
-  setInterval(() => window.fetchLiveGoldRates(true), 5 * 60 * 1000);
+  window.goldRateTimer = setInterval(() => window.fetchLiveGoldRates(true), 5 * 60 * 1000);
 
   async function initAdminGoldRateControls() {
     const input24k = document.getElementById('admin-gold-24k-input');
