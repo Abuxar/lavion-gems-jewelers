@@ -2035,7 +2035,7 @@
             <label style="color:var(--color-gold-light); font-weight:700; font-size:12px; text-transform:uppercase; letter-spacing:0.5px; display:block; margin-bottom:6px;">
               Agreed Final Price (PKR) <span style="color:#e74c3c">*</span>
             </label>
-            <input type="number" id="agreed-price-input" value="${ord.total || ''}" placeholder="e.g. 450000" min="1" step="100" style="width:100%; padding:12px; background:#12100e; border:1px solid var(--color-gold); color:#fff; font-size:16px; font-weight:700; border-radius:6px; box-sizing:border-box;" required autofocus />
+            <input type="number" id="agreed-price-input" value="${ord.total || ''}" placeholder="e.g. 450000" min="0" step="any" style="width:100%; padding:12px; background:#12100e; border:1px solid var(--color-gold); color:#fff; font-size:16px; font-weight:700; border-radius:6px; box-sizing:border-box;" required autofocus />
             <div id="price-formatted-preview" style="font-size:12px; color:var(--color-gold-light); margin-top:6px; font-style:italic;">
               ${ord.total ? 'Formatted: PKR ' + Number(ord.total).toLocaleString() : 'Formatted: PKR 0'}
             </div>
