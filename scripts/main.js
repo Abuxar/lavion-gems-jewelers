@@ -2232,7 +2232,7 @@
           <div class="invoice-footer">
             <div>
               <div style="font-family:var(--font-serif); font-size:14px; font-weight:700; color:#1c1a18;">Lavion Gems & Jewellers Ltd.</div>
-              <div>Sarafa Bazaar, Gulberg III, Lahore, Pakistan</div>
+              <div>282 Y Block, Phase 3, DHA, Lahore, Pakistan</div>
             </div>
             <div style="text-align:center;">
               <div style="border-bottom:1px solid #999; width:160px; margin-bottom:4px; font-family:var(--font-serif); font-style:italic; font-size:14px; color:var(--color-gold-dark);">Authorized Signature</div>
