@@ -1694,16 +1694,20 @@
   setTimeout(() => window.fetchLiveGoldRates(true), 1000);
   setInterval(() => window.fetchLiveGoldRates(true), 5 * 60 * 1000);
 
-  function initAdminGoldRateControls() {
-    const rates = window.getGoldRates();
+  async function initAdminGoldRateControls() {
     const input24k = document.getElementById('admin-gold-24k-input');
     const btnSave = document.getElementById('admin-update-gold-rate-btn');
     const btnSync = document.getElementById('admin-sync-gold-btn');
 
-    if (input24k) input24k.value = rates.rate24kPerTola;
+    // Immediately fetch live market rates
+    const rates = await window.fetchLiveGoldRates(true);
+
+    if (input24k && rates?.rate24kPerTola) {
+      input24k.value = rates.rate24kPerTola;
+    }
 
     const updateAdminLabels = () => {
-      const val = parseFloat(input24k?.value) || 463800;
+      const val = parseFloat(input24k?.value) || rates?.rate24kPerTola || 463800;
       const g10 = Math.round(val / 1.16638);
       const g1 = Math.round(val / 11.6638);
       const k22 = Math.round(val * (22 / 24));

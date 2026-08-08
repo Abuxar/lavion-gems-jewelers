@@ -17,13 +17,13 @@ function readData() {
       products: [],
       orders: [],
       goldRates: {
-        rate24kPerTola: 428500,
-        rate24kPer10g: 367376,
-        rate24kPer1g: 36738,
-        rate22kPerTola: 392790,
-        rate18kPerTola: 321375,
+        rate24kPerTola: 463800,
+        rate24kPer10g: 397641,
+        rate24kPer1g: 39764,
+        rate22kPerTola: 425150,
+        rate18kPerTola: 347850,
         rateSilverPerTola: 4850,
-        lastUpdated: 'Live Sarafa Market Data'
+        lastUpdated: 'Live Automatic Sarafa Market Data'
       },
       customers: [],
       customOrders: []

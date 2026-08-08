@@ -1145,26 +1145,27 @@
           <div style="background:#12100e; border:1.5px solid var(--color-gold); border-radius:8px; padding:24px; margin-bottom:28px;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:12px;">
               <div>
-                <span class="admin-status-tag instock" style="padding:2px 8px; font-size:10px;">⚡ Live Gold Rate Engine</span>
-                <h3 style="font-family:var(--font-serif); font-size:22px; color:var(--color-gold-light); margin-top:4px;">Today's Gold Rate Control (Pakistan Sarafa Market)</h3>
+                <span class="admin-status-tag instock" style="padding:4px 10px; font-size:11px; background:#1e4620; color:#2ecc71; border:1px solid #2ecc71;">● 100% AUTOMATIC LIVE MARKET ENGINE</span>
+                <h3 style="font-family:var(--font-serif); font-size:22px; color:var(--color-gold-light); margin-top:6px;">Live Gold Rate Monitor (Pakistan Sarafa Market)</h3>
+                <p style="font-size:12px; color:rgba(255,255,255,0.6); margin-top:2px;">Prices update automatically every 5 minutes from live international spot & Pakistan exchange rates. No admin action required.</p>
               </div>
               <button type="button" class="admin-primary-btn" id="admin-sync-gold-btn" style="padding:8px 16px; font-size:11px;">
-                🔄 Sync Market Rates
+                🔄 Force Re-Sync Live Rates
               </button>
             </div>
 
             <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:16px; align-items:end;">
               <div class="admin-form-group" style="margin:0;">
-                <label style="color:var(--color-gold-light); font-weight:700;">24K Gold Rate / Tola (PKR)</label>
-                <input type="number" id="admin-gold-24k-input" value="428500" style="background:#1c1a17; border:1px solid var(--color-gold); color:#fff; padding:10px; font-size:15px; font-weight:700; border-radius:6px;" />
+                <label style="color:var(--color-gold-light); font-weight:700;">Active 24K Rate / Tola (PKR)</label>
+                <input type="number" id="admin-gold-24k-input" placeholder="Fetching Live Market Rate..." style="background:#1c1a17; border:1px solid var(--color-gold); color:#fff; padding:10px; font-size:15px; font-weight:700; border-radius:6px;" />
               </div>
               <div style="font-size:12px; color:rgba(255,255,255,0.8); line-height:1.6; background:#1c1a17; padding:10px 14px; border-radius:6px; border:1px solid rgba(255,255,255,0.1);">
-                • 10 Grams 24K: <strong style="color:var(--color-gold-light);" id="admin-rate-10g">Rs. 367,376</strong><br>
-                • 1 Gram 24K: <strong style="color:var(--color-gold-light);" id="admin-rate-1g">Rs. 36,738</strong><br>
-                • 22K Gold Rate: <strong style="color:var(--color-gold-light);" id="admin-rate-22k">Rs. 392,790 / Tola</strong>
+                • 10 Grams 24K: <strong style="color:var(--color-gold-light);" id="admin-rate-10g">Auto Live</strong><br>
+                • 1 Gram 24K: <strong style="color:var(--color-gold-light);" id="admin-rate-1g">Auto Live</strong><br>
+                • 22K Gold Rate: <strong style="color:var(--color-gold-light);" id="admin-rate-22k">Auto Live / Tola</strong>
               </div>
-              <button type="button" class="admin-primary-btn" id="admin-update-gold-rate-btn" style="height:42px; justify-content:center;">
-                ✓ Save & Publish New Rates
+              <button type="button" class="admin-action-btn" id="admin-update-gold-rate-btn" style="height:42px; justify-content:center; padding:10px; font-size:12px; border:1px dashed var(--color-gold);">
+                ⚙️ Optional Manual Override
               </button>
             </div>
           </div>
