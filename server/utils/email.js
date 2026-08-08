@@ -1,75 +1,53 @@
 let Resend;
-try { Resend = require('resend').Resend; } catch (e) {}
+try {
+  Resend = require('resend').Resend;
+} catch (e) {
+  console.log('[Email] resend package not installed or failed to load.');
+}
 
-let nodemailer;
-try { nodemailer = require('nodemailer'); } catch (e) {}
-
-// Lazy-initialize so dotenv has loaded the key before Resend is constructed
+// Lazy-initialize so dotenv has loaded before Resend is constructed
 let _resend;
 function getResend() {
-  if (!_resend && process.env.RESEND_API_KEY && Resend) _resend = new Resend(process.env.RESEND_API_KEY);
+  if (!_resend && process.env.RESEND_API_KEY && Resend) {
+    _resend = new Resend(process.env.RESEND_API_KEY);
+  }
   return _resend;
 }
 
-const FROM_EMAIL = () => process.env.RESEND_FROM_EMAIL || process.env.GMAIL_USER || 'onboarding@resend.dev';
+const FROM_EMAIL = () => process.env.RESEND_FROM_EMAIL || 'Lavion Gems & Jewellers <onboarding@resend.dev>';
 const ADMIN_EMAIL = () => process.env.ADMIN_EMAIL || 'laviongems.jewellers@gmail.com';
 
-// With the shared onboarding@resend.dev sender, Resend only allows sending
-// to your own verified email. Skip customer emails in that case.
-const CUSTOM_DOMAIN = () => process.env.RESEND_FROM_EMAIL && process.env.RESEND_FROM_EMAIL !== 'onboarding@resend.dev';
-
-function getSmtpTransport() {
-  if (!nodemailer) return null;
-  const user = process.env.GMAIL_USER;
-  const pass = process.env.GMAIL_PASS;
-  if (!user || !pass) return null;
-
-  const host = process.env.SMTP_HOST || 'smtp.gmail.com';
-  const port = Number(process.env.SMTP_PORT || 465);
-  const secure = process.env.SMTP_SECURE ? process.env.SMTP_SECURE === 'true' : port === 465;
-
-  return nodemailer.createTransport({
-    host,
-    port,
-    secure,
-    auth: { user, pass }
-  });
-}
-
 async function sendEmailMessage({ to, subject, html }) {
-  if (process.env.RESEND_API_KEY) {
-    try {
-      await getResend().emails.send({
-        from: FROM_EMAIL(),
-        to,
-        subject,
-        html
-      });
-      console.log(`[Email] Sent via Resend to ${to}`);
-      return true;
-    } catch (err) {
-      console.error('[Email] Resend send failed:', err.message);
-    }
+  if (!process.env.RESEND_API_KEY) {
+    console.warn('[Email] RESEND_API_KEY is not configured in environment. Skipping email dispatch.');
+    return false;
   }
 
-  const smtp = getSmtpTransport();
-  if (smtp) {
-    try {
-      await smtp.sendMail({
-        from: FROM_EMAIL(),
-        to,
-        subject,
-        html
-      });
-      console.log(`[Email] Sent via SMTP to ${to}`);
-      return true;
-    } catch (err) {
-      console.error('[Email] SMTP send failed:', err.message);
-    }
+  const resend = getResend();
+  if (!resend) {
+    console.error('[Email] Resend SDK client missing or failed to initialize.');
+    return false;
   }
 
-  console.error('[Email] No email provider is configured or all providers failed.');
-  return false;
+  try {
+    const data = await resend.emails.send({
+      from: FROM_EMAIL(),
+      to,
+      subject,
+      html
+    });
+
+    if (data.error) {
+      console.error('[Email] Resend API response error:', data.error.message || data.error);
+      return false;
+    }
+
+    console.log(`[Email] Sent via Resend to ${to} (Message ID: ${data.data?.id || data.id || 'ok'})`);
+    return true;
+  } catch (err) {
+    console.error('[Email] Resend send failed:', err.message);
+    return false;
+  }
 }
 
 
@@ -201,8 +179,7 @@ async function sendOrderConfirmationEmail(order) {
   `;
 
   try {
-    // Send to customer only when using a verified custom domain
-    if (CUSTOM_DOMAIN() && order.email) {
+    if (order.email) {
       await sendEmailMessage({
         to: order.email,
         subject: `Order Confirmed – ${order.id} | Lavion Gems & Jewellers`,
@@ -211,7 +188,7 @@ async function sendOrderConfirmationEmail(order) {
       console.log(`[Email] Order confirmation sent to ${order.email}`);
     }
 
-    // Notify admin (always)
+    // Notify admin
     await sendEmailMessage({
       to: ADMIN_EMAIL(),
       subject: `🛍️ New Order: ${order.id} – ${order.customer} (PKR ${Number(order.total).toLocaleString()})`,
@@ -291,7 +268,7 @@ async function sendCustomOrderEmail(order) {
   `;
 
   try {
-    // Notify admin (always)
+    // Notify admin
     await sendEmailMessage({
       to: ADMIN_EMAIL(),
       subject: `💎 New Bespoke Request: ${order.id} – ${order.customerName} (${order.itemType})`,
@@ -299,8 +276,7 @@ async function sendCustomOrderEmail(order) {
     });
     console.log(`[Email] Admin notified of custom order ${order.id}`);
 
-    // Send confirmation to customer only when using a verified custom domain
-    if (CUSTOM_DOMAIN() && order.customerEmail) {
+    if (order.customerEmail) {
       await sendEmailMessage({
         to: order.customerEmail,
         subject: `Bespoke Request Received – ${order.id} | Lavion Gems & Jewellers`,
