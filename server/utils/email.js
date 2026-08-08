@@ -122,9 +122,11 @@ async function sendOrderConfirmationEmail(order) {
         <tr>
           <td style="padding:10px 12px;color:#d4c5a9;font-size:14px;border-bottom:1px solid #2a2010;">${item.name || item}</td>
           <td style="padding:10px 12px;color:#d4c5a9;font-size:14px;border-bottom:1px solid #2a2010;text-align:center;">${item.qty || 1}</td>
-          <td style="padding:10px 12px;color:#c9a84c;font-size:14px;border-bottom:1px solid #2a2010;text-align:right;">PKR ${(item.price || 0).toLocaleString()}</td>
+          <td style="padding:10px 12px;color:#c9a84c;font-size:14px;border-bottom:1px solid #2a2010;text-align:right;">${order.priceConfirmed && order.total > 0 ? 'PKR ' + Number(order.total).toLocaleString() : 'Price on Request'}</td>
         </tr>`).join('')
     : `<tr><td colspan="3" style="padding:10px 12px;color:#d4c5a9;">${order.items}</td></tr>`;
+
+  const totalText = order.priceConfirmed && order.total > 0 ? `PKR ${Number(order.total).toLocaleString()}` : 'Price on Request (Quotation Pending)';
 
   const emailBody = `
     <!DOCTYPE html>
@@ -175,7 +177,7 @@ async function sendOrderConfirmationEmail(order) {
                 <tfoot>
                   <tr style="background:#2a2010;">
                     <td colspan="2" style="padding:12px 12px;color:#c9a84c;font-size:14px;font-weight:700;letter-spacing:1px;text-transform:uppercase;">Total</td>
-                    <td style="padding:12px 12px;color:#f0d080;font-size:16px;font-weight:700;text-align:right;">PKR ${Number(order.total).toLocaleString()}</td>
+                    <td style="padding:12px 12px;color:#f0d080;font-size:15px;font-weight:700;text-align:right;">${totalText}</td>
                   </tr>
                 </tfoot>
               </table>

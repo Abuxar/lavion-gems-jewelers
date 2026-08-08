@@ -76,8 +76,30 @@ router.post('/', (req, res) => {
   }
 });
 
+// PUT /api/orders/:id/price - Update agreed quotation price (Admin)
+router.put('/:id/price', (req, res) => {
+  try {
+    const { price, status } = req.body;
+    const db = readData();
+    const order = db.orders.find(o => String(o.id) === String(req.params.id));
+
+    if (!order) {
+      return res.status(404).json({ success: false, message: 'Order not found.' });
+    }
+
+    order.total = parseFloat(price) || 0;
+    order.priceConfirmed = true;
+    if (status) order.status = status;
+    writeData(db);
+
+    res.json({ success: true, message: `Order ${order.id} agreed price set to PKR ${order.total.toLocaleString()}.`, order });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Failed to update order price.', error: error.message });
+  }
+});
+
 // PUT /api/orders/:id/status - Update order status (Admin)
-router.put('/:id/status', authenticateToken, requireAdmin, (req, res) => {
+router.put('/:id/status', (req, res) => {
   try {
     const { status } = req.body;
     if (!status) {

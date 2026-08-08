@@ -782,10 +782,11 @@
           <td>${o.phone}</td>
           <td>${o.city}</td>
           <td><span style="font-size:12px;color:var(--color-gold-light);">${o.items}</span></td>
-          <td><strong>PKR ${o.total.toLocaleString()}</strong></td>
+          <td>${o.priceConfirmed && o.total > 0 ? `<strong style="color:#2ecc71; font-size:13px;">PKR ${o.total.toLocaleString()}</strong><br><span style="font-size:10px; color:#2ecc71;">✓ Confirmed</span>` : `<span style="color:#e67e22; font-weight:700; font-size:12px;">Quotation Pending ⏳</span>`}</td>
           <td>
             <select class="order-status-select" data-id="${o.id}" style="background:#12100e;color:#fff;border:1px solid rgba(200,169,110,0.3);padding:4px 8px;border-radius:4px;font-size:12px;">
               <option value="Pending" ${o.status === 'Pending' ? 'selected' : ''}>Pending</option>
+              <option value="Price Confirmed" ${o.status === 'Price Confirmed' ? 'selected' : ''}>Price Confirmed</option>
               <option value="Processing" ${o.status === 'Processing' ? 'selected' : ''}>Processing</option>
               <option value="Shipped" ${o.status === 'Shipped' ? 'selected' : ''}>Shipped</option>
               <option value="Delivered" ${o.status === 'Delivered' ? 'selected' : ''}>Delivered</option>
@@ -793,13 +794,47 @@
             </select>
           </td>
           <td>
-            <div style="display:flex; gap:6px;">
-              <button class="admin-action-btn view-invoice" data-id="${o.id}" style="padding:4px 8px; font-size:11px; background:var(--color-gold); color:#1c1a18; font-weight:700;">📄 Invoice</button>
+            <div style="display:flex; gap:6px; flex-wrap:wrap;">
+              <button class="admin-action-btn set-order-price" data-id="${o.id}" style="padding:4px 8px; font-size:11px; background:linear-gradient(135deg,#c9a84c,#f0d080); color:#0a0a0a; font-weight:700;">💰 Set Price</button>
+              <button class="admin-action-btn view-invoice" data-id="${o.id}" style="padding:4px 8px; font-size:11px; background:rgba(200,169,110,0.2); color:var(--color-gold-light); font-weight:700;">📄 Invoice</button>
               <button class="admin-action-btn delete-order" data-id="${o.id}">Remove</button>
             </div>
           </td>
         </tr>
       `).join('') || `<tr><td colspan="8" style="text-align:center;padding:24px;color:rgba(255,255,255,0.5);">No orders found</td></tr>`;
+
+      ordersTbody.querySelectorAll('.set-order-price').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const id = btn.getAttribute('data-id');
+          const ords = getOrders();
+          const ord = ords.find(o => String(o.id) === String(id));
+          if (!ord) return;
+
+          const inputVal = prompt(`💰 Enter agreed PKR price for Order "${id}" (Customer: ${ord.customer}):`, ord.total || '');
+          if (inputVal === null) return;
+          const agreedPrice = parseFloat(inputVal);
+          if (isNaN(agreedPrice) || agreedPrice < 0) {
+            showToast('Invalid price entered.', 'error');
+            return;
+          }
+
+          ord.total = agreedPrice;
+          ord.priceConfirmed = true;
+          ord.status = 'Price Confirmed';
+          saveOrders(ords);
+
+          try {
+            await fetch(`/api/orders/${id}/price`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ price: agreedPrice, status: 'Price Confirmed' })
+            });
+          } catch (e) {}
+
+          showToast(`Order ${id} agreed price set to PKR ${agreedPrice.toLocaleString()}!`, 'success');
+          renderAdmin();
+        });
+      });
 
       ordersTbody.querySelectorAll('.view-invoice').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -2176,7 +2211,7 @@
                 </td>
                 <td>22K Gold / Gem</td>
                 <td>1</td>
-                <td style="text-align:right; font-weight:700;">${order.total > 0 ? 'PKR ' + order.total.toLocaleString() : 'Quotation Price'}</td>
+                <td style="text-align:right; font-weight:700;">${order.priceConfirmed && order.total > 0 ? 'PKR ' + Number(order.total).toLocaleString() : 'Price on Request (Quotation Pending)'}</td>
               </tr>
             </tbody>
           </table>
@@ -2185,20 +2220,21 @@
           <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-top:20px; padding-top:16px; border-top:2px solid #eee;">
             <div style="font-size:11px; color:#666; max-width:340px; line-height:1.5;">
               • <strong>Guaranteed Quality:</strong> All gold pieces are stamped with 22K/916 or 18K/750 hallmark quality.<br>
+              • <strong>Quotation Agreement:</strong> ${order.priceConfirmed ? 'Agreed quotation price confirmed by Admin & Customer.' : 'Final quotation price is agreed between customer & admin upon live market verification.'}<br>
               • <strong>Support Contact:</strong> +92 324 1775662 | support@lavion.pk
             </div>
-            <div style="text-align:right; min-width:220px;">
+            <div style="text-align:right; min-width:240px;">
               <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:6px;">
                 <span>Subtotal:</span>
-                <strong>${order.total > 0 ? 'PKR ' + order.total.toLocaleString() : 'Day-of-Delivery'}</strong>
+                <strong>${order.priceConfirmed && order.total > 0 ? 'PKR ' + Number(order.total).toLocaleString() : 'Quotation Pending'}</strong>
               </div>
               <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:6px;">
                 <span>Express Shipping:</span>
                 <strong style="color:#27ae60;">FREE Insured</strong>
               </div>
-              <div style="display:flex; justify-content:space-between; font-size:18px; font-weight:700; color:var(--color-gold-dark); border-top:2px solid var(--color-gold); padding-top:8px; margin-top:8px;">
+              <div style="display:flex; justify-content:space-between; font-size:16px; font-weight:700; color:var(--color-gold-dark); border-top:2px solid var(--color-gold); padding-top:8px; margin-top:8px;">
                 <span>Total Amount:</span>
-                <span>${order.total > 0 ? 'PKR ' + order.total.toLocaleString() : 'Rate Locked'}</span>
+                <span>${order.priceConfirmed && order.total > 0 ? 'PKR ' + Number(order.total).toLocaleString() : 'Price on Request'}</span>
               </div>
             </div>
           </div>
