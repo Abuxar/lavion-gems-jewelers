@@ -308,6 +308,11 @@
             </div>
 
             <div class="custom-form-group">
+              <label for="cust-email">Email Address <span style="color:#e74c3c">*</span></label>
+              <input type="email" id="cust-email" placeholder="Your email address" required />
+            </div>
+
+            <div class="custom-form-group">
               <label for="cust-phone">WhatsApp / Phone Number <span style="color:#e74c3c">*</span></label>
               <input type="tel" id="cust-phone" placeholder="+92 324 1775662" required />
             </div>
@@ -434,6 +439,7 @@
         const refUrl = document.getElementById('reference-url').value.trim();
 
         const name = document.getElementById('cust-name').value.trim();
+        const email = document.getElementById('cust-email')?.value.trim() || '';
         const phone = document.getElementById('cust-phone').value.trim();
         const city = document.getElementById('cust-city').value.trim();
         const address = document.getElementById('cust-address').value.trim();
@@ -444,6 +450,7 @@
         const customOrder = {
           id: orderId,
           customer: name,
+          email: email,
           phone: phone,
           city: city,
           address: address,
@@ -456,6 +463,25 @@
             itemType, metal, gemstone, engraving, budget, desc, refUrl
           }
         };
+
+        // Post to backend API to trigger email alerts via Resend
+        fetch('/api/custom-orders', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            itemType,
+            metal,
+            goldPurity: metal,
+            gemPreference: gemstone,
+            customText: engraving,
+            budgetRange: budget,
+            notes: desc + (refUrl ? ' (Ref: ' + refUrl + ')' : ''),
+            customerName: name,
+            customerPhone: phone,
+            customerCity: city,
+            customerEmail: email
+          })
+        }).catch(err => console.error('Custom order API error:', err));
 
         // Save into Orders array in localStorage for Admin visibility
         const currentOrders = window.getOrders();
