@@ -151,9 +151,15 @@
       <p style="font-size: 13px; color: rgba(255,255,255,0.7); margin-bottom: 24px;">Please complete your delivery details to finalize your order.</p>
 
       <form id="checkout-form">
-        <div class="admin-form-group">
-          <label>Full Name</label>
-          <input type="text" id="cust-name" placeholder="e.g. Ayesha Malik" required />
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+          <div class="admin-form-group">
+            <label>Full Name</label>
+            <input type="text" id="cust-name" placeholder="e.g. Ayesha Malik" required />
+          </div>
+          <div class="admin-form-group">
+            <label>Email Address</label>
+            <input type="email" id="cust-email" placeholder="e.g. ayesha@example.com" required />
+          </div>
         </div>
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
@@ -513,6 +519,7 @@
           const activeUser = window.getActiveCustomer ? window.getActiveCustomer() : null;
           if (activeUser) {
             if (document.getElementById('cust-name')) document.getElementById('cust-name').value = activeUser.name || '';
+            if (document.getElementById('cust-email')) document.getElementById('cust-email').value = activeUser.email || '';
             if (document.getElementById('cust-phone')) document.getElementById('cust-phone').value = activeUser.phone || '';
             if (document.getElementById('cust-city')) document.getElementById('cust-city').value = activeUser.city || '';
             if (document.getElementById('cust-address')) document.getElementById('cust-address').value = activeUser.address || '';
@@ -532,6 +539,7 @@
         e.preventDefault();
 
         const name    = document.getElementById('cust-name').value.trim();
+        const email   = document.getElementById('cust-email')?.value.trim() || '';
         const phone   = document.getElementById('cust-phone').value.trim();
         const city    = document.getElementById('cust-city').value.trim();
         const address = document.getElementById('cust-address').value.trim();
@@ -550,7 +558,6 @@
         const total          = subtotal + shipping - discountAmount;
         const itemsSummary   = cart.map(i => `${i.name} (x${i.qty})`).join(', ');
 
-        // Get logged-in user's email for the confirmation email (optional)
         const activeUser = (() => {
           try { return JSON.parse(localStorage.getItem('lavion_user') || 'null'); } catch { return null; }
         })();
@@ -567,8 +574,8 @@
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               customer: name,
+              email: email || activeUser?.email || '',
               phone,
-              email: activeUser?.email || '',
               city,
               address,
               payment,
