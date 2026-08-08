@@ -2426,9 +2426,7 @@
   const wa = document.createElement('a');
   wa.id = 'whatsapp-float-btn';
   function buildWhatsAppHref(number, text) {
-    const encoded = encodeURIComponent(text);
-    const isMobile = /Mobi|Android|iPhone|iPad|iPod|Windows Phone/i.test(navigator.userAgent || '');
-    if (isMobile) return `whatsapp://send?phone=${number}&text=${encoded}`;
+    const encoded = encodeURIComponent(text || '');
     return `https://wa.me/${number}?text=${encoded}`;
   }
 
