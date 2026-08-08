@@ -1,3 +1,8 @@
+try {
+  require('dotenv').config();
+  require('dotenv').config({ path: require('path').resolve(__dirname, '../.env') });
+} catch (e) {}
+
 let Resend;
 try {
   Resend = require('resend').Resend;
@@ -103,7 +108,7 @@ async function sendWelcomeEmail({ name, email }) {
         </html>
       `;
 
-  await sendEmailMessage({
+  return sendEmailMessage({
     to: email,
     subject: '✨ Welcome to Lavion Gems & Jewellers',
     html: emailBody
@@ -207,8 +212,10 @@ async function sendOrderConfirmationEmail(order) {
       html: emailBody
     });
     console.log(`[Email] Admin notified of order ${order.id}`);
+    return true;
   } catch (err) {
     console.error('[Email] Failed to send order confirmation:', err.message);
+    return false;
   }
 }
 
@@ -296,8 +303,10 @@ async function sendCustomOrderEmail(order) {
       });
       console.log(`[Email] Custom order confirmation sent to ${order.customerEmail}`);
     }
+    return true;
   } catch (err) {
     console.error('[Email] Failed to send custom order email:', err.message);
+    return false;
   }
 }
 
