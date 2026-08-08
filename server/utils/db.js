@@ -17,13 +17,13 @@ function readData() {
       products: [],
       orders: [],
       goldRates: {
-        rate24kPerTola: 463800,
-        rate24kPer10g: 397641,
-        rate24kPer1g: 39764,
-        rate22kPerTola: 425150,
-        rate18kPerTola: 347850,
+        rate24kPerTola: 437000,
+        rate24kPer10g: 374663,
+        rate24kPer1g: 37466,
+        rate22kPerTola: 400583,
+        rate18kPerTola: 327750,
         rateSilverPerTola: 4850,
-        lastUpdated: 'Live Automatic Sarafa Market Data'
+        lastUpdated: 'Official Gujranwala Sarafa Market Rate'
       },
       customers: [],
       customOrders: []

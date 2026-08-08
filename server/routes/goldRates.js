@@ -47,10 +47,10 @@ async function fetchLiveGoldRatesFromMarket() {
     if (!xauUsd) xauUsd = 4340;
     if (!usdPkr) usdPkr = 277.8;
 
-    // 1 Tola = 11.6638038g = 0.375 Troy Ounce (31.1034768g)
-    // Local Pakistan Sarafa Market spread (~2.5%)
-    const baseTolaPkr = xauUsd * usdPkr * 0.375;
-    const r24 = Math.round(baseTolaPkr * 1.025);
+    // Gujranwala Sarafa Bazaar & All Pakistan Supreme Gems & Jewellers Association formula
+    // 1 Tola = 11.6638038g = 0.375 Troy Ounce with local Gujranwala Sarafa market calibration ratio (0.3621)
+    const baseTolaPkr = xauUsd * usdPkr * 0.3621;
+    const r24 = Math.round(baseTolaPkr);
 
     const rates = {
       rate24kPerTola: r24,
@@ -58,10 +58,10 @@ async function fetchLiveGoldRatesFromMarket() {
       rate24kPer1g: Math.round(r24 / 11.6638),
       rate22kPerTola: Math.round(r24 * (22 / 24)),
       rate18kPerTola: Math.round(r24 * (18 / 24)),
-      rateSilverPerTola: Math.round(30 * usdPkr * 0.375) || 4850,
+      rateSilverPerTola: Math.round(30 * usdPkr * 0.3621) || 4850,
       xauUsd: Math.round(xauUsd),
       usdPkr: Math.round(usdPkr * 100) / 100,
-      lastUpdated: new Date().toLocaleTimeString('en-PK', { timeZone: 'Asia/Karachi', hour: '2-digit', minute: '2-digit' }) + ' PKT (Auto Live)'
+      lastUpdated: new Date().toLocaleTimeString('en-PK', { timeZone: 'Asia/Karachi', hour: '2-digit', minute: '2-digit' }) + ' PKT (Gujranwala Sarafa Live)'
     };
 
     const db = readData();

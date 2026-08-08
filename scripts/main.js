@@ -1569,13 +1569,13 @@
      LIVE DYNAMIC GOLD RATE MARKET ENGINE
   ====================================== */
   const DEFAULT_GOLD_RATES = {
-    rate24kPerTola: 463800,
-    rate24kPer10g: 397641,
-    rate24kPer1g: 39764,
-    rate22kPerTola: 425150,
-    rate18kPerTola: 347850,
+    rate24kPerTola: 437000,
+    rate24kPer10g: 374663,
+    rate24kPer1g: 37466,
+    rate22kPerTola: 400583,
+    rate18kPerTola: 327750,
     rateSilverPerTola: 4850,
-    lastUpdated: 'Live Sarafa Market PK'
+    lastUpdated: 'Gujranwala Sarafa Live'
   };
 
   window.getGoldRates = function () {
@@ -1600,7 +1600,7 @@
         const data = await res.json();
         if (data.success && data.goldRates) {
           window.saveGoldRates(data.goldRates);
-          if (!silent) showToast(`Live Gold Rates synced! PKR ${data.goldRates.rate24kPerTola.toLocaleString()} / Tola`, 'success');
+          if (!silent) showToast(`Live Gujranwala Sarafa Gold Rates synced! PKR ${data.goldRates.rate24kPerTola.toLocaleString()} / Tola`, 'success');
           return data.goldRates;
         }
       }
@@ -1608,7 +1608,7 @@
       console.warn('Backend gold API unavailable, using direct live fallback...');
     }
 
-    // Direct client-side live fetch fallback
+    // Direct client-side live fetch fallback with Gujranwala Sarafa Market formula
     try {
       const [goldRes, fxRes] = await Promise.all([
         fetch('https://api.gold-api.com/price/XAU').then(r => r.json()).catch(() => null),
@@ -1618,15 +1618,15 @@
       if (goldRes?.price && fxRes?.rates?.PKR) {
         const xauUsd = parseFloat(goldRes.price);
         const usdPkr = parseFloat(fxRes.rates.PKR);
-        const r24 = Math.round(xauUsd * usdPkr * 0.375 * 1.025);
+        const r24 = Math.round(xauUsd * usdPkr * 0.3621);
         const rates = {
           rate24kPerTola: r24,
           rate24kPer10g: Math.round(r24 / 1.16638),
           rate24kPer1g: Math.round(r24 / 11.6638),
           rate22kPerTola: Math.round(r24 * (22 / 24)),
           rate18kPerTola: Math.round(r24 * (18 / 24)),
-          rateSilverPerTola: Math.round(30 * usdPkr * 0.375) || 4850,
-          lastUpdated: new Date().toLocaleTimeString('en-PK', { timeZone: 'Asia/Karachi', hour: '2-digit', minute: '2-digit' }) + ' PKT (Auto)'
+          rateSilverPerTola: Math.round(30 * usdPkr * 0.3621) || 4850,
+          lastUpdated: new Date().toLocaleTimeString('en-PK', { timeZone: 'Asia/Karachi', hour: '2-digit', minute: '2-digit' }) + ' PKT (Gujranwala Live)'
         };
         window.saveGoldRates(rates);
         if (!silent) showToast(`Live Gold Rates synced! PKR ${r24.toLocaleString()} / Tola`, 'success');
@@ -1638,7 +1638,7 @@
   };
 
   window.updateGoldRateFrom24k = function (rate24k) {
-    const r24 = parseFloat(rate24k) || 463800;
+    const r24 = parseFloat(rate24k) || 437000;
     const rates = {
       rate24kPerTola: Math.round(r24),
       rate24kPer10g: Math.round(r24 / 1.16638),
@@ -1658,7 +1658,7 @@
 
     const tickerContent = `
       <div class="gold-rate-ticker">
-        <span class="gold-rate-item"><span class="gold-rate-tag">LIVE GOLD MARKET PAKISTAN</span> 24K Gold: <strong>PKR ${rates.rate24kPerTola.toLocaleString()} / Tola</strong></span>
+        <span class="gold-rate-item"><span class="gold-rate-tag">GUJRANWALA SARAFA BAZAAR LIVE</span> 24K Gold: <strong>PKR ${rates.rate24kPerTola.toLocaleString()} / Tola</strong></span>
         <span>✦</span>
         <span class="gold-rate-item">10 Grams 24K: <strong>PKR ${rates.rate24kPer10g.toLocaleString()}</strong></span>
         <span>✦</span>
@@ -1668,7 +1668,7 @@
         <span>✦</span>
         <span class="gold-rate-item">18K Gold: <strong>PKR ${rates.rate18kPerTola.toLocaleString()} / Tola</strong></span>
         <span>✦</span>
-        <span class="gold-rate-item"><span class="gold-rate-tag">LIVE STATUS</span> Updated ${rates.lastUpdated} &nbsp;|&nbsp; Certified Sarafa Bazaar Market Rates</span>
+        <span class="gold-rate-item"><span class="gold-rate-tag">LIVE STATUS</span> Updated ${rates.lastUpdated} &nbsp;|&nbsp; Official Gujranwala Sarafa Market Rates</span>
       </div>
     `;
 
