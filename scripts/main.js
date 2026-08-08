@@ -1999,46 +1999,60 @@
     const orders = window.getOrders().filter(o => o.phone.includes(user.phone) || o.customer.toLowerCase().includes(user.name.toLowerCase()));
 
     const ordersHtml = orders.length > 0 ? orders.map(o => `
-      <div style="background:#12100e; border:1px solid rgba(200,169,110,0.3); border-radius:6px; padding:12px; margin-bottom:10px; font-size:12px;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-          <div>
-            <strong style="color:var(--color-gold-light); font-size:13px;">${o.id}</strong>
-            <span class="admin-status-tag instock" style="padding:2px 6px; font-size:9px; margin-left:6px;">${o.status}</span>
+      <div style="background:#12100e; border:1px solid rgba(200,169,110,0.3); border-radius:8px; padding:14px 16px; margin-bottom:12px; font-size:13px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:8px;">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <strong style="color:var(--color-gold-light); font-size:15px; letter-spacing:0.5px;">${o.id}</strong>
+            <span class="admin-status-tag instock" style="padding:3px 8px; font-size:10px; text-transform:uppercase; font-weight:700;">${o.status || 'Pending'}</span>
           </div>
-          <button onclick="window.generateInvoice('${o.id}')" style="background:var(--color-gold); color:#1c1a18; border:none; padding:4px 10px; border-radius:3px; font-size:11px; font-weight:700; cursor:pointer;">📄 Download Invoice</button>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <a href="track-order.html?orderId=${o.id}" target="_blank" style="background:linear-gradient(135deg,#c9a84c,#f0d080); color:#0a0a0a; text-decoration:none; padding:6px 14px; border-radius:4px; font-size:11px; font-weight:700; display:inline-flex; align-items:center; gap:5px; box-shadow:0 2px 6px rgba(0,0,0,0.4); transition:all 0.2s ease;">
+              📦 Track Order
+            </a>
+            <button onclick="window.generateInvoice('${o.id}')" style="background:rgba(200,169,110,0.15); color:var(--color-gold-light); border:1px solid rgba(200,169,110,0.4); padding:6px 12px; border-radius:4px; font-size:11px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:5px;">
+              📄 Invoice
+            </button>
+          </div>
         </div>
-        <div style="color:rgba(255,255,255,0.85); font-weight:600;">${o.items}</div>
-        <div style="color:rgba(255,255,255,0.5); font-size:11px; margin-top:4px;">Placed on: ${o.date} &nbsp;|&nbsp; Total: PKR ${o.total.toLocaleString()}</div>
+        <div style="color:rgba(255,255,255,0.9); font-weight:600; font-size:13px; margin-bottom:6px; line-height:1.4;">${o.items}</div>
+        <div style="color:rgba(255,255,255,0.5); font-size:12px; display:flex; justify-content:space-between; border-top:1px solid rgba(255,255,255,0.06); padding-top:6px; margin-top:6px;">
+          <span>Placed on: <strong style="color:rgba(255,255,255,0.75);">${o.date || 'Recent'}</strong></span>
+          <span>Total: <strong style="color:var(--color-gold-light);">PKR ${Number(o.total || 0).toLocaleString()}</strong></span>
+        </div>
       </div>
-    `).join('') : '<div style="color:rgba(255,255,255,0.5); font-size:12px; font-style:italic;">No past order history found.</div>';
+    `).join('') : '<div style="color:rgba(255,255,255,0.5); font-size:13px; font-style:italic; padding:20px 0; text-align:center;">No past order history found.</div>';
 
     modal.innerHTML = `
-      <div class="admin-modal-dialog" style="max-width: 520px;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; border-bottom:1px solid rgba(200,169,110,0.3); padding-bottom:12px;">
-          <h3 style="font-family:var(--font-serif); font-size:24px; color:var(--color-gold-light); margin:0;">Customer Account Dashboard</h3>
-          <button class="admin-action-btn" id="prof-close-btn" style="padding:4px 10px;">&times;</button>
+      <div class="admin-modal-dialog" style="max-width: 720px; width: 95%;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; border-bottom:1px solid rgba(200,169,110,0.3); padding-bottom:14px;">
+          <h3 style="font-family:var(--font-serif); font-size:26px; color:var(--color-gold-light); margin:0;">Customer Account Dashboard</h3>
+          <button class="admin-action-btn" id="prof-close-btn" style="padding:4px 10px; font-size:16px;">&times;</button>
         </div>
 
-        <div style="display:flex; align-items:center; gap:16px; background:#12100e; padding:16px; border-radius:8px; border:1px solid rgba(200,169,110,0.3); margin-bottom:24px;">
-          <div style="width:50px; height:50px; border-radius:50%; background:var(--color-gold); color:#1c1a18; display:flex; align-items:center; justify-content:center; font-size:22px; font-weight:700;">
+        <div style="display:flex; align-items:center; gap:18px; background:#12100e; padding:18px; border-radius:10px; border:1px solid rgba(200,169,110,0.3); margin-bottom:24px;">
+          <div style="width:56px; height:56px; border-radius:50%; background:linear-gradient(135deg,#c9a84c,#f0d080); color:#1c1a18; display:flex; align-items:center; justify-content:center; font-size:24px; font-weight:700; flex-shrink:0; box-shadow:0 4px 12px rgba(200,169,110,0.3);">
             ${user.name.charAt(0)}
           </div>
-          <div>
-            <h4 style="font-size:18px; color:#fff; margin:0;">${user.name}</h4>
-            <div style="font-size:12px; color:var(--color-gold-light);">${user.email} &nbsp;|&nbsp; ${user.phone}</div>
-            <div style="font-size:11px; color:rgba(255,255,255,0.5);">${user.city || 'Pakistan'}</div>
+          <div style="flex:1;">
+            <h4 style="font-size:20px; color:#fff; margin:0 0 4px; font-weight:700;">${user.name}</h4>
+            <div style="font-size:13px; color:var(--color-gold-light);">${user.email} &nbsp;|&nbsp; ${user.phone}</div>
+            <div style="font-size:12px; color:rgba(255,255,255,0.5); margin-top:2px;">📍 ${user.city || 'Pakistan'}</div>
           </div>
         </div>
 
-        <h4 style="font-family:var(--font-sans); font-size:12px; text-transform:uppercase; letter-spacing:1px; color:var(--color-gold-light); margin-bottom:12px;">My Order History (${orders.length})</h4>
-        <div style="max-height:180px; overflow-y:auto; margin-bottom:24px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <h4 style="font-family:var(--font-sans); font-size:13px; text-transform:uppercase; letter-spacing:1.5px; color:var(--color-gold-light); margin:0;">My Order History (${orders.length})</h4>
+          <a href="track-order.html" target="_blank" style="color:var(--color-gold-light); font-size:12px; text-decoration:none;">🔍 Open Full Order Tracker →</a>
+        </div>
+
+        <div style="max-height:320px; overflow-y:auto; margin-bottom:24px; padding-right:4px;">
           ${ordersHtml}
         </div>
 
-        <div style="display:flex; gap:10px;">
-          <a href="wishlist.html" class="admin-action-btn edit" style="flex:1; text-align:center; text-decoration:none; padding:10px;">💖 My Wishlist</a>
-          <a href="customized-jewellery.html" class="admin-action-btn edit" style="flex:1; text-align:center; text-decoration:none; padding:10px;">✦ Bespoke Studio</a>
-          <button class="admin-action-btn delete" id="prof-logout-btn" style="padding:10px 16px;">Sign Out</button>
+        <div style="display:flex; gap:12px;">
+          <a href="wishlist.html" class="admin-action-btn edit" style="flex:1; text-align:center; text-decoration:none; padding:12px; font-weight:600;">💖 My Wishlist</a>
+          <a href="customized-jewellery.html" class="admin-action-btn edit" style="flex:1; text-align:center; text-decoration:none; padding:12px; font-weight:600;">✦ Bespoke Studio</a>
+          <button class="admin-action-btn delete" id="prof-logout-btn" style="padding:12px 20px; font-weight:600;">Sign Out</button>
         </div>
       </div>
     `;
