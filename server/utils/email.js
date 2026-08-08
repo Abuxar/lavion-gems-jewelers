@@ -183,7 +183,7 @@ async function sendOrderConfirmationEmail(order) {
                 Our team will contact you shortly to confirm delivery details. You can track your order anytime using your Order ID above.
               </p>
               <div style="text-align:center;margin:24px 0;">
-                <a href="https://laviongemsjewellers.com/cart.html" style="background:linear-gradient(135deg,#c9a84c,#f0d080);color:#0a0a0a;text-decoration:none;padding:12px 30px;border-radius:6px;font-weight:700;font-size:13px;letter-spacing:2px;text-transform:uppercase;display:inline-block;">Track Order</a>
+                <a href="https://laviongemsjewellers.com/track-order.html?orderId=${order.id}" style="background:linear-gradient(135deg,#c9a84c,#f0d080);color:#0a0a0a;text-decoration:none;padding:12px 30px;border-radius:6px;font-weight:700;font-size:13px;letter-spacing:2px;text-transform:uppercase;display:inline-block;">Track Order (${order.id})</a>
               </div>
               <hr style="border:none;border-top:1px solid #2a2010;margin:24px 0;">
               <p style="color:#666;font-size:12px;text-align:center;margin:0;">Lavion Gems &amp; Jewellers · Pakistan's Premier Luxury Jeweller</p>
