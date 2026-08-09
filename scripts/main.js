@@ -1633,7 +1633,7 @@
       if (!order) {
         area.innerHTML = `
           <div style="background:rgba(231,76,60,0.15); border:1px solid #e74c3c; padding:16px; border-radius:6px; color:#e74c3c; font-size:13px; text-align:center; margin-top:16px;">
-            ⚠️ No order record found for "<strong>${query}</strong>". Please verify your Order Reference ID or contact customer support on WhatsApp +92 324 1775662.
+            ⚠️ No order record found for "<strong>${query}</strong>". Please verify your Order Reference ID or contact customer support on WhatsApp +92 324 1769500.
           </div>
         `;
         return;
@@ -2427,7 +2427,7 @@
             <div style="font-size:11px; color:#666; max-width:340px; line-height:1.5;">
               • <strong>Guaranteed Quality:</strong> All gold pieces are stamped with 22K/916 or 18K/750 hallmark quality.<br>
               • <strong>Quotation Agreement:</strong> ${order.priceConfirmed ? 'Agreed quotation price confirmed by Admin & Customer.' : 'Final quotation price is agreed between customer & admin upon live market verification.'}<br>
-              • <strong>Support Contact:</strong> +92 324 1775662 | support@lavion.pk
+              • <strong>Support Contact:</strong> +92 324 1769500 | support@lavion.pk
             </div>
             <div style="text-align:right; min-width:240px;">
               <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:6px;">
@@ -2636,7 +2636,7 @@
     return `https://wa.me/${number}?text=${encoded}`;
   }
 
-  wa.href = buildWhatsAppHref('923241775662', "Hello Lavion Gems & Jewellers, I'd like to enquire about your jewellery collection.");
+  wa.href = buildWhatsAppHref('923241769500', "Hello Lavion Gems & Jewellers, I'd like to enquire about your jewellery collection.");
   wa.target = '_blank';
   wa.rel = 'noopener noreferrer';
   wa.title = 'Chat with us on WhatsApp';

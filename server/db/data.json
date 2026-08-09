@@ -1,33 +1,202 @@
 {
   "products": [
-    { "id": "1", "name": "Emerald Royale Ring", "category": "rings", "price": 285000, "stock": 8, "badge": "New", "img": "images/featured_rings.png", "desc": "22k Gold & Colombian Emerald Ring" },
-    { "id": "2", "name": "Diamond Halo Necklace", "category": "necklaces", "price": 620000, "stock": 4, "badge": "Bestseller", "img": "images/hero_necklace.png", "desc": "18k White Gold & Diamond Necklace" },
-    { "id": "3", "name": "Celestial Drops Earrings", "category": "earrings", "price": 195000, "stock": 12, "badge": "", "img": "images/featured_earrings.png", "desc": "Diamond Pavé Drop Earrings" },
-    { "id": "4", "name": "Eternity Bangle", "category": "bracelets", "price": 430000, "stock": 3, "badge": "Limited", "img": "images/featured_bracelets.png", "desc": "22k Gold Diamond-Set Bangle" },
-    { "id": "5", "name": "Royal Parure Set", "category": "asian", "price": 1250000, "stock": 2, "badge": "Heritage", "img": "images/hero_campaign.png", "desc": "Full Set — Necklace, Earrings & Ring" },
-    { "id": "6", "name": "Ruby Solitaire Ring", "category": "rings", "price": 360000, "stock": 6, "badge": "", "img": "images/featured_rings.png", "desc": "22k Gold & Burmese Ruby Ring" },
-    { "id": "7", "name": "Certified Ceylon Sapphire", "category": "gems", "price": 450000, "stock": 5, "badge": "Certified", "img": "images/gems.png", "desc": "Precious unmounted royal blue sapphire" },
-    { "id": "8", "name": "GIA Solitaire Diamond Ring", "category": "diamonds", "price": 890000, "stock": 2, "badge": "New", "img": "images/diamonds.png", "desc": "Platinum & GIA Certified VVS Diamond Ring" },
-    { "id": "9", "name": "Kundan Polki Choker Set", "category": "asian", "price": 780000, "stock": 4, "badge": "Heritage", "img": "images/asian_jewellery.png", "desc": "Heritage 22k Gold Kundan & Polki Choker" },
-    { "id": "10", "name": "Art Deco Diamond Cuff", "category": "western", "price": 560000, "stock": 3, "badge": "Limited", "img": "images/western_jewellery.png", "desc": "Minimalist Platinum & Diamond Art Deco Cuff" },
-    { "id": "11", "name": "Bespoke Calligraphy Gold Pendant", "category": "customized", "price": 185000, "stock": 10, "badge": "Custom", "img": "images/hero_campaign.png", "desc": "Handcrafted 22k Gold Custom Arabic/Urdu Name Calligraphy" },
-    { "id": "12", "name": "Custom Emerald Bridal Choker", "category": "customized", "price": 1450000, "stock": 5, "badge": "Bespoke", "img": "images/asian_jewellery.png", "desc": "Custom Designed 22k Gold & Colombian Emerald Parure" },
-    { "id": "13", "name": "Custom Engagement Solitaire", "category": "customized", "price": 950000, "stock": 8, "badge": "Bespoke", "img": "images/featured_rings.png", "desc": "Tailor-Made Platinum & GIA Diamond Engagement Ring" }
+    {
+      "id": "1",
+      "name": "Emerald Royale Ring",
+      "category": "rings",
+      "price": 285000,
+      "stock": 8,
+      "badge": "New",
+      "img": "images/featured_rings.png",
+      "desc": "22k Gold & Colombian Emerald Ring"
+    },
+    {
+      "id": "2",
+      "name": "Diamond Halo Necklace",
+      "category": "necklaces",
+      "price": 620000,
+      "stock": 4,
+      "badge": "Bestseller",
+      "img": "images/hero_necklace.png",
+      "desc": "18k White Gold & Diamond Necklace"
+    },
+    {
+      "id": "3",
+      "name": "Celestial Drops Earrings",
+      "category": "earrings",
+      "price": 195000,
+      "stock": 12,
+      "badge": "",
+      "img": "images/featured_earrings.png",
+      "desc": "Diamond Pavé Drop Earrings"
+    },
+    {
+      "id": "4",
+      "name": "Eternity Bangle",
+      "category": "bracelets",
+      "price": 430000,
+      "stock": 3,
+      "badge": "Limited",
+      "img": "images/featured_bracelets.png",
+      "desc": "22k Gold Diamond-Set Bangle"
+    },
+    {
+      "id": "5",
+      "name": "Royal Parure Set",
+      "category": "asian",
+      "price": 1250000,
+      "stock": 2,
+      "badge": "Heritage",
+      "img": "images/hero_campaign.png",
+      "desc": "Full Set — Necklace, Earrings & Ring"
+    },
+    {
+      "id": "6",
+      "name": "Ruby Solitaire Ring",
+      "category": "rings",
+      "price": 360000,
+      "stock": 6,
+      "badge": "",
+      "img": "images/featured_rings.png",
+      "desc": "22k Gold & Burmese Ruby Ring"
+    },
+    {
+      "id": "7",
+      "name": "Certified Ceylon Sapphire",
+      "category": "gems",
+      "price": 450000,
+      "stock": 5,
+      "badge": "Certified",
+      "img": "images/gems.png",
+      "desc": "Precious unmounted royal blue sapphire"
+    },
+    {
+      "id": "8",
+      "name": "GIA Solitaire Diamond Ring",
+      "category": "diamonds",
+      "price": 890000,
+      "stock": 2,
+      "badge": "New",
+      "img": "images/diamonds.png",
+      "desc": "Platinum & GIA Certified VVS Diamond Ring"
+    },
+    {
+      "id": "9",
+      "name": "Kundan Polki Choker Set",
+      "category": "asian",
+      "price": 780000,
+      "stock": 4,
+      "badge": "Heritage",
+      "img": "images/asian_jewellery.png",
+      "desc": "Heritage 22k Gold Kundan & Polki Choker"
+    },
+    {
+      "id": "10",
+      "name": "Art Deco Diamond Cuff",
+      "category": "western",
+      "price": 560000,
+      "stock": 3,
+      "badge": "Limited",
+      "img": "images/western_jewellery.png",
+      "desc": "Minimalist Platinum & Diamond Art Deco Cuff"
+    },
+    {
+      "id": "11",
+      "name": "Bespoke Calligraphy Gold Pendant",
+      "category": "customized",
+      "price": 185000,
+      "stock": 10,
+      "badge": "Custom",
+      "img": "images/hero_campaign.png",
+      "desc": "Handcrafted 22k Gold Custom Arabic/Urdu Name Calligraphy"
+    },
+    {
+      "id": "12",
+      "name": "Custom Emerald Bridal Choker",
+      "category": "customized",
+      "price": 1450000,
+      "stock": 5,
+      "badge": "Bespoke",
+      "img": "images/asian_jewellery.png",
+      "desc": "Custom Designed 22k Gold & Colombian Emerald Parure"
+    },
+    {
+      "id": "13",
+      "name": "Custom Engagement Solitaire",
+      "category": "customized",
+      "price": 950000,
+      "stock": 8,
+      "badge": "Bespoke",
+      "img": "images/featured_rings.png",
+      "desc": "Tailor-Made Platinum & GIA Diamond Engagement Ring"
+    }
   ],
   "orders": [
-    { "id": "ORD-8821", "customer": "Ayesha Malik", "phone": "+92 300 1234567", "city": "Lahore", "address": "Gulberg III, Lahore", "payment": "Cash on Delivery", "items": "Emerald Royale Ring (x1)", "total": 285000, "status": "Pending", "date": "2026-07-27" },
-    { "id": "ORD-8822", "customer": "Hamza Khan", "phone": "+92 321 9876543", "city": "Karachi", "address": "DHA Phase 6, Karachi", "payment": "Bank Transfer", "items": "Diamond Halo Necklace (x1)", "total": 620000, "status": "Processing", "date": "2026-07-27" },
-    { "id": "ORD-8823", "customer": "Zainab Ahmed", "phone": "+92 333 4567890", "city": "Islamabad", "address": "F-7/2, Islamabad", "payment": "Card", "items": "Eternity Bangle (x1), Celestial Drops (x1)", "total": 625000, "status": "Shipped", "date": "2026-07-26" },
-    { "id": "ORD-8824", "customer": "Tariq Siddiqui", "phone": "+92 301 5554433", "city": "Rawalpindi", "address": "Saddar, Rawalpindi", "payment": "Cash on Delivery", "items": "Royal Parure Set (x1)", "total": 1250000, "status": "Delivered", "date": "2026-07-25" }
+    {
+      "id": "ORD-8821",
+      "customer": "Ayesha Malik",
+      "phone": "+92 300 1234567",
+      "city": "Lahore",
+      "address": "Gulberg III, Lahore",
+      "payment": "Cash on Delivery",
+      "items": "Emerald Royale Ring (x1)",
+      "total": 285000,
+      "status": "Pending",
+      "date": "2026-07-27"
+    },
+    {
+      "id": "ORD-8822",
+      "customer": "Hamza Khan",
+      "phone": "+92 321 9876543",
+      "city": "Karachi",
+      "address": "DHA Phase 6, Karachi",
+      "payment": "Bank Transfer",
+      "items": "Diamond Halo Necklace (x1)",
+      "total": 620000,
+      "status": "Processing",
+      "date": "2026-07-27"
+    },
+    {
+      "id": "ORD-8823",
+      "customer": "Zainab Ahmed",
+      "phone": "+92 333 4567890",
+      "city": "Islamabad",
+      "address": "F-7/2, Islamabad",
+      "payment": "Card",
+      "items": "Eternity Bangle (x1), Celestial Drops (x1)",
+      "total": 625000,
+      "status": "Shipped",
+      "date": "2026-07-26"
+    },
+    {
+      "id": "ORD-8824",
+      "customer": "Tariq Siddiqui",
+      "phone": "+92 301 5554433",
+      "city": "Rawalpindi",
+      "address": "Saddar, Rawalpindi",
+      "payment": "Cash on Delivery",
+      "items": "Royal Parure Set (x1)",
+      "total": 1250000,
+      "status": "Delivered",
+      "date": "2026-07-25"
+    }
   ],
   "goldRates": {
-    "rate24kPerTola": 437000,
-    "rate24kPer10g": 374663,
-    "rate24kPer1g": 37466,
-    "rate22kPerTola": 400583,
-    "rate18kPerTola": 327750,
-    "rateSilverPerTola": 4850,
-    "lastUpdated": "Official Gujranwala Sarafa Market Rate"
+    "rate24kPerTola": 436833,
+    "rate24kPer10g": 374520,
+    "rate24kPer1g": 37452,
+    "rate22kPerTola": 400430,
+    "rate18kPerTola": 327625,
+    "rateSilverPerTola": 3017,
+    "rate24kPerTolaGBP": 1167,
+    "rate24kPer10gGBP": 1001,
+    "rate24kPer1gGBP": 100,
+    "rate22kPerTolaGBP": 1070,
+    "rate18kPerTolaGBP": 875,
+    "xauUsd": 4343,
+    "usdPkr": 277.76,
+    "usdGbp": 0.742,
+    "lastUpdated": "11:03 pm PKT (Live Gold Market)"
   },
   "customers": [
     {
