@@ -16,6 +16,12 @@ const { readData } = require('../utils/db');
  */
 let lastDbNote = 'Not attempted yet.';
 let lastDbDetail = null;
+let lastAttemptAt = 0;
+let inFlight = null;
+let attempts = 0;
+
+/** Don't hammer an unreachable cluster on every single request. */
+const RETRY_COOLDOWN_MS = 15000;
 
 async function connectDB() {
   if (mongoose.connection && mongoose.connection.readyState >= 1) {
@@ -32,6 +38,8 @@ async function connectDB() {
   // Describe the URI without disclosing it: enough to tell a wrong host or a
   // mangled value from a network refusal, which the summary line cannot.
   lastDbDetail = describeUri(mongoURI);
+  lastAttemptAt = Date.now();
+  attempts++;
 
   try {
     mongoose.set('strictQuery', false);
@@ -141,6 +149,44 @@ function describeUri(uri) {
   }
 }
 
+/**
+ * Try again, on demand.
+ *
+ * connectDB() ran once when the instance booted. An instance that started while
+ * the database was unreachable therefore stayed in file-DB mode for the whole
+ * of its life — so fixing the cause (an Atlas allowlist, a paused cluster, a
+ * network blip) appeared to change nothing until every warm instance happened
+ * to be recycled. Requests now retry, at most once per cooldown, and a single
+ * in-flight attempt is shared rather than started per request.
+ */
+function ensureMongo() {
+  if (isMongoConnected()) return Promise.resolve(true);
+  if (inFlight) return inFlight;
+  if (Date.now() - lastAttemptAt < RETRY_COOLDOWN_MS) return Promise.resolve(false);
+
+  inFlight = connectDB()
+    .then(() => isMongoConnected())
+    .catch(() => false)
+    .finally(() => { inFlight = null; });
+
+  return inFlight;
+}
+
+/**
+ * Express middleware. It waits for a reconnect, but never longer than the
+ * driver's own server-selection budget plus a little — a request must not hang
+ * on a database that is not answering, it should fall back and say so.
+ */
+function withMongoRetry(req, res, next) {
+  if (isMongoConnected()) return next();
+
+  let settled = false;
+  const go = () => { if (!settled) { settled = true; next(); } };
+
+  const timer = setTimeout(go, 3500);
+  ensureMongo().finally(() => { clearTimeout(timer); go(); });
+}
+
 function dbStatusNote() {
   return isMongoConnected() ? 'Connected.' : lastDbNote;
 }
@@ -149,12 +195,16 @@ function dbDiagnostics() {
   return {
     connected: isMongoConnected(),
     note: dbStatusNote(),
+    attempts,
+    secondsSinceLastAttempt: lastAttemptAt ? Math.round((Date.now() - lastAttemptAt) / 1000) : null,
     uri: lastDbDetail
   };
 }
 
 module.exports = {
   connectDB,
+  ensureMongo,
+  withMongoRetry,
   isMongoConnected,
   dbStatusNote,
   dbDiagnostics

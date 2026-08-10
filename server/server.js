@@ -14,7 +14,7 @@ const customOrderRoutes = require('./routes/customOrders');
 const subscribeRoutes = require('./routes/subscribe');
 const whatsappRoutes = require('./routes/whatsapp');
 
-const { connectDB, isMongoConnected, dbStatusNote, dbDiagnostics } = require('./config/db');
+const { connectDB, withMongoRetry, isMongoConnected, dbStatusNote, dbDiagnostics } = require('./config/db');
 const { authenticateToken, requireAdmin } = require('./middleware/auth');
 
 const app = express();
@@ -84,6 +84,11 @@ app.use((req, res, next) => {
 app.get(['/admin', '/admin-panel'], (req, res) => {
   res.redirect('/?admin=true');
 });
+
+// Give a disconnected instance a chance to reconnect before the route decides
+// which store to use, so a database that comes back does not require every warm
+// instance to be recycled first.
+app.use('/api', withMongoRetry);
 
 // API Routes (handle before static fallback)
 app.use('/api/auth', authRoutes);
