@@ -2670,10 +2670,25 @@ footer::before {
   align-items: center;
   gap: 12px;
   font-size: 13px;
-  z-index: 2000;
+  /* Above every overlay. At 2000 it sat under the modal backdrops (20000 and
+     100000), so an error raised from inside a dialog — a failed checkout, most
+     of all — was painted behind it and the action looked like it did nothing
+     at all. A toast is the one thing that must never be occluded. */
+  z-index: 100001;
+  max-width: min(420px, calc(100vw - 32px));
   opacity: 0;
   transform: translateY(20px);
   transition: all 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+/* Clear the bottom dock and the floating WhatsApp button on a phone. */
+@media (max-width: 768px) {
+  .admin-toast {
+    bottom: calc(140px + env(safe-area-inset-bottom, 0px));
+    right: 16px;
+    left: 16px;
+    max-width: none;
+  }
 }
 
 .admin-toast.show {
