@@ -346,13 +346,26 @@
     return isAdminPath || hasAdminParam;
   }
 
+  /**
+   * Opens the admin login modal.
+   *
+   * Deliberately does NOT re-check isDirectAdminRoute(): the caller has
+   * already established that, and by the time this runs the ?admin=true
+   * parameter has been stripped from the URL, so re-checking always failed
+   * and the modal never appeared.
+   */
   function openAdminLoginDirectly() {
-    if (!isDirectAdminRoute()) return;
+    if (!loginModal) {
+      // Only index.html carries the admin markup; send other pages there.
+      window.location.href = 'index.html?admin=true';
+      return;
+    }
     if (loginErrorMsg) loginErrorMsg.style.display = 'none';
     const passField = document.getElementById('login-password');
     if (passField) passField.value = '';
-    loginModal?.classList.add('active');
+    loginModal.classList.add('active');
     document.body.style.overflow = 'hidden';
+    document.getElementById('login-username')?.focus();
   }
 
   async function handleAdminLogin(e) {
@@ -390,19 +403,8 @@
         loginErrorMsg.style.display = 'block';
       }
     } catch (error) {
-      const fallbackAllowed = (user === 'admin' || user === 'lavion') && (pass === 'lavion123' || pass === 'admin123');
-      if (fallbackAllowed) {
-        sessionStorage.setItem('lavion_admin_auth', 'true');
-        sessionStorage.setItem('lavion_admin_token', '');
-        sessionStorage.setItem('lavion_admin_user', JSON.stringify({ username: 'Admin', role: 'admin' }));
-        toggleAdminLinks(true);
-        loginModal?.classList.remove('active');
-        adminOverlay?.classList.add('active');
-        document.body.style.overflow = 'hidden';
-        renderAdmin();
-        return;
-      }
-
+      // No client-side fallback. Granting admin access when the API is merely
+      // unreachable let anyone in by blocking the request in devtools.
       console.error('Admin login failed:', error);
       if (loginErrorMsg) {
         loginErrorMsg.textContent = 'Unable to reach admin service. Please try again.';
@@ -455,22 +457,33 @@
 
   toggleAdminLinks(isAuthenticated());
 
-  window.addEventListener('load', () => {
-    if (isDirectAdminRoute()) {
-      // Clean up the URL to remove admin param
-      if (window.history && window.history.replaceState) {
-        window.history.replaceState({}, document.title, window.location.pathname);
-      }
-      
-      if (isAuthenticated()) {
-        adminOverlay?.classList.add('active');
-        document.body.style.overflow = 'hidden';
-        renderAdmin();
-      } else {
-        openAdminLoginDirectly();
-      }
+  function handleDirectAdminRoute() {
+    if (!isDirectAdminRoute()) return;
+
+    const needsRedirect = !loginModal && !adminOverlay;
+
+    if (isAuthenticated() && adminOverlay) {
+      adminOverlay.classList.add('active');
+      document.body.style.overflow = 'hidden';
+      renderAdmin();
+    } else {
+      openAdminLoginDirectly();
     }
-  });
+
+    // Strip ?admin=true only AFTER acting on it. Cleaning it first left
+    // isDirectAdminRoute() false for everything downstream.
+    if (!needsRedirect && window.history && window.history.replaceState) {
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }
+
+  // main.js runs at the end of <body>, but guard against the case where the
+  // load event has already fired (bfcache restore, cached reload).
+  if (document.readyState === 'complete') {
+    handleDirectAdminRoute();
+  } else {
+    window.addEventListener('load', handleDirectAdminRoute);
+  }
 
   // Tab switching
   const tabBtns = document.querySelectorAll('.admin-tab-btn');
@@ -1746,27 +1759,40 @@
       if (goldRes?.price && fxRes?.rates?.PKR) {
         const xauUsd = parseFloat(goldRes.price);
         const usdPkr = parseFloat(fxRes.rates.PKR);
-        const usdGbp = parseFloat(fxRes.rates.GBP || 0.743);
+        const usdGbp = parseFloat(fxRes.rates.GBP || 0.7422);
 
-        const r24Pkr = Math.round(xauUsd * usdPkr * 0.3621);
-        const r24Gbp = Math.round(xauUsd * usdGbp * 0.3621);
+        // A tola is 11.6638038 g and a troy ounce 31.1034768 g, so a tola is
+        // exactly 0.375 troy oz. The old 0.3621 understated every price by 3.44%.
+        const GRAMS_PER_TOLA = 11.6638038;
+        const TOLA_PER_TROY_OZ = GRAMS_PER_TOLA / 31.1034768;
+
+        const tolaPkr = xauUsd * usdPkr * TOLA_PER_TROY_OZ;
+        const tolaGbp = xauUsd * usdGbp * TOLA_PER_TROY_OZ;
+        const r24Pkr = Math.round(tolaPkr);
+        const r24Gbp = Math.round(tolaGbp);
 
         const rates = {
           rate24kPerTola: r24Pkr,
-          rate24kPer10g: Math.round(r24Pkr / 1.16638),
-          rate24kPer1g: Math.round(r24Pkr / 11.6638),
-          rate22kPerTola: Math.round(r24Pkr * (22 / 24)),
-          rate18kPerTola: Math.round(r24Pkr * (18 / 24)),
-          rateSilverPerTola: Math.round(30 * usdPkr * 0.3621) || 4850,
+          rate24kPer10g: Math.round((tolaPkr / GRAMS_PER_TOLA) * 10),
+          rate24kPer1g: Math.round(tolaPkr / GRAMS_PER_TOLA),
+          rate22kPerTola: Math.round(tolaPkr * (22 / 24)),
+          rate21kPerTola: Math.round(tolaPkr * (21 / 24)),
+          rate18kPerTola: Math.round(tolaPkr * (18 / 24)),
+          // Silver needs its own feed; a hardcoded $30/oz guess was worse than
+          // showing nothing, so the ticker omits silver when it is unknown.
+          rateSilverPerTola: null,
           rate24kPerTolaGBP: r24Gbp,
-          rate24kPer10gGBP: Math.round(r24Gbp / 1.16638),
-          rate24kPer1gGBP: Math.round(r24Gbp / 11.6638),
-          rate22kPerTolaGBP: Math.round(r24Gbp * (22 / 24)),
-          rate18kPerTolaGBP: Math.round(r24Gbp * (18 / 24)),
-          lastUpdated: new Date().toLocaleTimeString('en-PK', { timeZone: 'Asia/Karachi', hour: '2-digit', minute: '2-digit' }) + ' PKT (Live Gold Market)'
+          rate24kPer10gGBP: Math.round((tolaGbp / GRAMS_PER_TOLA) * 10),
+          rate24kPer1gGBP: Math.round(tolaGbp / GRAMS_PER_TOLA),
+          rate22kPerTolaGBP: Math.round(tolaGbp * (22 / 24)),
+          rate18kPerTolaGBP: Math.round(tolaGbp * (18 / 24)),
+          xauUsd: Math.round(xauUsd * 100) / 100,
+          usdPkr: Math.round(usdPkr * 100) / 100,
+          usdGbp: Math.round(usdGbp * 10000) / 10000,
+          lastUpdated: new Date().toLocaleTimeString('en-PK', { timeZone: 'Asia/Karachi', hour: '2-digit', minute: '2-digit' }) + ' PKT (Live Market)'
         };
         window.saveGoldRates(rates);
-        if (!silent) showToast(`Live Gold Rates synced! PKR ${r24Pkr.toLocaleString()} / Tola`, 'success');
+        if (!silent) showToast(`Live gold rates synced — PKR ${r24Pkr.toLocaleString()} / tola`, 'success');
         return rates;
       }
     } catch (e) {}
@@ -1775,49 +1801,75 @@
   };
 
   window.updateGoldRateFrom24k = function (rate24k) {
-    const r24 = parseFloat(rate24k) || 437000;
-    const r24Gbp = Math.round(r24 / 374);
+    const r24 = parseFloat(rate24k);
+    if (!Number.isFinite(r24) || r24 <= 0) {
+      showToast('Enter a valid 24K rate per tola.', 'error');
+      return;
+    }
+
+    const GRAMS_PER_TOLA = 11.6638038;
+    const prev = window.getGoldRates() || {};
+    // Convert through the last known FX pair rather than a hardcoded divisor.
+    const gbpPerPkr = (prev.usdGbp && prev.usdPkr) ? (prev.usdGbp / prev.usdPkr) : (0.7422 / 277.76);
+    const gbp24 = r24 * gbpPerPkr;
+
     const rates = {
       rate24kPerTola: Math.round(r24),
-      rate24kPer10g: Math.round(r24 / 1.16638),
-      rate24kPer1g: Math.round(r24 / 11.6638),
+      rate24kPer10g: Math.round((r24 / GRAMS_PER_TOLA) * 10),
+      rate24kPer1g: Math.round(r24 / GRAMS_PER_TOLA),
       rate22kPerTola: Math.round(r24 * (22 / 24)),
+      rate21kPerTola: Math.round(r24 * (21 / 24)),
       rate18kPerTola: Math.round(r24 * (18 / 24)),
-      rateSilverPerTola: 4850,
-      rate24kPerTolaGBP: r24Gbp,
-      rate24kPer10gGBP: Math.round(r24Gbp / 1.16638),
-      rate24kPer1gGBP: Math.round(r24Gbp / 11.6638),
-      rate22kPerTolaGBP: Math.round(r24Gbp * (22 / 24)),
-      rate18kPerTolaGBP: Math.round(r24Gbp * (18 / 24)),
-      lastUpdated: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ' PKT (Manual)'
+      rateSilverPerTola: prev.rateSilverPerTola ?? null,
+      rate24kPerTolaGBP: Math.round(gbp24),
+      rate24kPer10gGBP: Math.round((gbp24 / GRAMS_PER_TOLA) * 10),
+      rate24kPer1gGBP: Math.round(gbp24 / GRAMS_PER_TOLA),
+      rate22kPerTolaGBP: Math.round(gbp24 * (22 / 24)),
+      rate18kPerTolaGBP: Math.round(gbp24 * (18 / 24)),
+      usdPkr: prev.usdPkr ?? null,
+      usdGbp: prev.usdGbp ?? null,
+      lastUpdated: new Date().toLocaleTimeString('en-PK', { timeZone: 'Asia/Karachi', hour: '2-digit', minute: '2-digit' }) + ' PKT (Manual)'
     };
     window.saveGoldRates(rates);
-    showToast(`Gold Rates updated! 24K: PKR ${r24.toLocaleString()} / Tola`, 'success');
+    showToast(`Gold rates updated — 24K PKR ${Math.round(r24).toLocaleString()} / tola`, 'success');
   };
 
   window.renderGoldRateBar = function () {
     let bar = document.querySelector('.gold-rate-bar');
     const rates = window.getGoldRates();
 
-    const gbp24kTola = rates.rate24kPerTolaGBP || Math.round(rates.rate24kPerTola / 374);
-    const gbp24k10g = rates.rate24kPer10gGBP || Math.round(rates.rate24kPer10g / 374);
-    const gbp24k1g = rates.rate24kPer1gGBP || Math.round(rates.rate24kPer1g / 374);
-    const gbp22kTola = rates.rate22kPerTolaGBP || Math.round(rates.rate22kPerTola / 374);
-    const gbp18kTola = rates.rate18kPerTolaGBP || Math.round(rates.rate18kPerTola / 374);
+    // Convert through the live FX pair when present. Falling back to a fixed
+    // divisor produced a GBP figure that silently drifted from reality.
+    const gbpPerPkr = (rates.usdGbp && rates.usdPkr) ? (rates.usdGbp / rates.usdPkr) : null;
+    const gbp = (pkrValue, stored) => {
+      if (Number.isFinite(stored)) return stored;
+      if (gbpPerPkr && Number.isFinite(pkrValue)) return Math.round(pkrValue * gbpPerPkr);
+      return null;
+    };
+    const pair = (pkrValue, stored) => {
+      if (!Number.isFinite(pkrValue)) return '—';
+      const g = gbp(pkrValue, stored);
+      return `PKR ${pkrValue.toLocaleString()}${g !== null ? ` (£${g.toLocaleString()})` : ''}`;
+    };
+
+    const silver = Number.isFinite(rates.rateSilverPerTola)
+      ? `<span>✦</span><span class="gold-rate-item">Silver: <strong>PKR ${rates.rateSilverPerTola.toLocaleString()} / Tola</strong></span>`
+      : '';
 
     const tickerContent = `
       <div class="gold-rate-ticker">
-        <span class="gold-rate-item"><span class="gold-rate-tag">LIVE GOLD MARKET</span> 24K Gold: <strong>PKR ${rates.rate24kPerTola.toLocaleString()} (£${gbp24kTola.toLocaleString()}) / Tola</strong></span>
+        <span class="gold-rate-item"><span class="gold-rate-tag">LIVE GOLD MARKET</span> 24K Gold: <strong>${pair(rates.rate24kPerTola, rates.rate24kPerTolaGBP)} / Tola</strong></span>
         <span>✦</span>
-        <span class="gold-rate-item">10 Grams 24K: <strong>PKR ${rates.rate24kPer10g.toLocaleString()} (£${gbp24k10g.toLocaleString()})</strong></span>
+        <span class="gold-rate-item">10 Grams 24K: <strong>${pair(rates.rate24kPer10g, rates.rate24kPer10gGBP)}</strong></span>
         <span>✦</span>
-        <span class="gold-rate-item">1 Gram 24K: <strong>PKR ${rates.rate24kPer1g.toLocaleString()} (£${gbp24k1g.toLocaleString()})</strong></span>
+        <span class="gold-rate-item">1 Gram 24K: <strong>${pair(rates.rate24kPer1g, rates.rate24kPer1gGBP)}</strong></span>
         <span>✦</span>
-        <span class="gold-rate-item">22K Gold: <strong>PKR ${rates.rate22kPerTola.toLocaleString()} (£${gbp22kTola.toLocaleString()}) / Tola</strong></span>
+        <span class="gold-rate-item">22K Gold: <strong>${pair(rates.rate22kPerTola, rates.rate22kPerTolaGBP)} / Tola</strong></span>
         <span>✦</span>
-        <span class="gold-rate-item">18K Gold: <strong>PKR ${rates.rate18kPerTola.toLocaleString()} (£${gbp18kTola.toLocaleString()}) / Tola</strong></span>
+        <span class="gold-rate-item">18K Gold: <strong>${pair(rates.rate18kPerTola, rates.rate18kPerTolaGBP)} / Tola</strong></span>
+        ${silver}
         <span>✦</span>
-        <span class="gold-rate-item"><span class="gold-rate-tag">LIVE MARKET</span> Updated ${rates.lastUpdated} &nbsp;|&nbsp; Dual PKR & GBP (£) Live Rates</span>
+        <span class="gold-rate-item"><span class="gold-rate-tag">UPDATED</span> ${rates.lastUpdated}</span>
       </div>
     `;
 
@@ -1887,319 +1939,565 @@
 
   /* ======================================
      CUSTOMER AUTHENTICATION & ACCOUNT SYSTEM
+     Server-backed. The access token lives in memory only; the refresh token is
+     an httpOnly cookie the page can never read. Nothing sensitive is stored in
+     localStorage, which the previous implementation used for plaintext
+     passwords.
   ====================================== */
-  const DEFAULT_CUSTOMERS = [
-    {
-      name: 'Ayesha Malik',
-      email: 'customer@lavion.pk',
-      phone: '+92 300 1234567',
-      password: 'lavion123',
-      city: 'Lahore'
-    }
-  ];
-
-  window.getCustomers = function () {
-    const saved = localStorage.getItem('lavion_users_v1');
-    if (!saved) {
-      localStorage.setItem('lavion_users_v1', JSON.stringify(DEFAULT_CUSTOMERS));
-      return DEFAULT_CUSTOMERS;
-    }
-    return JSON.parse(saved);
+  const Auth = {
+    accessToken: null,
+    user: null,
+    providers: [],
+    ready: false
   };
+  window.Auth = Auth;
 
-  window.saveCustomers = function (users) {
-    localStorage.setItem('lavion_users_v1', JSON.stringify(users));
-  };
+  function authHeaders(extra) {
+    const h = Object.assign({ 'Content-Type': 'application/json' }, extra || {});
+    if (Auth.accessToken) h.Authorization = 'Bearer ' + Auth.accessToken;
+    return h;
+  }
 
-  window.getActiveCustomer = function () {
-    const saved = sessionStorage.getItem('lavion_active_user_v1');
-    return saved ? JSON.parse(saved) : null;
-  };
+  async function api(path, options) {
+    const opts = Object.assign({ credentials: 'same-origin' }, options || {});
+    opts.headers = authHeaders(opts.headers);
+    if (opts.body && typeof opts.body !== 'string') opts.body = JSON.stringify(opts.body);
 
-  window.setActiveCustomer = function (user) {
-    if (user) {
-      sessionStorage.setItem('lavion_active_user_v1', JSON.stringify(user));
-    } else {
-      sessionStorage.removeItem('lavion_active_user_v1');
+    let res = await fetch(path, opts);
+
+    // One transparent retry: the access token is short-lived by design, so an
+    // expiry mid-session is expected rather than exceptional.
+    if (res.status === 401 && Auth.accessToken) {
+      const body = await res.clone().json().catch(() => ({}));
+      if (body.code === 'TOKEN_EXPIRED' || body.code === 'TOKEN_STALE') {
+        const refreshed = await tryRefresh();
+        if (refreshed) {
+          opts.headers = authHeaders(options && options.headers);
+          res = await fetch(path, opts);
+        } else {
+          applySession(null, null);
+        }
+      }
     }
+
+    const data = await res.json().catch(() => ({}));
+    return { status: res.status, ok: res.ok, data };
+  }
+
+  async function tryRefresh() {
+    try {
+      const res = await fetch('/api/auth/refresh', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.accessToken) {
+        applySession(data.accessToken, data.user);
+        return true;
+      }
+    } catch (e) { /* offline or API unavailable */ }
+    return false;
+  }
+
+  function applySession(token, user) {
+    Auth.accessToken = token || null;
+    Auth.user = user || null;
     window.updateAccountHeaderUI();
+  }
+
+  // Kept for callers such as cart.html that expect a synchronous read.
+  window.getActiveCustomer = function () {
+    return Auth.user;
+  };
+
+  window.isSignedIn = function () {
+    return !!Auth.user;
+  };
+
+  window.authFetch = api;
+
+  window.signOut = async function () {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' });
+    } catch (e) { /* clear locally regardless */ }
+    applySession(null, null);
   };
 
   window.updateAccountHeaderUI = function () {
-    const activeUser = window.getActiveCustomer();
+    const user = Auth.user;
+    const icon = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+      </svg>`;
     document.querySelectorAll('#util-account, .account-link').forEach(link => {
-      if (activeUser) {
-        link.innerHTML = `
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-          </svg>
-          Account (${activeUser.name.split(' ')[0]})
-        `;
-      } else {
-        link.innerHTML = `
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-          </svg>
-          Sign In / Register
-        `;
-      }
+      link.innerHTML = user
+        ? `${icon} Account (${escapeHtml(String(user.name || '').split(' ')[0])})`
+        : `${icon} Sign In / Register`;
     });
   };
 
-  window.openCustomerAuthModal = function () {
+  function escapeHtml(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, c => (
+      { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+    ));
+  }
+
+  /* ---------- Provider buttons ---------- */
+
+  const PROVIDER_META = {
+    google: {
+      label: 'Continue with Google',
+      svg: `<svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.76h3.57c2.08-1.92 3.27-4.74 3.27-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.76c-.99.66-2.26 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23z"/><path fill="#FBBC05" d="M5.84 14.11a6.6 6.6 0 0 1 0-4.22V7.05H2.18a11 11 0 0 0 0 9.9l3.66-2.84z"/><path fill="#EA4335" d="M12 4.75c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 1.46 14.97.5 12 .5A11 11 0 0 0 2.18 7.05l3.66 2.84c.87-2.6 3.3-4.14 6.16-4.14z"/></svg>`
+    },
+    apple: {
+      label: 'Continue with Apple',
+      svg: `<svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor" aria-hidden="true"><path d="M16.36 12.78c.02 2.63 2.3 3.5 2.33 3.51-.02.06-.36 1.25-1.2 2.47-.72 1.06-1.47 2.11-2.66 2.13-1.16.02-1.54-.69-2.87-.69-1.33 0-1.75.67-2.85.71-1.14.04-2.01-1.14-2.74-2.2-1.49-2.16-2.63-6.1-1.1-8.76a4.25 4.25 0 0 1 3.6-2.19c1.12-.02 2.18.75 2.87.75.68 0 1.97-.93 3.32-.79.57.02 2.17.23 3.2 1.73-.08.05-1.91 1.12-1.9 3.33M14.2 4.6c.61-.74 1.02-1.77.91-2.8-.88.04-1.94.59-2.57 1.32-.56.66-1.05 1.71-.92 2.72.98.08 1.98-.5 2.58-1.24"/></svg>`
+    },
+    facebook: {
+      label: 'Continue with Facebook',
+      // Two paths: the blue disc, then the glyph knocked out in white.
+      svg: `<svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path fill="#1877F2" d="M24 12.07C24 5.4 18.63 0 12 0S0 5.4 0 12.07C0 18.1 4.39 23.1 10.13 24v-8.44H7.08v-3.49h3.05V9.43c0-3.01 1.79-4.67 4.53-4.67 1.31 0 2.69.24 2.69.24v2.95h-1.52c-1.49 0-1.96.93-1.96 1.89v2.23h3.33l-.53 3.49h-2.8V24C19.61 23.1 24 18.1 24 12.07z"/><path fill="#ffffff" d="M16.67 15.56l.53-3.49h-3.33V9.84c0-.96.47-1.89 1.96-1.89h1.52V5c-.001 0-1.38-.24-2.69-.24-2.74 0-4.53 1.66-4.53 4.67v2.64H7.08v3.49h3.05V24a12.1 12.1 0 0 0 3.74 0v-8.44h2.8z"/></svg>`
+    }
+  };
+
+  async function loadProviders() {
+    try {
+      const res = await fetch('/api/auth/providers', { credentials: 'same-origin' });
+      if (!res.ok) throw new Error('providers endpoint returned ' + res.status);
+      const data = await res.json();
+      Auth.providers = (data && data.providers) || [];
+      Auth.apiReachable = true;
+    } catch (e) {
+      // An unreachable API is a different situation from a deployment that
+      // deliberately runs email-only, and the two must not look identical.
+      Auth.providers = [];
+      Auth.apiReachable = false;
+      console.warn('[auth] Could not load sign-in providers:', e.message);
+    }
+  }
+
+  function providerButtonsHtml() {
+    if (!Auth.apiReachable) {
+      return `<p class="auth-notice">
+        Social sign-in is unavailable because the account API is not responding.
+        Open the site through the Node server (<code>npm start</code>), not a static file server.
+      </p>`;
+    }
+    if (!Auth.providers.length) return '';
+
+    const buttons = Auth.providers.map(p => {
+      const meta = PROVIDER_META[p];
+      if (!meta) return '';
+      return `<button type="button" class="auth-provider-btn" data-provider="${p}">
+        ${meta.svg}<span>${meta.label}</span>
+      </button>`;
+    }).join('');
+    return `<div class="auth-providers">${buttons}</div>
+            <div class="auth-divider"><span>or use your email</span></div>`;
+  }
+
+  function wireProviderButtons(root) {
+    root.querySelectorAll('.auth-provider-btn').forEach(btn => {
+      btn.addEventListener('click', () => startProviderSignIn(btn.dataset.provider));
+    });
+  }
+
+  function startProviderSignIn(provider) {
+    const returnTo = location.pathname + location.search;
+    const url = `/api/auth/${provider}?returnTo=${encodeURIComponent(returnTo)}`;
+    const w = 520, h = 640;
+    const left = window.screenX + (window.outerWidth - w) / 2;
+    const top = window.screenY + (window.outerHeight - h) / 2;
+    const popup = window.open(url, 'lavion-auth', `width=${w},height=${h},left=${left},top=${top}`);
+
+    // Popup blocked — fall back to a full-page redirect.
+    if (!popup || popup.closed) { window.location.href = url; return; }
+  }
+
+  window.addEventListener('message', async (event) => {
+    // Only trust messages from our own origin.
+    if (event.origin !== window.location.origin) return;
+    const msg = event.data;
+    if (!msg || msg.type !== 'lavion-auth') return;
+
+    if (msg.ok) {
+      const done = await tryRefresh();
+      if (done) {
+        showToast(`Welcome, ${Auth.user ? Auth.user.name.split(' ')[0] : 'back'}.`, 'success');
+        closeAuthModal();
+      } else {
+        showToast('Signed in, but the session could not be loaded. Please refresh.', 'error');
+      }
+    } else {
+      showToast(msg.message || 'Sign-in failed.', 'error');
+    }
+  });
+
+  /* ---------- Modal ---------- */
+
+  function getAuthModal() {
     let modal = document.getElementById('customer-auth-modal');
     if (!modal) {
       modal = document.createElement('div');
       modal.id = 'customer-auth-modal';
       modal.className = 'admin-modal-backdrop';
       document.body.appendChild(modal);
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeAuthModal();
+      });
     }
+    return modal;
+  }
 
-    const activeUser = window.getActiveCustomer();
-    if (activeUser) {
-      renderCustomerProfileView(modal, activeUser);
-    } else {
-      renderSignInView(modal);
-    }
+  function closeAuthModal() {
+    const modal = document.getElementById('customer-auth-modal');
+    if (modal) modal.classList.remove('active');
+    document.body.style.overflow = '';
+  }
+  window.closeAuthModal = closeAuthModal;
 
+  function openModalShell(innerHtml) {
+    const modal = getAuthModal();
+    modal.innerHTML = `<div class="admin-modal-dialog auth-dialog">${innerHtml}</div>`;
     modal.classList.add('active');
     document.body.style.overflow = 'hidden';
+    modal.querySelectorAll('[data-auth-close]').forEach(b => b.addEventListener('click', closeAuthModal));
+    return modal;
+  }
+
+  function authHeaderHtml(title, subtitle) {
+    return `
+      <button class="auth-close" data-auth-close aria-label="Close">&times;</button>
+      <div class="auth-head">
+        <span class="auth-mark">&#10022;</span>
+        <h2 class="auth-title">${escapeHtml(title)}</h2>
+        ${subtitle ? `<p class="auth-sub">${escapeHtml(subtitle)}</p>` : ''}
+      </div>`;
+  }
+
+  function setBusy(form, busy, label) {
+    const btn = form.querySelector('button[type="submit"]');
+    if (!btn) return;
+    if (busy) {
+      btn.dataset.label = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = label || 'Please wait…';
+    } else {
+      btn.disabled = false;
+      if (btn.dataset.label) btn.textContent = btn.dataset.label;
+    }
+  }
+
+  function showFormError(form, message) {
+    let box = form.querySelector('.auth-error');
+    if (!box) {
+      box = document.createElement('p');
+      box.className = 'auth-error';
+      form.prepend(box);
+    }
+    box.textContent = message;
+    box.style.display = message ? 'block' : 'none';
+  }
+
+  window.openCustomerAuthModal = function () {
+    if (Auth.user) return renderProfileView();
+    renderSignInView();
   };
 
-  function renderSignInView(modal) {
-    modal.innerHTML = `
-      <div class="admin-modal-dialog" style="max-width: 460px;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; border-bottom:1px solid rgba(200,169,110,0.3); padding-bottom:12px;">
-          <h3 style="font-family:var(--font-serif); font-size:24px; color:var(--color-gold-light); margin:0;" id="auth-modal-title">Sign In to Your Account</h3>
-          <button class="admin-action-btn" id="auth-close-btn" style="padding:4px 10px;">&times;</button>
+  function renderSignInView() {
+    const modal = openModalShell(`
+      ${authHeaderHtml('Sign In', 'Access your orders, wishlist and bespoke requests.')}
+      ${providerButtonsHtml()}
+      <form id="auth-signin-form" class="auth-form" novalidate>
+        <label class="auth-label" for="auth-email">Email address</label>
+        <input class="auth-input" type="email" id="auth-email" autocomplete="email" required />
+
+        <div class="auth-label-row">
+          <label class="auth-label" for="auth-pass">Password</label>
+          <button type="button" class="auth-link-btn" id="auth-forgot">Forgot?</button>
         </div>
+        <input class="auth-input" type="password" id="auth-pass" autocomplete="current-password" required />
 
-        <!-- Auth Tabs -->
-        <div style="display:flex; gap:10px; margin-bottom:24px;">
-          <button class="admin-tab-btn active" id="tab-login-btn" style="flex:1; padding:10px;">Sign In</button>
-          <button class="admin-tab-btn" id="tab-register-btn" style="flex:1; padding:10px;">Register</button>
-        </div>
+        <button type="submit" class="btn-gold auth-submit">Sign In</button>
+      </form>
+      <p class="auth-foot">New to Lavion?
+        <button type="button" class="auth-link-btn" id="auth-to-register">Create an account</button>
+      </p>
+    `);
 
-        <!-- Login Form -->
-        <form id="customer-login-form">
-          <div class="admin-form-group">
-            <label>Email, Phone, or Admin Username</label>
-            <input type="text" id="login-email" value="customer@lavion.pk" placeholder="e.g. customer@lavion.pk, +92 300 1234567, or admin" required />
-          </div>
+    wireProviderButtons(modal);
+    document.getElementById('auth-to-register').addEventListener('click', renderRegisterView);
+    document.getElementById('auth-forgot').addEventListener('click', renderForgotView);
 
-          <div class="admin-form-group">
-            <label>Password</label>
-            <input type="password" id="login-pass" value="lavion123" placeholder="••••••••" required />
-          </div>
-
-          <div style="background:rgba(200,169,110,0.1); border:1px solid rgba(200,169,110,0.2); padding:10px; border-radius:6px; font-size:11px; color:var(--color-gold-light); margin-bottom:18px; text-align:center;">
-            🔑 Demo Customer: <strong>customer@lavion.pk</strong> / <strong>lavion123</strong><br/>
-            🔑 Admin Access: Use <strong>admin</strong> as username (password: <strong>lavion123</strong>)
-          </div>
-
-          <button type="submit" class="admin-primary-btn" style="width:100%; justify-content:center; padding:14px; font-size:12px;">
-            Sign In to My Account
-          </button>
-        </form>
-
-        <!-- Register Form (Hidden by default) -->
-        <form id="customer-register-form" style="display:none;">
-          <div class="admin-form-group">
-            <label>Full Name</label>
-            <input type="text" id="reg-name" placeholder="e.g. Ayesha Malik" required />
-          </div>
-
-          <div class="admin-form-group">
-            <label>Email Address</label>
-            <input type="email" id="reg-email" placeholder="name@example.com" required />
-          </div>
-
-          <div class="admin-form-group">
-            <label>Phone / WhatsApp Number</label>
-            <input type="tel" id="reg-phone" placeholder="+92 300 1234567" required />
-          </div>
-
-          <div class="admin-form-group">
-            <label>City</label>
-            <input type="text" id="reg-city" placeholder="e.g. Lahore, Karachi, Islamabad" required />
-          </div>
-
-          <div class="admin-form-group">
-            <label>Password</label>
-            <input type="password" id="reg-pass" placeholder="Create password" required />
-          </div>
-
-          <button type="submit" class="admin-primary-btn" style="width:100%; justify-content:center; padding:14px; font-size:12px;">
-            Create Customer Account
-          </button>
-        </form>
-      </div>
-    `;
-
-    const closeAuth = () => {
-      modal.classList.remove('active');
-      document.body.style.overflow = '';
-    };
-
-    document.getElementById('auth-close-btn')?.addEventListener('click', closeAuth);
-
-    const loginTab = document.getElementById('tab-login-btn');
-    const regTab = document.getElementById('tab-register-btn');
-    const loginForm = document.getElementById('customer-login-form');
-    const regForm = document.getElementById('customer-register-form');
-    const titleEl = document.getElementById('auth-modal-title');
-
-    loginTab?.addEventListener('click', () => {
-      loginTab.classList.add('active');
-      regTab.classList.remove('active');
-      loginForm.style.display = 'block';
-      regForm.style.display = 'none';
-      if (titleEl) titleEl.textContent = 'Sign In to Your Account';
-    });
-
-    regTab?.addEventListener('click', () => {
-      regTab.classList.add('active');
-      loginTab.classList.remove('active');
-      regForm.style.display = 'block';
-      loginForm.style.display = 'none';
-      if (titleEl) titleEl.textContent = 'Create Customer Account';
-    });
-
-    loginForm?.addEventListener('submit', (e) => {
+    const form = document.getElementById('auth-signin-form');
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const emailOrPhone = document.getElementById('login-email').value.trim().toLowerCase();
-      const pass = document.getElementById('login-pass').value;
+      showFormError(form, '');
+      const email = document.getElementById('auth-email').value.trim();
+      const password = document.getElementById('auth-pass').value;
+      if (!email || !password) return showFormError(form, 'Enter your email and password.');
 
-      // Check for admin credentials first
-      const isAdmin = (emailOrPhone === 'admin' || emailOrPhone === 'lavion') && (pass === 'lavion123' || pass === 'admin123');
-      if (isAdmin) {
-        sessionStorage.setItem('lavion_admin_auth', 'true');
-        sessionStorage.setItem('lavion_admin_token', '');
-        sessionStorage.setItem('lavion_admin_user', JSON.stringify({ username: 'Admin', role: 'admin' }));
-        toggleAdminLinks(true);
-        showToast('Admin login successful!', 'success');
-        closeAuth();
-        setTimeout(() => {
-          adminOverlay?.classList.add('active');
-          document.body.style.overflow = 'hidden';
-          renderAdmin();
-        }, 500);
+      setBusy(form, true, 'Signing in…');
+      const { ok, data } = await api('/api/auth/login', { method: 'POST', body: { email, password } });
+      setBusy(form, false);
+
+      if (ok && data.accessToken) {
+        applySession(data.accessToken, data.user);
+        showToast(data.message || 'Signed in.', 'success');
+        closeAuthModal();
         return;
       }
+      if (data.code === 'EMAIL_UNVERIFIED') return renderVerifyNoticeView(email);
+      if (data.code === 'PROVIDER_ONLY') {
+        return showFormError(form, data.message || 'Use your connected provider to sign in.');
+      }
+      showFormError(form, data.message || 'Sign in failed.');
+    });
+  }
 
-      // Check for customer credentials
-      const users = window.getCustomers();
-      const user = users.find(u => (u.email.toLowerCase() === emailOrPhone || u.phone.includes(emailOrPhone)) && u.password === pass);
+  function renderRegisterView() {
+    const modal = openModalShell(`
+      ${authHeaderHtml('Create Account', 'Join the Lavion inner circle.')}
+      ${providerButtonsHtml()}
+      <form id="auth-register-form" class="auth-form" novalidate>
+        <label class="auth-label" for="reg-name">Full name</label>
+        <input class="auth-input" type="text" id="reg-name" autocomplete="name" required />
 
-      if (user) {
-        window.setActiveCustomer(user);
-        showToast(`Welcome back, ${user.name}!`, 'success');
-        closeAuth();
+        <label class="auth-label" for="reg-email">Email address</label>
+        <input class="auth-input" type="email" id="reg-email" autocomplete="email" required />
+
+        <div class="auth-row">
+          <div>
+            <label class="auth-label" for="reg-phone">Phone (optional)</label>
+            <input class="auth-input" type="tel" id="reg-phone" autocomplete="tel" />
+          </div>
+          <div>
+            <label class="auth-label" for="reg-city">City</label>
+            <input class="auth-input" type="text" id="reg-city" value="Lahore" />
+          </div>
+        </div>
+
+        <label class="auth-label" for="reg-pass">Password</label>
+        <input class="auth-input" type="password" id="reg-pass" autocomplete="new-password" required />
+        <p class="auth-hint">At least 10 characters. Use something you do not reuse elsewhere.</p>
+
+        <button type="submit" class="btn-gold auth-submit">Create Account</button>
+      </form>
+      <p class="auth-foot">Already have an account?
+        <button type="button" class="auth-link-btn" id="auth-to-signin">Sign in</button>
+      </p>
+    `);
+
+    wireProviderButtons(modal);
+    document.getElementById('auth-to-signin').addEventListener('click', renderSignInView);
+
+    const form = document.getElementById('auth-register-form');
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      showFormError(form, '');
+      const payload = {
+        name: document.getElementById('reg-name').value.trim(),
+        email: document.getElementById('reg-email').value.trim(),
+        phone: document.getElementById('reg-phone').value.trim(),
+        city: document.getElementById('reg-city').value.trim(),
+        password: document.getElementById('reg-pass').value
+      };
+      if (!payload.name || !payload.email || !payload.password) {
+        return showFormError(form, 'Name, email and password are required.');
+      }
+
+      setBusy(form, true, 'Creating…');
+      const { ok, data } = await api('/api/auth/register', { method: 'POST', body: payload });
+      setBusy(form, false);
+
+      if (ok) return renderVerifyNoticeView(payload.email);
+      showFormError(form, data.message || 'Could not create the account.');
+    });
+  }
+
+  function renderVerifyNoticeView(email) {
+    openModalShell(`
+      ${authHeaderHtml('Check your inbox', `We sent a confirmation link to ${email}.`)}
+      <p class="auth-body-text">
+        Open the link to activate your account. It expires in 24 hours.
+        Remember to check your spam folder.
+      </p>
+      <button type="button" class="btn-outline auth-submit" id="auth-resend">Resend the link</button>
+      <p class="auth-foot">
+        <button type="button" class="auth-link-btn" id="auth-back-signin">Back to sign in</button>
+      </p>
+    `);
+
+    document.getElementById('auth-back-signin').addEventListener('click', renderSignInView);
+    document.getElementById('auth-resend').addEventListener('click', async (e) => {
+      e.target.disabled = true;
+      e.target.textContent = 'Sending…';
+      const { data } = await api('/api/auth/resend-verification', { method: 'POST', body: { email } });
+      showToast(data.message || 'If that address needs confirming, a link is on its way.', 'info');
+      e.target.textContent = 'Link sent';
+    });
+  }
+
+  function renderForgotView() {
+    openModalShell(`
+      ${authHeaderHtml('Reset your password', 'We will email you a secure link.')}
+      <form id="auth-forgot-form" class="auth-form" novalidate>
+        <label class="auth-label" for="forgot-email">Email address</label>
+        <input class="auth-input" type="email" id="forgot-email" autocomplete="email" required />
+        <button type="submit" class="btn-gold auth-submit">Send Reset Link</button>
+      </form>
+      <p class="auth-foot">
+        <button type="button" class="auth-link-btn" id="auth-back-signin2">Back to sign in</button>
+      </p>
+    `);
+
+    document.getElementById('auth-back-signin2').addEventListener('click', renderSignInView);
+
+    const form = document.getElementById('auth-forgot-form');
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('forgot-email').value.trim();
+      if (!email) return showFormError(form, 'Enter your email address.');
+
+      setBusy(form, true, 'Sending…');
+      const { data } = await api('/api/auth/forgot-password', { method: 'POST', body: { email } });
+      setBusy(form, false);
+
+      openModalShell(`
+        ${authHeaderHtml('Check your inbox', data.message || 'If an account exists, a reset link is on its way.')}
+        <p class="auth-body-text">The link expires in 30 minutes and can be used once.</p>
+        <button type="button" class="btn-gold auth-submit" data-auth-close>Close</button>
+      `);
+      document.querySelectorAll('[data-auth-close]').forEach(b =>
+        b.addEventListener('click', closeAuthModal));
+    });
+  }
+
+  function renderProfileView() {
+    const u = Auth.user;
+    const providerTags = (u.providers || []).map(p =>
+      `<span class="auth-tag">${escapeHtml(p)}</span>`).join('');
+
+    openModalShell(`
+      ${authHeaderHtml(u.name, u.email)}
+      <div class="auth-profile-meta">
+        ${u.emailVerified
+          ? '<span class="auth-tag verified">Email verified</span>'
+          : '<span class="auth-tag warn">Email not verified</span>'}
+        ${providerTags}
+      </div>
+
+      <form id="auth-profile-form" class="auth-form" novalidate>
+        <div class="auth-row">
+          <div>
+            <label class="auth-label" for="pf-phone">Phone</label>
+            <input class="auth-input" type="tel" id="pf-phone" value="${escapeHtml(u.phone)}" />
+          </div>
+          <div>
+            <label class="auth-label" for="pf-city">City</label>
+            <input class="auth-input" type="text" id="pf-city" value="${escapeHtml(u.city)}" />
+          </div>
+        </div>
+        <button type="submit" class="btn-outline auth-submit">Save Details</button>
+      </form>
+
+      <div class="auth-actions">
+        <button type="button" class="auth-link-btn" id="pf-change-pass">
+          ${u.hasPassword ? 'Change password' : 'Add a password'}
+        </button>
+        <button type="button" class="auth-link-btn" id="pf-logout-all">Sign out everywhere</button>
+      </div>
+
+      <button type="button" class="btn-gold auth-submit" id="pf-logout">Sign Out</button>
+    `);
+
+    const form = document.getElementById('auth-profile-form');
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      setBusy(form, true, 'Saving…');
+      const { ok, data } = await api('/api/auth/me', {
+        method: 'PATCH',
+        body: {
+          phone: document.getElementById('pf-phone').value.trim(),
+          city: document.getElementById('pf-city').value.trim()
+        }
+      });
+      setBusy(form, false);
+      if (ok) {
+        Auth.user = data.user;
+        showToast('Profile updated.', 'success');
       } else {
-        showToast('Invalid email/phone or password!', 'error');
+        showFormError(form, data.message || 'Could not save.');
       }
     });
 
-    regForm?.addEventListener('submit', (e) => {
+    document.getElementById('pf-change-pass').addEventListener('click', renderChangePasswordView);
+
+    document.getElementById('pf-logout').addEventListener('click', async () => {
+      await window.signOut();
+      showToast('Signed out.', 'info');
+      closeAuthModal();
+    });
+
+    document.getElementById('pf-logout-all').addEventListener('click', async () => {
+      await api('/api/auth/logout-all', { method: 'POST' });
+      applySession(null, null);
+      showToast('Signed out on all devices.', 'info');
+      closeAuthModal();
+    });
+  }
+
+  function renderChangePasswordView() {
+    const needsCurrent = Auth.user && Auth.user.hasPassword;
+    openModalShell(`
+      ${authHeaderHtml(needsCurrent ? 'Change password' : 'Add a password',
+        needsCurrent ? 'Other devices will be signed out.' : 'You will still be able to use your connected providers.')}
+      <form id="auth-changepass-form" class="auth-form" novalidate>
+        ${needsCurrent ? `
+        <label class="auth-label" for="cp-current">Current password</label>
+        <input class="auth-input" type="password" id="cp-current" autocomplete="current-password" required />` : ''}
+
+        <label class="auth-label" for="cp-new">New password</label>
+        <input class="auth-input" type="password" id="cp-new" autocomplete="new-password" required />
+        <p class="auth-hint">At least 10 characters.</p>
+
+        <button type="submit" class="btn-gold auth-submit">Update Password</button>
+      </form>
+      <p class="auth-foot">
+        <button type="button" class="auth-link-btn" id="cp-back">Back to account</button>
+      </p>
+    `);
+
+    document.getElementById('cp-back').addEventListener('click', renderProfileView);
+
+    const form = document.getElementById('auth-changepass-form');
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const name = document.getElementById('reg-name').value.trim();
-      const email = document.getElementById('reg-email').value.trim();
-      const phone = document.getElementById('reg-phone').value.trim();
-      const city = document.getElementById('reg-city').value.trim();
-      const pass = document.getElementById('reg-pass').value;
+      showFormError(form, '');
+      const body = { newPassword: document.getElementById('cp-new').value };
+      if (needsCurrent) body.currentPassword = document.getElementById('cp-current').value;
 
-      let users = window.getCustomers();
-      if (users.some(u => u.email.toLowerCase() === email.toLowerCase())) {
-        showToast('An account with this email already exists!', 'error');
-        return;
+      setBusy(form, true, 'Updating…');
+      const { ok, data } = await api('/api/auth/change-password', { method: 'POST', body });
+      setBusy(form, false);
+
+      if (ok) {
+        applySession(data.accessToken, data.user);
+        showToast('Password updated.', 'success');
+        renderProfileView();
+      } else {
+        showFormError(form, data.message || 'Could not update the password.');
       }
-
-      const newUser = { name, email, phone, city, password: pass };
-      users.push(newUser);
-      window.saveCustomers(users);
-      window.setActiveCustomer(newUser);
-
-      showToast(`Account created successfully! Welcome to Lavion, ${name}.`, 'success');
-      closeAuth();
     });
   }
 
-  function renderCustomerProfileView(modal, user) {
-    const orders = window.getOrders().filter(o => o.phone.includes(user.phone) || o.customer.toLowerCase().includes(user.name.toLowerCase()));
+  let authControlsReady = false;
+  async function initCustomerAuthControls() {
+    // This bootstrap is invoked both on DOMContentLoaded and immediately, so
+    // guard against binding the handlers and refreshing the session twice.
+    if (authControlsReady) return;
+    authControlsReady = true;
 
-    const ordersHtml = orders.length > 0 ? orders.map(o => `
-      <div style="background:#12100e; border:1px solid rgba(200,169,110,0.3); border-radius:8px; padding:14px 16px; margin-bottom:12px; font-size:13px;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:8px;">
-          <div style="display:flex; align-items:center; gap:10px;">
-            <strong style="color:var(--color-gold-light); font-size:15px; letter-spacing:0.5px;">${o.id}</strong>
-            <span class="admin-status-tag instock" style="padding:3px 8px; font-size:10px; text-transform:uppercase; font-weight:700;">${o.status || 'Pending'}</span>
-          </div>
-          <div style="display:flex; gap:8px; align-items:center;">
-            <a href="track-order.html?orderId=${o.id}" target="_blank" style="background:linear-gradient(135deg,#c9a84c,#f0d080); color:#0a0a0a; text-decoration:none; padding:6px 14px; border-radius:4px; font-size:11px; font-weight:700; display:inline-flex; align-items:center; gap:5px; box-shadow:0 2px 6px rgba(0,0,0,0.4); transition:all 0.2s ease;">
-              📦 Track Order
-            </a>
-            <button onclick="window.generateInvoice('${o.id}')" style="background:rgba(200,169,110,0.15); color:var(--color-gold-light); border:1px solid rgba(200,169,110,0.4); padding:6px 12px; border-radius:4px; font-size:11px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:5px;">
-              📄 Invoice
-            </button>
-          </div>
-        </div>
-        <div style="color:rgba(255,255,255,0.9); font-weight:600; font-size:13px; margin-bottom:6px; line-height:1.4;">${o.items}</div>
-        <div style="color:rgba(255,255,255,0.5); font-size:12px; display:flex; justify-content:space-between; border-top:1px solid rgba(255,255,255,0.06); padding-top:6px; margin-top:6px;">
-          <span>Placed on: <strong style="color:rgba(255,255,255,0.75);">${o.date || 'Recent'}</strong></span>
-          <span>Total: <strong style="color:var(--color-gold-light);">📞 Price on Request</strong></span>
-        </div>
-      </div>
-    `).join('') : '<div style="color:rgba(255,255,255,0.5); font-size:13px; font-style:italic; padding:20px 0; text-align:center;">No past order history found.</div>';
-
-    modal.innerHTML = `
-      <div class="admin-modal-dialog" style="max-width: 720px; width: 95%;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; border-bottom:1px solid rgba(200,169,110,0.3); padding-bottom:14px;">
-          <h3 style="font-family:var(--font-serif); font-size:26px; color:var(--color-gold-light); margin:0;">Customer Account Dashboard</h3>
-          <button class="admin-action-btn" id="prof-close-btn" style="padding:4px 10px; font-size:16px;">&times;</button>
-        </div>
-
-        <div style="display:flex; align-items:center; gap:18px; background:#12100e; padding:18px; border-radius:10px; border:1px solid rgba(200,169,110,0.3); margin-bottom:24px;">
-          <div style="width:56px; height:56px; border-radius:50%; background:linear-gradient(135deg,#c9a84c,#f0d080); color:#1c1a18; display:flex; align-items:center; justify-content:center; font-size:24px; font-weight:700; flex-shrink:0; box-shadow:0 4px 12px rgba(200,169,110,0.3);">
-            ${user.name.charAt(0)}
-          </div>
-          <div style="flex:1;">
-            <h4 style="font-size:20px; color:#fff; margin:0 0 4px; font-weight:700;">${user.name}</h4>
-            <div style="font-size:13px; color:var(--color-gold-light);">${user.email} &nbsp;|&nbsp; ${user.phone}</div>
-            <div style="font-size:12px; color:rgba(255,255,255,0.5); margin-top:2px;">📍 ${user.city || 'Pakistan'}</div>
-          </div>
-        </div>
-
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-          <h4 style="font-family:var(--font-sans); font-size:13px; text-transform:uppercase; letter-spacing:1.5px; color:var(--color-gold-light); margin:0;">My Order History (${orders.length})</h4>
-          <a href="track-order.html" target="_blank" style="color:var(--color-gold-light); font-size:12px; text-decoration:none;">🔍 Open Full Order Tracker →</a>
-        </div>
-
-        <div style="max-height:320px; overflow-y:auto; margin-bottom:24px; padding-right:4px;">
-          ${ordersHtml}
-        </div>
-
-        <div style="display:flex; gap:12px;">
-          <a href="wishlist.html" class="admin-action-btn edit" style="flex:1; text-align:center; text-decoration:none; padding:12px; font-weight:600;">💖 My Wishlist</a>
-          <a href="customized-jewellery.html" class="admin-action-btn edit" style="flex:1; text-align:center; text-decoration:none; padding:12px; font-weight:600;">✦ Bespoke Studio</a>
-          <button class="admin-action-btn delete" id="prof-logout-btn" style="padding:12px 20px; font-weight:600;">Sign Out</button>
-        </div>
-      </div>
-    `;
-
-    const closeProf = () => {
-      modal.classList.remove('active');
-      document.body.style.overflow = '';
-    };
-
-    document.getElementById('prof-close-btn')?.addEventListener('click', closeProf);
-    document.getElementById('prof-logout-btn')?.addEventListener('click', () => {
-      window.setActiveCustomer(null);
-      showToast('Signed out successfully.', 'info');
-      closeProf();
-    });
-  }
-
-  function initCustomerAuthControls() {
     document.querySelectorAll('#util-account, .account-link').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.preventDefault();
@@ -2207,7 +2505,16 @@
         window.openCustomerAuthModal();
       });
     });
+
+    // Restore any existing session from the refresh cookie, then learn which
+    // providers this deployment actually has credentials for.
+    await Promise.all([tryRefresh(), loadProviders()]);
+    Auth.ready = true;
     window.updateAccountHeaderUI();
+
+    // Deep links: ?signin=1 opens the modal straight away.
+    const params = new URLSearchParams(location.search);
+    if (params.get('signin') === '1' && !Auth.user) window.openCustomerAuthModal();
   }
 
   /* ======================================
@@ -2328,9 +2635,29 @@
   /* ======================================
      LUXURY INVOICE & RECEIPT SYSTEM
   ====================================== */
-  window.generateInvoice = function (orderId) {
-    const orders = window.getOrders();
-    const order = orders.find(o => String(o.id).toLowerCase() === String(orderId).toLowerCase());
+  window.generateInvoice = async function (orderId) {
+    const matches = (o) => String(o.id).toLowerCase() === String(orderId).toLowerCase();
+
+    let order = window.getOrders().find(matches);
+
+    // The local store is only refreshed on page load, so an order placed a
+    // moment ago will not be there yet. Ask the API before giving up.
+    if (!order) {
+      try {
+        const res = await fetch('/api/orders');
+        if (res.ok) {
+          const data = await res.json();
+          const remote = (data.orders || []).find(matches);
+          if (remote) {
+            order = remote;
+            const cached = window.getOrders();
+            if (!cached.some(matches)) window.saveOrders([remote, ...cached]);
+          }
+        }
+      } catch (e) {
+        console.warn('Invoice lookup could not reach the orders API:', e.message);
+      }
+    }
 
     if (!order) {
       showToast('Order record not found for invoice generation.', 'error');
@@ -2468,27 +2795,112 @@
       document.body.style.overflow = '';
     });
 
-    document.getElementById('inv-download-pdf-btn')?.addEventListener('click', () => {
+    const pdfBtn = document.getElementById('inv-download-pdf-btn');
+    pdfBtn?.addEventListener('click', async () => {
       const element = document.getElementById('printable-invoice-content');
-      const generateAndSavePdf = () => {
-        const opt = {
-          margin: 0.3,
-          filename: `Lavion-Invoice-${order.id}.pdf`,
-          image: { type: 'jpeg', quality: 0.98 },
-          html2canvas: { scale: 2 },
-          jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
-        };
-        window.html2pdf().set(opt).from(element).save();
+      if (!element) {
+        showToast('Invoice content is not ready yet.', 'error');
+        return;
+      }
+
+      const label = pdfBtn.innerHTML;
+      const restore = () => { pdfBtn.disabled = false; pdfBtn.innerHTML = label; };
+      pdfBtn.disabled = true;
+      pdfBtn.innerHTML = 'Preparing PDF…';
+
+      const loadScript = (src) => new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = src;
+        script.onerror = () => reject(new Error('Failed to load ' + src));
+        script.onload = () => resolve();
+        document.body.appendChild(script);
+      });
+
+      /**
+       * Local copy first. Relying on a CDN meant Brave Shields, an offline
+       * machine or a filtered network silently killed the download.
+       */
+      const loadLibrary = async () => {
+        if (window.html2pdf) return;
+        try {
+          await loadScript('scripts/vendor/html2pdf.bundle.min.js');
+        } catch (e) {
+          await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js');
+        }
+        if (!window.html2pdf) throw new Error('PDF library did not initialise.');
       };
 
-      if (window.html2pdf) {
-        generateAndSavePdf();
-      } else {
-        showToast('Preparing PDF download...', 'info');
-        const script = document.createElement('script');
-        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
-        script.onload = generateAndSavePdf;
-        document.body.appendChild(script);
+      // A4 at 96dpi. The invoice is rendered off-screen at this fixed width so
+      // the PDF is identical on a phone and a desktop — capturing the live
+      // element would bake the narrow mobile layout into the file.
+      const PAGE_W = 794;
+      let stage = null;
+
+      try {
+        await loadLibrary();
+
+        const clone = element.cloneNode(true);
+        clone.style.width = PAGE_W + 'px';
+        clone.style.maxWidth = 'none';
+        clone.style.margin = '0';
+
+        stage = document.createElement('div');
+        stage.className = 'pdf-export';
+        stage.setAttribute('aria-hidden', 'true');
+        stage.style.cssText =
+          `position:fixed;left:-10000px;top:0;width:${PAGE_W}px;background:#ffffff;z-index:-1;`;
+        stage.appendChild(clone);
+        document.body.appendChild(stage);
+
+        const worker = window.html2pdf().set({
+          margin: [0.35, 0.3, 0.35, 0.3],
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: {
+            scale: 2,
+            useCORS: true,
+            backgroundColor: '#ffffff',
+            // Makes media queries inside the clone evaluate at page width
+            // rather than the real (possibly 360px) viewport.
+            windowWidth: PAGE_W,
+            width: PAGE_W,
+            scrollX: 0,
+            scrollY: 0
+          },
+          jsPDF: { unit: 'pt', format: 'a4', orientation: 'portrait', compress: true },
+          pagebreak: { mode: ['css', 'legacy'] }
+        }).from(clone);
+
+        // Produce a blob and download it explicitly. .save() can hand the file
+        // to an in-browser viewer; an anchor with `download` does not.
+        const blob = await worker.outputPdf('blob');
+        const filename = `Lavion-Invoice-${order.id}.pdf`;
+
+        if (window.navigator && window.navigator.msSaveOrOpenBlob) {
+          window.navigator.msSaveOrOpenBlob(blob, filename);
+        } else {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = filename;
+          a.style.display = 'none';
+          document.body.appendChild(a);
+          a.click();
+
+          // Tearing the anchor down synchronously aborts the transfer — the
+          // browser reports downloadWillBegin and then cancels at 0 bytes.
+          // Keep both the node and the object URL alive until it has started.
+          setTimeout(() => a.remove(), 4000);
+          setTimeout(() => URL.revokeObjectURL(url), 120000);
+        }
+
+        showToast('Invoice downloaded.', 'success');
+      } catch (err) {
+        console.error('Invoice PDF failed:', err);
+        showToast('Could not build the PDF. Opening print instead — choose "Save as PDF".', 'error');
+        window.print();
+      } finally {
+        if (stage && stage.parentNode) stage.parentNode.removeChild(stage);
+        restore();
       }
     });
   };
@@ -2650,40 +3062,122 @@
 
   const style = document.createElement('style');
   style.textContent = `
+    /* Onyx capsule with a gold hairline, so the floating action belongs to the
+       same system as the nav and footer instead of shouting in brand green.
+       The WhatsApp glyph keeps its own colour — that is the recognisable part. */
     #whatsapp-float-btn {
       position: fixed;
       bottom: 88px;
       right: 24px;
       z-index: 9999;
-      display: flex;
+      display: inline-flex;
       align-items: center;
-      gap: 8px;
-      background: #25D366;
-      color: #fff;
+      gap: 10px;
+      padding: 12px 22px 12px 16px;
+      background: linear-gradient(140deg, #16130f 0%, #0b0a09 100%);
+      color: #efdcb2;
       text-decoration: none;
-      padding: 12px 18px 12px 14px;
-      border-radius: 50px;
-      box-shadow: 0 4px 20px rgba(37,211,102,0.45);
+      border: 1px solid rgba(201, 169, 97, 0.42);
+      border-radius: 999px;
       font-family: 'Montserrat', sans-serif;
-      font-size: 12px;
-      font-weight: 700;
-      letter-spacing: 0.5px;
-      transition: all 0.3s ease;
-      animation: waPulse 2.5s ease-in-out infinite;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 1.6px;
+      text-transform: uppercase;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5), inset 0 1px 0 rgba(249,239,214,0.10);
+      isolation: isolate;
+      overflow: hidden;
+      transition:
+        transform .45s cubic-bezier(.22,1,.36,1),
+        box-shadow .45s cubic-bezier(.22,1,.36,1),
+        border-color .45s cubic-bezier(.22,1,.36,1),
+        color .45s cubic-bezier(.22,1,.36,1);
+      animation: waRise .7s cubic-bezier(.22,1,.36,1) both;
     }
-    #whatsapp-float-btn:hover {
-      background: #1da851;
-      transform: scale(1.05);
-      box-shadow: 0 6px 28px rgba(37,211,102,0.6);
+
+    /* Gold foil wash that fades in under the label on hover */
+    #whatsapp-float-btn::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      z-index: -2;
+      background: linear-gradient(135deg,#b08d4a 0%,#dcc188 30%,#f9efd6 50%,#dcc188 70%,#b08d4a 100%);
+      opacity: 0;
+      transition: opacity .45s cubic-bezier(.22,1,.36,1);
     }
-    #wa-label { white-space: nowrap; }
-    @keyframes waPulse {
-      0%, 100% { box-shadow: 0 4px 20px rgba(37,211,102,0.45); }
-      50% { box-shadow: 0 4px 32px rgba(37,211,102,0.75); }
+
+    /* Specular sweep, matching the site's buttons and product cards */
+    #whatsapp-float-btn::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -140%;
+      width: 55%;
+      height: 100%;
+      z-index: -1;
+      background: linear-gradient(100deg, transparent, rgba(255,252,240,.55), transparent);
+      transition: left .85s cubic-bezier(.22,1,.36,1);
     }
+
+    #whatsapp-float-btn:hover,
+    #whatsapp-float-btn:focus-visible {
+      color: #14110c;
+      border-color: transparent;
+      transform: translateY(-3px);
+      box-shadow: 0 16px 44px rgba(201,169,97,.42);
+      animation: none;
+    }
+    #whatsapp-float-btn:hover::before,
+    #whatsapp-float-btn:focus-visible::before { opacity: 1; }
+    #whatsapp-float-btn:hover::after,
+    #whatsapp-float-btn:focus-visible::after { left: 170%; }
+    #whatsapp-float-btn:active { transform: translateY(-1px) scale(.985); }
+
+    #whatsapp-float-btn svg {
+      width: 20px;
+      height: 20px;
+      flex-shrink: 0;
+      color: #25D366;
+      filter: drop-shadow(0 0 6px rgba(37,211,102,.45));
+      transition: color .45s cubic-bezier(.22,1,.36,1), transform .45s cubic-bezier(.22,1,.36,1);
+    }
+    /* On the gold wash, green would vibrate — go ink instead */
+    #whatsapp-float-btn:hover svg {
+      color: #14110c;
+      filter: none;
+      transform: rotate(-8deg) scale(1.08);
+    }
+
+    #wa-label { white-space: nowrap; position: relative; }
+
+    /* Slow gold breath at rest, so it reads as attentive rather than urgent */
+    #whatsapp-float-btn { animation: waRise .7s cubic-bezier(.22,1,.36,1) both, waBreathe 4.5s ease-in-out 1s infinite; }
+
+    @keyframes waRise {
+      from { opacity: 0; transform: translateY(18px) scale(.94); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    @keyframes waBreathe {
+      0%, 100% { box-shadow: 0 10px 30px rgba(0,0,0,.5), 0 0 0 0 rgba(201,169,97,.30), inset 0 1px 0 rgba(249,239,214,.10); }
+      50%      { box-shadow: 0 12px 36px rgba(0,0,0,.55), 0 0 0 10px rgba(201,169,97,0), inset 0 1px 0 rgba(249,239,214,.10); }
+    }
+
     @media (max-width: 480px) {
-      #whatsapp-float-btn { padding: 12px; border-radius: 50%; bottom: 80px; right: 16px; }
+      #whatsapp-float-btn {
+        padding: 0;
+        width: 52px;
+        height: 52px;
+        justify-content: center;
+        border-radius: 50%;
+        bottom: 80px;
+        right: 16px;
+      }
       #wa-label { display: none; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      #whatsapp-float-btn { animation: none; }
+      #whatsapp-float-btn::after { display: none; }
     }
   `;
 
