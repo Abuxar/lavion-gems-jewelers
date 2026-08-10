@@ -2003,7 +2003,9 @@ footer::before {
     background var(--transition), color var(--transition), transform var(--transition);
   border: 1px solid rgba(201, 169, 97, 0.4);
   box-shadow: var(--shadow-md);
-  z-index: 100;
+  /* Above the mobile dock (999) but below every overlay (1100+), so it can be
+     tapped on a phone yet still disappears behind an open modal. */
+  z-index: 1040;
 }
 
 .back-to-top:hover {
@@ -2020,6 +2022,25 @@ footer::before {
 .back-to-top svg {
   width: 18px;
   height: 18px;
+}
+
+/* The dock owns the bottom of a phone screen and WhatsApp owns the right rail,
+   so the two floating actions stack up that rail instead of landing on either.
+   WhatsApp stays nearest the thumb; back-to-top appears above it on scroll, so
+   neither button moves when the other shows. The @supports block further down
+   repeats these with safe-area insets. */
+@media (max-width: 768px) {
+  .back-to-top {
+    width: 42px;
+    height: 42px;
+    right: 16px;
+    bottom: 142px;
+  }
+
+  .back-to-top svg {
+    width: 16px;
+    height: 16px;
+  }
 }
 
 /* ======================================
@@ -3578,16 +3599,38 @@ footer::before {
   }
 }
 
+/* On the dock breakpoints the hero was still sized for a desktop viewport, so
+   the photograph pushed the gold card down to a sliver at the fold. Trading
+   image height for card presence puts the headline and CTA back on first
+   screen. svh follows the shrinking viewport when the browser chrome is
+   showing; the vh line above it is the fallback. */
+@media (max-width: 768px) {
+  .hero {
+    height: 62vh !important;
+    height: 62svh !important;
+    min-height: 380px !important;
+    max-height: 520px !important;
+  }
+}
+
 @media (max-width: 600px) {
   .hero {
-    height: 70vh !important;
-    min-height: 440px !important;
+    height: 56vh !important;
+    height: 56svh !important;
+    min-height: 340px !important;
+    max-height: 460px !important;
   }
 
   .hero-content {
-    bottom: 20px !important;
+    bottom: 34px !important;
     padding: 16px 14px !important;
     width: calc(100% - 24px) !important;
+  }
+
+  /* The dots sat at 30px, which put them on the card's bottom edge once the
+     card moved down. Park them in the gap beneath it. */
+  .hero-dots {
+    bottom: 12px !important;
   }
 
   .hero-title {
@@ -4454,14 +4497,23 @@ footer::before {
     }
 
     #whatsapp-float-btn {
-      bottom: calc(80px + env(safe-area-inset-bottom)) !important;
+      bottom: calc(78px + env(safe-area-inset-bottom)) !important;
       right: max(16px, env(safe-area-inset-right)) !important;
+    }
+
+    /* 78px dock clearance + the 52px WhatsApp circle + a 12px gap. */
+    .back-to-top {
+      bottom: calc(142px + env(safe-area-inset-bottom));
+      right: max(16px, env(safe-area-inset-right));
     }
   }
 
-  .back-to-top {
-    bottom: max(40px, env(safe-area-inset-bottom));
-    right: max(40px, env(safe-area-inset-right));
+  /* Desktop keeps the roomier corner placement — there is no dock to clear. */
+  @media (min-width: 769px) {
+    .back-to-top {
+      bottom: max(40px, env(safe-area-inset-bottom));
+      right: max(40px, env(safe-area-inset-right));
+    }
   }
 }
 

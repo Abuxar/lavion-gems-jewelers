@@ -3077,7 +3077,9 @@
       position: fixed;
       bottom: 88px;
       right: 24px;
-      z-index: 9999;
+      /* Clears the mobile dock (999) but sits under every overlay (1100+).
+         At 9999 it floated on top of open cart and admin modals. */
+      z-index: 1050;
       display: inline-flex;
       align-items: center;
       gap: 10px;
@@ -3170,14 +3172,17 @@
       50%      { box-shadow: 0 12px 36px rgba(0,0,0,.55), 0 0 0 10px rgba(201,169,97,0), inset 0 1px 0 rgba(249,239,214,.10); }
     }
 
-    @media (max-width: 480px) {
+    /* Collapse to a disc wherever the bottom dock exists (768px), not just on
+       the narrowest phones — the labelled pill crowded the dock and the gold
+       rate bar, and a fixed 52px keeps the back-to-top stacking predictable. */
+    @media (max-width: 768px) {
       #whatsapp-float-btn {
         padding: 0;
         width: 52px;
         height: 52px;
         justify-content: center;
         border-radius: 50%;
-        bottom: 80px;
+        bottom: 78px;
         right: 16px;
       }
       #wa-label { display: none; }
