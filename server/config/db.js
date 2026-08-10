@@ -5,33 +5,36 @@ const GoldRate = require('../models/GoldRate');
 const Customer = require('../models/Customer');
 const { readData } = require('../utils/db');
 
-let isConnected = false;
 
 async function connectDB() {
   if (mongoose.connection && mongoose.connection.readyState >= 1) {
-    isConnected = true;
     return;
   }
 
   const mongoURI = process.env.MONGO_URI;
   if (!mongoURI) {
-    isConnected = false;
     console.log(' ℹ️ MONGO_URI not set. Operating in File DB mode.');
     return;
   }
 
   try {
     mongoose.set('strictQuery', false);
+    /**
+     * Buffering exists so a query issued during a connection handshake waits
+     * rather than failing. The default ceiling of 10s is far past useful on a
+     * serverless request: if the handshake has not landed in two, it is not
+     * landing, and the caller should fall back rather than hold the request
+     * open. serverSelectionTimeoutMS below is already 3s.
+     */
+    mongoose.set('bufferTimeoutMS', 2000);
     await mongoose.connect(mongoURI, {
       serverSelectionTimeoutMS: 3000
     });
-    isConnected = true;
     console.log(' 🍃 MongoDB Connected Successfully!');
 
     // Seed database if empty
     await seedMongoIfEmpty();
   } catch (error) {
-    isConnected = false;
     console.log(' ⚠️ MongoDB Atlas Connection Note:', error.message);
     console.log(' ℹ️ Operating in File DB mode.');
   }
@@ -69,8 +72,13 @@ async function seedMongoIfEmpty() {
   }
 }
 
+/**
+ * Read the driver's own state rather than a flag set once at startup. The flag
+ * could not notice a connection dropping later in a container's life, which
+ * left callers routing queries at a dead socket.
+ */
 function isMongoConnected() {
-  return isConnected;
+  return mongoose.connection.readyState === 1;
 }
 
 module.exports = {

@@ -536,7 +536,11 @@ router.post('/admin-login', limiter('admin', 10, 15 * 60 * 1000), async (req, re
     const passOk = await bcrypt.compare(String(password), expectedHash);
 
     if (!userOk || !passOk) {
-      await hit(`admin:fail:${clientIp(req)}`, 5, 15 * 60 * 1000);
+      // Recording the strike must not decide the response. When this threw,
+      // the outer catch turned a plain wrong password into a 500 "Admin sign
+      // in failed.", which reads as a server outage rather than a bad guess.
+      await hit(`admin:fail:${clientIp(req)}`, 5, 15 * 60 * 1000)
+        .catch(e => console.error('admin lockout counter unavailable:', e.message));
       return res.status(401).json(invalid);
     }
 

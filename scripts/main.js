@@ -920,170 +920,44 @@
     const modal = document.createElement('div');
     modal.id = 'cart-prompt-modal';
     modal.className = 'cart-prompt-backdrop active';
-    modal.style.cssText = `
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      background: rgba(0, 0, 0, 0.82);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 999999;
-      padding: 20px;
-      box-sizing: border-box;
-      opacity: 1;
-      visibility: visible;
-      transition: opacity 0.3s ease;
-    `;
+    /* Every rule below used to be repeated inline here. Inline styles beat the
+       stylesheet, so the modal stayed onyx no matter what main.css said — and
+       any restyling had to be made twice. The classes carry it all now. */
 
     modal.innerHTML = `
-      <div class="cart-prompt-dialog" role="dialog" aria-modal="true" style="
-        background: #141414;
-        border: 1px solid rgba(212, 175, 55, 0.4);
-        border-radius: 14px;
-        width: 100%;
-        max-width: 440px;
-        padding: 28px 24px;
-        position: relative;
-        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.85), 0 0 35px rgba(212, 175, 55, 0.25);
-        color: #ffffff;
-        font-family: 'Montserrat', sans-serif;
-        box-sizing: border-box;
-      ">
-        <button class="cart-prompt-close" id="cart-prompt-close-btn" aria-label="Close modal" style="
-          position: absolute;
-          top: 14px;
-          right: 16px;
-          background: transparent;
-          border: none;
-          color: rgba(255, 255, 255, 0.7);
-          font-size: 24px;
-          line-height: 1;
-          cursor: pointer;
-          padding: 4px 8px;
-        ">&times;</button>
-        
-        <div class="cart-prompt-header" style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
-          <div class="cart-prompt-icon-wrap" style="
-            width: 38px;
-            height: 38px;
-            border-radius: 50%;
-            background: rgba(212, 175, 55, 0.15);
-            border: 1px solid rgba(212, 175, 55, 0.5);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #d4af37;
-            flex-shrink: 0;
-          ">
-            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <div class="cart-prompt-dialog" role="dialog" aria-modal="true" aria-labelledby="cart-prompt-title">
+        <button class="cart-prompt-close" id="cart-prompt-close-btn" aria-label="Close">&times;</button>
+
+        <div class="cart-prompt-header">
+          <div class="cart-prompt-icon-wrap">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="20 6 9 17 4 12"></polyline>
             </svg>
           </div>
-          <h3 id="cart-prompt-title" class="cart-prompt-title" style="
-            font-family: 'Cormorant Garamond', Georgia, serif;
-            font-size: 22px;
-            font-weight: 600;
-            color: #ffffff;
-            margin: 0;
-            letter-spacing: 0.5px;
-          ">Added to Shopping Bag!</h3>
+          <h3 id="cart-prompt-title" class="cart-prompt-title">Added to Shopping Bag</h3>
         </div>
 
-        <div class="cart-prompt-body" style="margin-bottom: 24px;">
-          <div class="cart-prompt-item" style="
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 8px;
-            padding: 12px;
-            margin-bottom: 16px;
-          ">
-            <img src="${product.img || 'images/rings/solitaire-diamond-ring.jpg'}" alt="${product.name}" class="cart-prompt-item-img" onerror="this.src='images/rings/solitaire-diamond-ring.jpg'" style="
-              width: 64px;
-              height: 64px;
-              object-fit: cover;
-              border-radius: 6px;
-              border: 1px solid rgba(212, 175, 55, 0.4);
-              background: #000;
-            " />
-            <div class="cart-prompt-item-info" style="flex: 1; min-width: 0;">
-              <h4 class="cart-prompt-item-name" style="
-                font-size: 14px;
-                font-weight: 600;
-                color: #f3f3f3;
-                margin: 0 0 4px 0;
-                white-space: nowrap;
-                overflow: hidden;
-                text-overflow: ellipsis;
-              ">${product.name}</h4>
-              <p class="cart-prompt-item-meta" style="
-                font-size: 11px;
-                color: #d4af37;
-                text-transform: uppercase;
-                letter-spacing: 1px;
-                margin: 0 0 6px 0;
-              ">${product.category ? product.category.toUpperCase() : 'LUXURY JEWELLERY'}</p>
-              <div class="cart-prompt-item-price-qty" style="display: flex; justify-content: space-between; align-items: center; font-size: 13px;">
-                <span class="cart-prompt-price" style="font-weight: 600; color: #ffffff;">${formattedPrice}</span>
-                <span class="cart-prompt-qty" style="color: rgba(255, 255, 255, 0.6); font-size: 12px;">Qty: ${qty}</span>
+        <div class="cart-prompt-body">
+          <div class="cart-prompt-item">
+            <img src="${product.img || 'images/rings/solitaire-diamond-ring.jpg'}" alt="${product.name}" class="cart-prompt-item-img" onerror="this.src='images/rings/solitaire-diamond-ring.jpg'" />
+            <div class="cart-prompt-item-info">
+              <h4 class="cart-prompt-item-name">${product.name}</h4>
+              <p class="cart-prompt-item-meta">${product.category ? product.category.toUpperCase() : 'LUXURY JEWELLERY'}</p>
+              <div class="cart-prompt-item-price-qty">
+                <span class="cart-prompt-price">${formattedPrice}</span>
+                <span class="cart-prompt-qty">Qty: ${qty}</span>
               </div>
             </div>
           </div>
 
-          <p class="cart-prompt-question" style="
-            font-size: 14px;
-            color: rgba(255, 255, 255, 0.9);
-            line-height: 1.5;
-            margin: 0;
-            text-align: center;
-          ">
+          <p class="cart-prompt-question">
             Would you like to open your Shopping Bag now or continue browsing?
           </p>
         </div>
 
-        <div class="cart-prompt-actions" style="display: flex; gap: 12px; flex-wrap: wrap;">
-          <button class="cart-prompt-btn secondary" id="cart-prompt-continue-btn" style="
-            flex: 1;
-            min-width: 140px;
-            padding: 12px 14px;
-            border-radius: 6px;
-            font-size: 12px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.8px;
-            text-align: center;
-            background: transparent;
-            color: #ffffff !important;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            cursor: pointer;
-          ">Continue Browsing</button>
-          <a href="cart.html" class="cart-prompt-btn primary" id="cart-prompt-open-btn" style="
-            flex: 1;
-            min-width: 160px;
-            padding: 12px 14px;
-            border-radius: 6px;
-            font-size: 12px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.8px;
-            text-align: center;
-            text-decoration: none;
-            background: linear-gradient(135deg, #d4af37 0%, #aa7c11 100%);
-            color: #000000 !important;
-            border: none;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);
-          ">
+        <div class="cart-prompt-actions">
+          <button class="cart-prompt-btn secondary" id="cart-prompt-continue-btn">Continue Browsing</button>
+          <a href="cart.html" class="cart-prompt-btn primary" id="cart-prompt-open-btn">
             Open Shopping Bag (${totalCartCount})
           </a>
         </div>

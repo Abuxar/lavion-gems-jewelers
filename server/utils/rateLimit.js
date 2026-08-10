@@ -1,5 +1,6 @@
 const AuthAttempt = require('../models/AuthAttempt');
 const { clientIp } = require('./tokens');
+const { isMongoConnected } = require('../config/db');
 
 /**
  * Fixed-window counter backed by Mongo.
@@ -8,6 +9,19 @@ const { clientIp } = require('./tokens');
  * requests cannot slip past the limit the way a read-then-write would allow.
  */
 async function hit(key, limit, windowMs) {
+  /**
+   * Without a live connection there is no counter to keep, and issuing the
+   * query anyway is not free: mongoose buffers commands while disconnected and
+   * only rejects once bufferTimeoutMS elapses. Every sign-in therefore sat
+   * through that timeout — twice on a failed admin attempt, once for the
+   * middleware and once for the failure counter — before doing any real work.
+   * Failing open is what limiter() already does when this throws; do it
+   * immediately instead of ten seconds later.
+   */
+  if (!isMongoConnected()) {
+    return { allowed: true, remaining: limit, retryAfter: 0, degraded: true };
+  }
+
   const now = new Date();
   const expiresAt = new Date(now.getTime() + windowMs);
 
@@ -41,6 +55,7 @@ async function hit(key, limit, windowMs) {
 }
 
 async function reset(key) {
+  if (!isMongoConnected()) return;
   await AuthAttempt.deleteOne({ key });
 }
 
