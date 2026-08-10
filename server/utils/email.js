@@ -312,7 +312,7 @@ async function sendCustomOrderEmail(order) {
   }
 }
 
-module.exports = { sendWelcomeEmail, sendOrderConfirmationEmail, sendCustomOrderEmail, sendNewRegistrationAlert, sendLoginAlert, sendSubscriberAlert };
+module.exports = { sendEmailMessage, sendWelcomeEmail, sendOrderConfirmationEmail, sendCustomOrderEmail, sendNewRegistrationAlert, sendLoginAlert, sendSubscriberAlert };
 
 // ─── Shared admin email builder ───────────────────────────────────────────────
 function buildAdminEmail({ icon, title, subtitle, rows }) {

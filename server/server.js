@@ -2,6 +2,7 @@ const fs = require('fs');
 
 const express = require('express');
 const cors = require('cors');
+const cookieParser = require('cookie-parser');
 const path = require('path');
 require('dotenv').config();
 
@@ -21,10 +22,53 @@ const PORT = process.env.PORT || 5000;
 // Connect MongoDB Database (non-blocking with error catch)
 connectDB().catch(err => console.error('DB Init Error:', err.message));
 
-// Middleware
-app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// Trust Vercel's proxy so req.ip and secure cookies resolve correctly.
+app.set('trust proxy', 1);
+
+/**
+ * Credentialed requests carry the refresh cookie, so the origin allowlist has
+ * to be explicit — `cors()` with a wildcard cannot be used with credentials.
+ */
+const allowedOrigins = (process.env.ALLOWED_ORIGINS ||
+  'http://localhost:5000,http://127.0.0.1:5000,http://localhost:8899,http://127.0.0.1:8899')
+  .split(',').map(s => s.trim()).filter(Boolean);
+
+if (process.env.PUBLIC_BASE_URL) {
+  allowedOrigins.push(process.env.PUBLIC_BASE_URL.replace(/\/$/, ''));
+}
+
+app.use(cors({
+  origin(origin, cb) {
+    // Same-origin and server-to-server requests send no Origin header.
+    if (!origin) return cb(null, true);
+    if (allowedOrigins.includes(origin)) return cb(null, true);
+    return cb(new Error(`Origin ${origin} is not allowed.`));
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS']
+}));
+
+app.use(cookieParser());
+// Bound body size so a large payload cannot exhaust a serverless instance.
+app.use(express.json({ limit: '256kb' }));
+// Apple posts its OAuth callback as a form.
+app.use(express.urlencoded({ extended: true, limit: '256kb' }));
+
+// Baseline security headers (kept dependency-free).
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
+  if (process.env.NODE_ENV === 'production') {
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  }
+  // Never let a browser or CDN cache an authenticated API response.
+  if (req.path.startsWith('/api/')) {
+    res.setHeader('Cache-Control', 'no-store');
+  }
+  next();
+});
 
 // Direct admin access routes (before static files)
 app.get(['/admin', '/admin-panel'], (req, res) => {

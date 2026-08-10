@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Confirm Your Email — Lavion Gems &amp; Jewellers</title>
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Montserrat:wght@200;300;400;500;600;700&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="styles/main.css?v=5.7" />
+</head>
+
+<body>
+  <div class="header-utility">
+    <div class="header-utility-left"><a href="index.html">Return to Store</a></div>
+    <div class="header-utility-right"><a href="index.html">Lavion Gems &amp; Jewellers</a></div>
+  </div>
+
+  <main class="auth-page">
+    <div class="admin-modal-dialog auth-dialog" id="verify-card">
+      <div class="auth-head">
+        <span class="auth-mark">&#10022;</span>
+        <h1 class="auth-title" id="verify-title">Confirming your email…</h1>
+        <p class="auth-sub" id="verify-sub">One moment while we activate your account.</p>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    (function () {
+      var card = document.getElementById('verify-card');
+      var title = document.getElementById('verify-title');
+      var sub = document.getElementById('verify-sub');
+
+      function finish(heading, message, actionHtml) {
+        title.textContent = heading;
+        sub.textContent = message;
+        if (actionHtml) card.insertAdjacentHTML('beforeend', actionHtml);
+      }
+
+      var token = new URLSearchParams(location.search).get('token');
+      if (!token) {
+        finish('Link incomplete', 'This confirmation link is missing its token.',
+          '<a class="btn-gold auth-submit" href="index.html">Return to Store</a>');
+        return;
+      }
+
+      fetch('/api/auth/verify-email', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: token })
+      })
+        .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+        .then(function (res) {
+          if (res.ok) {
+            finish('Email confirmed', 'Your account is active and you are now signed in.',
+              '<a class="btn-gold auth-submit" href="index.html">Start Exploring</a>');
+          } else {
+            finish('Link expired',
+              (res.d && res.d.message) || 'This link is invalid or has already been used.',
+              '<a class="btn-gold auth-submit" href="index.html?signin=1">Request a New Link</a>');
+          }
+        })
+        .catch(function () {
+          finish('Something went wrong', 'We could not reach the account service. Please try again shortly.',
+            '<a class="btn-gold auth-submit" href="index.html">Return to Store</a>');
+        });
+    })();
+  </script>
+</body>
+
+</html>

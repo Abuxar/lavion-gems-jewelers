@@ -10,3 +10,6 @@ yarn-error.log*
 
 .vercel
 .env*
+
+# The template carries no secrets and must stay in version control.
+!.env.example
