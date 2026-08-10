@@ -2857,8 +2857,19 @@
         stage = document.createElement('div');
         stage.className = 'pdf-export';
         stage.setAttribute('aria-hidden', 'true');
+        /**
+         * Absolute, not fixed.
+         *
+         * html2canvas locates an element by adding the page's scroll offset to
+         * its viewport rectangle. A fixed element's rectangle does not move
+         * when the page scrolls, so that sum overshoots by exactly the scroll
+         * distance and the capture window lands past the end of the document —
+         * scroll down, then export, and the page came out blank. An absolutely
+         * positioned stage sits at a real document coordinate, so the sum is
+         * right however far down the reader has scrolled.
+         */
         stage.style.cssText =
-          `position:fixed;left:-10000px;top:0;width:${PAGE_W}px;background:#ffffff;z-index:-1;`;
+          `position:absolute;left:-10000px;top:0;width:${PAGE_W}px;background:#ffffff;z-index:-1;`;
         stage.appendChild(clone);
         document.body.appendChild(stage);
 
@@ -2869,10 +2880,23 @@
             scale: 2,
             useCORS: true,
             backgroundColor: '#ffffff',
-            // Makes media queries inside the clone evaluate at page width
-            // rather than the real (possibly 360px) viewport.
-            windowWidth: PAGE_W,
+            /**
+             * width, and nothing else about geometry.
+             *
+             * windowWidth: 794 used to be set here so the clone's media queries
+             * would resolve at page width. It also tells html2canvas the window
+             * is 794px while the page is really laid out at, say, 1366 — and
+             * the element is then positioned against a window that does not
+             * exist. Once the viewport was wider than a page the capture landed
+             * elsewhere and the invoice came out as a sliver of its own middle.
+             * A phone never showed it, being narrower than 794 to begin with.
+             * The .pdf-export rules in the stylesheet pin the export layout, so
+             * the media queries do not need forcing.
+             */
             width: PAGE_W,
+            // The stage sits at document y=0, so tell html2canvas to measure
+            // from an unscrolled page. Without this, exporting after scrolling
+            // down aimed the capture below the stage and produced a blank page.
             scrollX: 0,
             scrollY: 0
           },
