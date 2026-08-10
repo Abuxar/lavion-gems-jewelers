@@ -2,153 +2,218 @@ const express = require('express');
 const router = express.Router();
 const { readData, writeData } = require('../utils/db');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
+const { isMongoConnected } = require('../config/db');
+const GoldRate = require('../models/GoldRate');
+const engine = require('../utils/goldRates');
 
-let lastFetchTime = 0;
-const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes cache
+// Short enough to feel live, long enough not to hammer free upstreams.
+const CACHE_TTL_MS = 5 * 60 * 1000;
 
-async function fetchLiveGoldRatesFromMarket() {
+let memo = { rates: null, at: 0 };
+
+/* ------------------------------------------------------------------ *
+ * Persistence — Mongo when available, JSON file otherwise
+ * ------------------------------------------------------------------ */
+
+async function loadStored() {
+  if (isMongoConnected()) {
+    const doc = await GoldRate.findOne().sort({ updatedAt: -1 }).lean();
+    if (doc) return doc;
+  }
+  const db = readData();
+  return db.goldRates || null;
+}
+
+async function saveStored(rates) {
+  if (isMongoConnected()) {
+    await GoldRate.findOneAndUpdate({}, { $set: rates }, { upsert: true, new: true, sort: { updatedAt: -1 } });
+  }
+  // Mirror to the file DB so local development keeps working without Mongo.
   try {
-    let xauUsd = 0;
-    let usdPkr = 0;
-    let usdGbp = 0;
-
-    // Fetch Gold Spot Price (XAU/USD)
-    try {
-      const goldRes = await fetch('https://api.gold-api.com/price/XAU').then(r => r.json());
-      if (goldRes && goldRes.price) xauUsd = parseFloat(goldRes.price);
-    } catch (e) {
-      console.error('[GoldRate] Primary Gold API error:', e.message);
-    }
-
-    if (!xauUsd) {
-      try {
-        const goldFallback = await fetch('https://data-asg.goldprice.org/dbXRates/USD').then(r => r.json());
-        if (goldFallback && goldFallback.items && goldFallback.items[0]) {
-          xauUsd = parseFloat(goldFallback.items[0].xauPrice);
-        }
-      } catch (e) {}
-    }
-
-    // Fetch Live Exchange Rates (USD to PKR & GBP)
-    try {
-      const fxRes = await fetch('https://open.er-api.com/v6/latest/USD').then(r => r.json());
-      if (fxRes && fxRes.rates) {
-        if (fxRes.rates.PKR) usdPkr = parseFloat(fxRes.rates.PKR);
-        if (fxRes.rates.GBP) usdGbp = parseFloat(fxRes.rates.GBP);
-      }
-    } catch (e) {
-      console.error('[GoldRate] FX API error:', e.message);
-    }
-
-    if (!usdPkr || !usdGbp) {
-      try {
-        const fxFallback = await fetch('https://api.exchangerate-api.com/v4/latest/USD').then(r => r.json());
-        if (fxFallback && fxFallback.rates) {
-          if (!usdPkr && fxFallback.rates.PKR) usdPkr = parseFloat(fxFallback.rates.PKR);
-          if (!usdGbp && fxFallback.rates.GBP) usdGbp = parseFloat(fxFallback.rates.GBP);
-        }
-      } catch (e) {}
-    }
-
-    // Default fallbacks if network unreachable
-    if (!xauUsd) xauUsd = 4340;
-    if (!usdPkr) usdPkr = 277.8;
-    if (!usdGbp) usdGbp = 0.743;
-
-    // Live Gold Market calculation (PKR & GBP)
-    const baseTolaPkr = xauUsd * usdPkr * 0.3621;
-    const baseTolaGbp = xauUsd * usdGbp * 0.3621;
-
-    const r24Pkr = Math.round(baseTolaPkr);
-    const r24Gbp = Math.round(baseTolaGbp);
-
-    const rates = {
-      rate24kPerTola: r24Pkr,
-      rate24kPer10g: Math.round(r24Pkr / 1.16638),
-      rate24kPer1g: Math.round(r24Pkr / 11.6638),
-      rate22kPerTola: Math.round(r24Pkr * (22 / 24)),
-      rate18kPerTola: Math.round(r24Pkr * (18 / 24)),
-      rateSilverPerTola: Math.round(30 * usdPkr * 0.3621) || 4850,
-      // GBP (£) Rates
-      rate24kPerTolaGBP: r24Gbp,
-      rate24kPer10gGBP: Math.round(r24Gbp / 1.16638),
-      rate24kPer1gGBP: Math.round(r24Gbp / 11.6638),
-      rate22kPerTolaGBP: Math.round(r24Gbp * (22 / 24)),
-      rate18kPerTolaGBP: Math.round(r24Gbp * (18 / 24)),
-      xauUsd: Math.round(xauUsd),
-      usdPkr: Math.round(usdPkr * 100) / 100,
-      usdGbp: Math.round(usdGbp * 1000) / 1000,
-      lastUpdated: new Date().toLocaleTimeString('en-PK', { timeZone: 'Asia/Karachi', hour: '2-digit', minute: '2-digit' }) + ' PKT (Live Gold Market)'
-    };
-
     const db = readData();
-    db.goldRates = rates;
+    db.goldRates = { ...(db.goldRates || {}), ...rates };
     writeData(db);
-    lastFetchTime = Date.now();
-
-    return rates;
-  } catch (err) {
-    console.error('[GoldRate] Live fetch error:', err.message);
-    const db = readData();
-    return db.goldRates || {
-      rate24kPerTola: 463800,
-      rate24kPer10g: 397641,
-      rate24kPer1g: 39764,
-      rate22kPerTola: 425150,
-      rate18kPerTola: 347850,
-      rateSilverPerTola: 4850,
-      lastUpdated: 'Live Market Data'
-    };
+  } catch (e) {
+    // Read-only filesystem (Vercel) — Mongo is the source of truth there.
   }
 }
 
-// GET /api/gold-rates - Get active live market gold rates
-router.get('/', async (req, res) => {
-  const db = readData();
-  const now = Date.now();
+async function loadCalibration() {
+  const stored = await loadStored();
+  return {
+    premiumPercent: Number(stored?.premiumPercent) || 0,
+    usdPkrOverride: Number(stored?.usdPkrOverride) || null
+  };
+}
 
-  if (!db.goldRates || (now - lastFetchTime > CACHE_TTL_MS)) {
-    const liveRates = await fetchLiveGoldRatesFromMarket();
-    return res.json({ success: true, goldRates: liveRates, live: true });
+/** Refresh from upstream, falling back to the last good stored table. */
+async function refresh(force = false) {
+  const fresh = !force && memo.rates && (Date.now() - memo.at < CACHE_TTL_MS);
+  if (fresh) return { rates: memo.rates, cached: true, warnings: [] };
+
+  const cal = await loadCalibration();
+  const { ok, rates, warnings } = await engine.fetchRates(cal);
+
+  if (!ok) {
+    const stored = await loadStored();
+    if (stored) {
+      return {
+        rates: { ...stored, lastUpdated: (stored.lastUpdated || '') + ' (cached — feed unavailable)' },
+        cached: true,
+        warnings
+      };
+    }
+    return { rates: null, cached: false, warnings };
   }
 
-  res.json({ success: true, goldRates: db.goldRates, live: true });
+  // Carry calibration through so the client can display it.
+  rates.premiumPercent = cal.premiumPercent;
+  rates.usdPkrOverride = cal.usdPkrOverride;
+
+  memo = { rates, at: Date.now() };
+  await saveStored(rates);
+  return { rates, cached: false, warnings };
+}
+
+/* ------------------------------------------------------------------ *
+ * Routes
+ * ------------------------------------------------------------------ */
+
+// GET /api/gold-rates
+router.get('/', async (req, res) => {
+  try {
+    const { rates, cached, warnings } = await refresh(req.query.force === '1');
+    if (!rates) {
+      return res.status(503).json({
+        success: false,
+        message: 'Live rates are temporarily unavailable.',
+        warnings
+      });
+    }
+    res.json({ success: true, goldRates: rates, live: !cached, cached, warnings });
+  } catch (error) {
+    console.error('[GoldRate] GET error:', error);
+    res.status(500).json({ success: false, message: 'Could not load gold rates.' });
+  }
 });
 
-// POST /api/gold-rates/sync - Sync with live Sarafa Market Pakistan rate
+// POST /api/gold-rates/sync — force an upstream refresh
 router.post('/sync', async (req, res) => {
   try {
-    const liveRates = await fetchLiveGoldRatesFromMarket();
-    res.json({ success: true, message: `Synced with live Sarafa market rate (Rs. ${liveRates.rate24kPerTola.toLocaleString()}/Tola)`, goldRates: liveRates });
+    const { rates, warnings } = await refresh(true);
+    if (!rates) {
+      return res.status(503).json({ success: false, message: 'Rate feeds are unreachable.', warnings });
+    }
+    res.json({
+      success: true,
+      message: `Synced — Rs. ${rates.rate24kPerTola.toLocaleString()} per tola (24K)`,
+      goldRates: rates,
+      warnings
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to sync live rates.', error: error.message });
+    console.error('[GoldRate] sync error:', error);
+    res.status(500).json({ success: false, message: 'Failed to sync live rates.' });
   }
 });
 
-// PUT /api/gold-rates - Manual rate override (Admin)
-router.put('/', authenticateToken, requireAdmin, (req, res) => {
+/**
+ * PUT /api/gold-rates — manual override of the 24k per-tola figure.
+ * Everything else is recomputed from it so the karats stay consistent.
+ */
+router.put('/', authenticateToken, requireAdmin, async (req, res) => {
   try {
-    const { rate24kPerTola } = req.body;
-    const r24 = parseFloat(rate24kPerTola) || 463800;
-
-    const rates = {
-      rate24kPerTola: Math.round(r24),
-      rate24kPer10g: Math.round(r24 / 1.16638),
-      rate24kPer1g: Math.round(r24 / 11.6638),
-      rate22kPerTola: Math.round(r24 * (22 / 24)),
-      rate18kPerTola: Math.round(r24 * (18 / 24)),
-      rateSilverPerTola: 4850,
-      lastUpdated: new Date().toLocaleTimeString('en-PK', { timeZone: 'Asia/Karachi', hour: '2-digit', minute: '2-digit' }) + ' PKT (Manual)'
-    };
-
-    const db = readData();
-    db.goldRates = rates;
-    writeData(db);
-    lastFetchTime = Date.now();
-
-    res.json({ success: true, message: 'Gold rates updated successfully!', goldRates: rates });
+    const previous = (await loadStored()) || {};
+    const rates = engine.fromManual24k(req.body.rate24kPerTola, previous);
+    memo = { rates, at: Date.now() };
+    await saveStored(rates);
+    res.json({ success: true, message: 'Gold rates updated.', goldRates: rates });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to update gold rates.', error: error.message });
+    res.status(400).json({ success: false, message: error.message });
+  }
+});
+
+/**
+ * PATCH /api/gold-rates/calibration — the knob that makes the ticker match
+ * the local Sarafa quote exactly.
+ *
+ * premiumPercent  : uplift over international parity (dealer premium + the
+ *                   gap between interbank and open-market USD)
+ * usdPkrOverride  : quote against the open-market dollar instead of interbank
+ */
+router.patch('/calibration', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { premiumPercent, usdPkrOverride } = req.body || {};
+
+    const premium = premiumPercent === undefined || premiumPercent === null || premiumPercent === ''
+      ? 0 : Number(premiumPercent);
+    if (!Number.isFinite(premium) || premium < -20 || premium > 50) {
+      return res.status(400).json({ success: false, message: 'Premium must be between -20% and 50%.' });
+    }
+
+    let override = null;
+    if (usdPkrOverride !== undefined && usdPkrOverride !== null && usdPkrOverride !== '') {
+      override = Number(usdPkrOverride);
+      if (!Number.isFinite(override) || override < 100 || override > 1000) {
+        return res.status(400).json({ success: false, message: 'USD/PKR override must be between 100 and 1000.' });
+      }
+    }
+
+    await saveStored({ premiumPercent: premium, usdPkrOverride: override });
+    memo = { rates: null, at: 0 }; // force a rebuild on the next read
+
+    const { rates, warnings } = await refresh(true);
+    res.json({
+      success: true,
+      message: `Calibration saved. 24K now Rs. ${rates ? rates.rate24kPerTola.toLocaleString() : 'n/a'} per tola.`,
+      goldRates: rates,
+      warnings
+    });
+  } catch (error) {
+    console.error('[GoldRate] calibration error:', error);
+    res.status(500).json({ success: false, message: 'Could not save calibration.' });
+  }
+});
+
+/**
+ * POST /api/gold-rates/calibrate-to — give it today's Sarafa 24k/tola figure
+ * and it solves for the premium that reproduces it, instead of making the
+ * shopkeeper work out a percentage by hand.
+ */
+router.post('/calibrate-to', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const target = Number(req.body.rate24kPerTola);
+    if (!Number.isFinite(target) || target <= 0) {
+      return res.status(400).json({ success: false, message: 'Provide the market 24k rate per tola.' });
+    }
+
+    // Parity with no premium, so we can measure the gap.
+    const { ok, rates: parity, warnings } = await engine.fetchRates({ premiumPercent: 0 });
+    if (!ok) {
+      return res.status(503).json({ success: false, message: 'Cannot reach the rate feed to calibrate.', warnings });
+    }
+
+    const premium = Math.round(((target / parity.rate24kPerTola) - 1) * 10000) / 100;
+    if (premium < -20 || premium > 50) {
+      return res.status(400).json({
+        success: false,
+        message: `That target implies a ${premium}% premium over the international parity of Rs. ${parity.rate24kPerTola.toLocaleString()}, which looks wrong. Check the figure.`
+      });
+    }
+
+    await saveStored({ premiumPercent: premium });
+    memo = { rates: null, at: 0 };
+    const refreshed = await refresh(true);
+
+    res.json({
+      success: true,
+      message: `Calibrated to Rs. ${target.toLocaleString()} per tola (premium ${premium}% over parity).`,
+      premiumPercent: premium,
+      parity24k: parity.rate24kPerTola,
+      goldRates: refreshed.rates
+    });
+  } catch (error) {
+    console.error('[GoldRate] calibrate-to error:', error);
+    res.status(500).json({ success: false, message: 'Calibration failed.' });
   }
 });
 
