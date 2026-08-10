@@ -294,14 +294,17 @@
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         console.error('Product sync rejected:', res.status, data.message || '');
-        return { ok: false };
+        // Carry the server's own words back. "The server refused the change"
+        // gave the admin nothing to act on; the reason is usually specific and
+        // fixable — a read-only store, an expired session, a missing field.
+        return { ok: false, reason: data.message || `Server returned ${res.status}.` };
       }
       // POST mints its own id server-side; adopt it or the next sync would
       // show the same piece twice, once under each id.
       return { ok: true, product: data.product };
     } catch (e) {
       console.error('Product sync failed:', e.message);
-      return { ok: false };
+      return { ok: false, reason: 'Could not reach the server.' };
     }
   }
 
@@ -316,10 +319,12 @@
         method,
         body: method === 'DELETE' ? undefined : JSON.stringify(body)
       });
-      return res.ok;
+      if (res.ok) return { ok: true };
+      const data = await res.json().catch(() => ({}));
+      return { ok: false, reason: data.message || `Server returned ${res.status}.` };
     } catch (e) {
       console.error('Order sync failed:', e.message);
-      return false;
+      return { ok: false, reason: 'Could not reach the server.' };
     }
   }
 
@@ -713,7 +718,7 @@
         saveProducts(products);
         synced = await persistProduct('PUT', record);
         showToast(
-          synced.ok ? `Product "${name}" updated.` : `"${name}" updated on this device only — the server refused the change.`,
+          synced.ok ? `Product "${name}" updated.` : `"${name}" not saved: ${synced.reason}`,
           synced.ok ? 'success' : 'error'
         );
       } else {
@@ -726,7 +731,7 @@
           saveProducts(products);
         }
         showToast(
-          synced.ok ? `"${name}" added to ${category.toUpperCase()}.` : `"${name}" added on this device only — the server refused the change.`,
+          synced.ok ? `"${name}" added to ${category.toUpperCase()}.` : `"${name}" not saved: ${synced.reason}`,
           synced.ok ? 'success' : 'error'
         );
       }
@@ -803,7 +808,7 @@
             renderProductsEverywhere();
             const synced = await persistProduct('DELETE', { id });
             showToast(
-              synced.ok ? `"${name}" deleted.` : `"${name}" removed on this device only — the server refused the change.`,
+              synced.ok ? `"${name}" deleted.` : `"${name}" not deleted: ${synced.reason}`,
               'error'
             );
           });
@@ -861,7 +866,7 @@
         showToast(
           synced.ok
             ? `${p.name} stock set to ${stock}.`
-            : `${p.name} stock set to ${stock} on this device only — the server refused the change.`,
+            : `Not saved: ${synced.reason}`,
           synced.ok ? 'success' : 'error'
         );
       };
@@ -947,10 +952,10 @@
           saveOrders(ords);
           const synced = await persistOrder('PUT', id, { status: newStatus });
           showToast(
-            synced
+            synced.ok
               ? `Order ${id} is now "${newStatus}".`
-              : `Order ${id} set to "${newStatus}" on this device only — the server refused the change.`,
-            synced ? 'info' : 'error'
+              : `Order ${id} not saved: ${synced.reason}`,
+            synced.ok ? 'info' : 'error'
           );
         });
       });
@@ -963,7 +968,7 @@
             saveOrders(ords.filter(o => String(o.id) !== String(id)));
             const synced = await persistOrder('DELETE', id);
             showToast(
-              synced ? `Order ${id} deleted.` : `Order ${id} removed on this device only — the server refused the change.`,
+              synced.ok ? `Order ${id} deleted.` : `Order ${id} not deleted: ${synced.reason}`,
               'error'
             );
           });
@@ -2609,21 +2614,27 @@
       // This swallowed every error and reported success regardless, so a
       // rejected write still told the admin the price was agreed.
       let synced = false;
+      let reason = '';
       try {
         const res = await adminFetch(`/orders/${orderId}/price`, {
           method: 'PUT',
           body: JSON.stringify({ price: agreedPrice, status: 'Price Confirmed' })
         });
         synced = res.ok;
-        if (!res.ok) console.error('Set price rejected:', res.status);
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          reason = data.message || `Server returned ${res.status}.`;
+          console.error('Set price rejected:', res.status, reason);
+        }
       } catch (err) {
+        reason = 'Could not reach the server.';
         console.error('Set price failed:', err.message);
       }
 
       showToast(
         synced
           ? `Order ${orderId} agreed price set to PKR ${agreedPrice.toLocaleString()}.`
-          : `Price recorded on this device only — the server refused the change.`,
+          : `Price not saved: ${reason}`,
         synced ? 'success' : 'error'
       );
       closeModal();
