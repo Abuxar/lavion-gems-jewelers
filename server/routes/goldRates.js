@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { readData, writeData } = require('../utils/db');
+const { readData, writeDataOrThrow, failWith } = require('../utils/db');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
 const { isMongoConnected } = require('../config/db');
 const GoldRate = require('../models/GoldRate');
@@ -32,7 +32,7 @@ async function saveStored(rates) {
   try {
     const db = readData();
     db.goldRates = { ...(db.goldRates || {}), ...rates };
-    writeData(db);
+    writeDataOrThrow(db);
   } catch (e) {
     // Read-only filesystem (Vercel) — Mongo is the source of truth there.
   }
@@ -93,7 +93,7 @@ router.get('/', async (req, res) => {
     res.json({ success: true, goldRates: rates, live: !cached, cached, warnings });
   } catch (error) {
     console.error('[GoldRate] GET error:', error);
-    res.status(500).json({ success: false, message: 'Could not load gold rates.' });
+    failWith(res, error, 'Could not load gold rates.');
   }
 });
 
@@ -112,7 +112,7 @@ router.post('/sync', async (req, res) => {
     });
   } catch (error) {
     console.error('[GoldRate] sync error:', error);
-    res.status(500).json({ success: false, message: 'Failed to sync live rates.' });
+    failWith(res, error, 'Failed to sync live rates.');
   }
 });
 
@@ -170,7 +170,7 @@ router.patch('/calibration', authenticateToken, requireAdmin, async (req, res) =
     });
   } catch (error) {
     console.error('[GoldRate] calibration error:', error);
-    res.status(500).json({ success: false, message: 'Could not save calibration.' });
+    failWith(res, error, 'Could not save calibration.');
   }
 });
 
@@ -213,7 +213,7 @@ router.post('/calibrate-to', authenticateToken, requireAdmin, async (req, res) =
     });
   } catch (error) {
     console.error('[GoldRate] calibrate-to error:', error);
-    res.status(500).json({ success: false, message: 'Calibration failed.' });
+    failWith(res, error, 'Calibration failed.');
   }
 });
 

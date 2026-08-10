@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { readData, writeData } = require('../utils/db');
+const { readData, writeDataOrThrow, failWith } = require('../utils/db');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
 
 // GET /api/products - Get all products with optional filters
@@ -25,7 +25,7 @@ router.get('/', (req, res) => {
 
     res.json({ success: true, count: products.length, products });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to fetch products.', error: error.message });
+    failWith(res, error, 'Failed to fetch products.');
   }
 });
 
@@ -61,11 +61,11 @@ router.post('/', authenticateToken, requireAdmin, (req, res) => {
     };
 
     db.products.push(newProduct);
-    writeData(db);
+    writeDataOrThrow(db);
 
     res.status(201).json({ success: true, message: 'Product added successfully!', product: newProduct });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to create product.', error: error.message });
+    failWith(res, error, 'Failed to create product.');
   }
 });
 
@@ -89,11 +89,11 @@ router.put('/:id', authenticateToken, requireAdmin, (req, res) => {
     };
 
     db.products[index] = updated;
-    writeData(db);
+    writeDataOrThrow(db);
 
     res.json({ success: true, message: 'Product updated successfully!', product: updated });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to update product.', error: error.message });
+    failWith(res, error, 'Failed to update product.');
   }
 });
 
@@ -108,10 +108,10 @@ router.delete('/:id', authenticateToken, requireAdmin, (req, res) => {
       return res.status(404).json({ success: false, message: 'Product not found.' });
     }
 
-    writeData(db);
+    writeDataOrThrow(db);
     res.json({ success: true, message: 'Product deleted successfully.' });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to delete product.', error: error.message });
+    failWith(res, error, 'Failed to delete product.');
   }
 });
 

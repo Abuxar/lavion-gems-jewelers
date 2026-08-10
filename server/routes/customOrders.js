@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { readData, writeData } = require('../utils/db');
+const { readData, writeDataOrThrow, failWith } = require('../utils/db');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
 const { sendCustomOrderEmail } = require('../utils/email');
 
@@ -49,7 +49,7 @@ router.post('/', (req, res) => {
       date: new Date().toISOString().split('T')[0]
     });
 
-    writeData(db);
+    writeDataOrThrow(db);
 
     // Send custom order notification email (non-blocking)
     sendCustomOrderEmail(newRequest);
@@ -60,7 +60,7 @@ router.post('/', (req, res) => {
       customOrder: newRequest
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to submit custom order.', error: error.message });
+    failWith(res, error, 'Failed to submit custom order.');
   }
 });
 

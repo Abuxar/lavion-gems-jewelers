@@ -41,7 +41,41 @@ function writeData(data) {
   }
 }
 
+/**
+ * writeData that refuses to be ignored.
+ *
+ * DB_PATH lives inside the deployment bundle, which is read-only on a
+ * serverless host. Callers were dropping the boolean and answering 200 with a
+ * success message, so an admin saw "Product updated successfully!" for a write
+ * that never happened and only noticed when the value came back unchanged.
+ * Throwing makes the route's own catch produce an honest error instead.
+ */
+function writeDataOrThrow(data) {
+  if (!writeData(data)) {
+    const err = new Error(
+      'The catalog is read-only on this deployment, so the change was not saved. ' +
+      'A database (MONGO_URI) is required for changes to persist.'
+    );
+    err.code = 'DB_READ_ONLY';
+    throw err;
+  }
+}
+
+/**
+ * Answer a route failure. A read-only store is not a server fault and not
+ * something a retry fixes, so it gets 503 and says what is actually wrong
+ * rather than hiding behind a generic 500.
+ */
+function failWith(res, error, fallbackMessage) {
+  if (error && error.code === 'DB_READ_ONLY') {
+    return res.status(503).json({ success: false, message: error.message, code: 'DB_READ_ONLY' });
+  }
+  return res.status(500).json({ success: false, message: fallbackMessage, error: error && error.message });
+}
+
 module.exports = {
   readData,
-  writeData
+  writeData,
+  writeDataOrThrow,
+  failWith
 };

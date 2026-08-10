@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { readData, writeData } = require('../utils/db');
+const { readData, writeDataOrThrow, failWith } = require('../utils/db');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
 const { sendOrderConfirmationEmail } = require('../utils/email');
 
@@ -19,7 +19,7 @@ router.get('/', (req, res) => {
 
     res.json({ success: true, count: orders.length, orders });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to fetch orders.', error: error.message });
+    failWith(res, error, 'Failed to fetch orders.');
   }
 });
 
@@ -61,7 +61,7 @@ router.post('/', (req, res) => {
     };
 
     db.orders.unshift(newOrder);
-    writeData(db);
+    writeDataOrThrow(db);
 
     // Send order confirmation email (non-blocking)
     sendOrderConfirmationEmail(newOrder);
@@ -72,12 +72,14 @@ router.post('/', (req, res) => {
       order: newOrder
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to place order.', error: error.message });
+    failWith(res, error, 'Failed to place order.');
   }
 });
 
 // PUT /api/orders/:id/price - Update agreed quotation price (Admin)
-router.put('/:id/price', (req, res) => {
+// These two were labelled "(Admin)" but enforced nothing, so any visitor could
+// set any order's agreed price or mark it Delivered.
+router.put('/:id/price', authenticateToken, requireAdmin, (req, res) => {
   try {
     const { price, status } = req.body;
     const db = readData();
@@ -90,16 +92,16 @@ router.put('/:id/price', (req, res) => {
     order.total = parseFloat(price) || 0;
     order.priceConfirmed = true;
     if (status) order.status = status;
-    writeData(db);
+    writeDataOrThrow(db);
 
     res.json({ success: true, message: `Order ${order.id} agreed price set to PKR ${order.total.toLocaleString()}.`, order });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to update order price.', error: error.message });
+    failWith(res, error, 'Failed to update order price.');
   }
 });
 
 // PUT /api/orders/:id/status - Update order status (Admin)
-router.put('/:id/status', (req, res) => {
+router.put('/:id/status', authenticateToken, requireAdmin, (req, res) => {
   try {
     const { status } = req.body;
     if (!status) {
@@ -114,11 +116,11 @@ router.put('/:id/status', (req, res) => {
     }
 
     order.status = status;
-    writeData(db);
+    writeDataOrThrow(db);
 
     res.json({ success: true, message: `Order ${order.id} status updated to ${status}.`, order });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to update order status.', error: error.message });
+    failWith(res, error, 'Failed to update order status.');
   }
 });
 
@@ -133,10 +135,10 @@ router.delete('/:id', authenticateToken, requireAdmin, (req, res) => {
       return res.status(404).json({ success: false, message: 'Order not found.' });
     }
 
-    writeData(db);
+    writeDataOrThrow(db);
     res.json({ success: true, message: 'Order record deleted successfully.' });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to delete order.', error: error.message });
+    failWith(res, error, 'Failed to delete order.');
   }
 });
 

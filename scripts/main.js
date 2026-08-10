@@ -257,13 +257,79 @@
     (/^(localhost|127\.0\.0\.1)$/.test(location.hostname) && location.port !== '5000')
   ) ? 'http://localhost:5000/api' : '/api';
 
+  const PRODUCTS_KEY = 'lavion_products_v5';
+
+  /**
+   * Admin requests carry the token minted by /api/auth/admin-login. Without it
+   * the catalog write endpoints answer 403, so an admin edit would never leave
+   * the browser.
+   */
+  function adminFetch(path, options = {}) {
+    const token = sessionStorage.getItem('lavion_admin_token');
+    return fetch(`${API_URL}${path}`, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(options.headers || {})
+      }
+    });
+  }
+
+  /**
+   * Persist one catalog change to the server.
+   *
+   * localStorage alone is not enough: syncBackendData() overwrites the products
+   * key from /api/products on every page load, so a change kept only in the
+   * browser is erased by the next navigation. Returns false when the server
+   * refused, so the caller can say so rather than imply the change stuck.
+   */
+  async function persistProduct(method, product) {
+    const path = method === 'POST' ? '/products' : `/products/${product.id}`;
+    try {
+      const res = await adminFetch(path, {
+        method,
+        body: method === 'DELETE' ? undefined : JSON.stringify(product)
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        console.error('Product sync rejected:', res.status, data.message || '');
+        return { ok: false };
+      }
+      // POST mints its own id server-side; adopt it or the next sync would
+      // show the same piece twice, once under each id.
+      return { ok: true, product: data.product };
+    } catch (e) {
+      console.error('Product sync failed:', e.message);
+      return { ok: false };
+    }
+  }
+
+  /** Stock drives storefront availability, so the catalog has to repaint too. */
+  function renderProductsEverywhere() {
+    if (typeof window.renderProducts === 'function') window.renderProducts();
+  }
+
+  async function persistOrder(method, id, body) {
+    try {
+      const res = await adminFetch(`/orders/${id}${method === 'DELETE' ? '' : '/status'}`, {
+        method,
+        body: method === 'DELETE' ? undefined : JSON.stringify(body)
+      });
+      return res.ok;
+    } catch (e) {
+      console.error('Order sync failed:', e.message);
+      return false;
+    }
+  }
+
   async function syncBackendData() {
     try {
       const prodRes = await fetch(`${API_URL}/products`);
       if (prodRes.ok) {
         const data = await prodRes.json();
         if (data.products && data.products.length > 0) {
-          localStorage.setItem('lavion_products_v5', JSON.stringify(data.products));
+          localStorage.setItem(PRODUCTS_KEY, JSON.stringify(data.products));
         }
       }
 
@@ -291,13 +357,10 @@
   syncBackendData();
 
   function getProducts() {
-    const saved = localStorage.getItem('lavion_products_v5');
+    const saved = localStorage.getItem(PRODUCTS_KEY);
     if (!saved) {
-      localStorage.removeItem('lavion_products_v1');
-      localStorage.removeItem('lavion_products_v2');
-      localStorage.removeItem('lavion_products_v3');
-      localStorage.removeItem('lavion_products_v4');
-      localStorage.setItem('lavion_products_v5', JSON.stringify(DEFAULT_PRODUCTS));
+      ['v1', 'v2', 'v3', 'v4'].forEach(v => localStorage.removeItem(`lavion_products_${v}`));
+      localStorage.setItem(PRODUCTS_KEY, JSON.stringify(DEFAULT_PRODUCTS));
       return DEFAULT_PRODUCTS;
     }
     return JSON.parse(saved);
@@ -305,8 +368,14 @@
 
   window.getProducts = getProducts;
 
+  /**
+   * This wrote to lavion_products_v4 while getProducts read v5, so every admin
+   * write — stock +/-, the quantity field, add, edit, delete — landed in a key
+   * nothing reads and the re-render showed the untouched original. That is why
+   * the stock controls appeared inert. The key now has one definition.
+   */
   function saveProducts(products) {
-    localStorage.setItem('lavion_products_v4', JSON.stringify(products));
+    localStorage.setItem(PRODUCTS_KEY, JSON.stringify(products));
     renderAdmin();
   }
 
@@ -635,16 +704,33 @@
       const finalImg = activeUploadedImageBase64 || 'images/hero_campaign.png';
 
       let products = getProducts();
+      let record;
+      let synced;
+
       if (id) {
-        products = products.map(p => String(p.id) === String(id) ? { id: String(id), name, category, price, stock, badge, img: finalImg, desc } : p);
-        showToast(`Product "${name}" updated successfully!`, 'success');
+        record = { id: String(id), name, category, price, stock, badge, img: finalImg, desc };
+        products = products.map(p => String(p.id) === String(id) ? record : p);
+        saveProducts(products);
+        synced = await persistProduct('PUT', record);
+        showToast(
+          synced.ok ? `Product "${name}" updated.` : `"${name}" updated on this device only — the server refused the change.`,
+          synced.ok ? 'success' : 'error'
+        );
       } else {
-        const newId = String(Date.now());
-        products.unshift({ id: newId, name, category, price, stock, badge, img: finalImg, desc });
-        showToast(`New product "${name}" added to ${category.toUpperCase()} category!`, 'success');
+        record = { id: String(Date.now()), name, category, price, stock, badge, img: finalImg, desc };
+        products.unshift(record);
+        saveProducts(products);
+        synced = await persistProduct('POST', record);
+        if (synced.ok && synced.product?.id) {
+          record.id = String(synced.product.id);
+          saveProducts(products);
+        }
+        showToast(
+          synced.ok ? `"${name}" added to ${category.toUpperCase()}.` : `"${name}" added on this device only — the server refused the change.`,
+          synced.ok ? 'success' : 'error'
+        );
       }
 
-      saveProducts(products);
       
       const modal = document.getElementById('admin-product-modal');
       modal?.classList.remove('active');
@@ -711,11 +797,15 @@
           const id = btn.getAttribute('data-id');
           const p = products.find(prod => String(prod.id) === String(id));
           const name = p ? p.name : 'this product';
-          showCustomConfirm('Delete Product', `Are you sure you want to delete "${name}" from the catalog?`, () => {
+          showCustomConfirm('Delete Product', `Are you sure you want to delete "${name}" from the catalog?`, async () => {
             const updated = products.filter(prod => String(prod.id) !== String(id));
             saveProducts(updated);
-            showToast(`Product "${name}" deleted.`, 'error');
-            renderAdmin();
+            renderProductsEverywhere();
+            const synced = await persistProduct('DELETE', { id });
+            showToast(
+              synced.ok ? `"${name}" deleted.` : `"${name}" removed on this device only — the server refused the change.`,
+              'error'
+            );
           });
         });
       });
@@ -755,43 +845,44 @@
         `;
       }).join('') || `<tr><td colspan="5" style="text-align:center;padding:24px;color:rgba(255,255,255,0.5);">No stock records found</td></tr>`;
 
+      /** One path for all three controls, so they cannot drift apart again. */
+      const applyStock = async (id, next) => {
+        const p = products.find(prod => String(prod.id) === String(id));
+        if (!p) return;
+
+        const stock = Math.max(0, Number.isFinite(next) ? next : 0);
+        if (stock === p.stock) return;
+
+        p.stock = stock;
+        saveProducts(products);          // repaints immediately
+        renderProductsEverywhere();
+
+        const synced = await persistProduct('PUT', p);
+        showToast(
+          synced.ok
+            ? `${p.name} stock set to ${stock}.`
+            : `${p.name} stock set to ${stock} on this device only — the server refused the change.`,
+          synced.ok ? 'success' : 'error'
+        );
+      };
+
       stockTbody.querySelectorAll('.stock-dec').forEach(btn => {
         btn.addEventListener('click', () => {
-          const id = btn.getAttribute('data-id');
-          const p = products.find(prod => String(prod.id) === String(id));
-          if (p && p.stock > 0) {
-            p.stock--;
-            saveProducts(products);
-            showToast(`Stock updated for ${p.name}`, 'info');
-            renderAdmin();
-          }
+          const p = products.find(prod => String(prod.id) === String(btn.getAttribute('data-id')));
+          if (p && p.stock > 0) applyStock(p.id, p.stock - 1);
         });
       });
 
       stockTbody.querySelectorAll('.stock-inc').forEach(btn => {
         btn.addEventListener('click', () => {
-          const id = btn.getAttribute('data-id');
-          const p = products.find(prod => String(prod.id) === String(id));
-          if (p) {
-            p.stock++;
-            saveProducts(products);
-            showToast(`Stock updated for ${p.name}`, 'info');
-            renderAdmin();
-          }
+          const p = products.find(prod => String(prod.id) === String(btn.getAttribute('data-id')));
+          if (p) applyStock(p.id, p.stock + 1);
         });
       });
 
       stockTbody.querySelectorAll('.stock-input').forEach(input => {
         input.addEventListener('change', () => {
-          const id = input.getAttribute('data-id');
-          const val = parseInt(input.value) || 0;
-          const p = products.find(prod => String(prod.id) === String(id));
-          if (p) {
-            p.stock = Math.max(0, val);
-            saveProducts(products);
-            showToast(`Stock set to ${p.stock} for ${p.name}`, 'info');
-            renderAdmin();
-          }
+          applyStock(input.getAttribute('data-id'), parseInt(input.value, 10));
         });
       });
     }
@@ -845,29 +936,36 @@
       });
 
       ordersTbody.querySelectorAll('.order-status-select').forEach(select => {
-        select.addEventListener('change', () => {
+        select.addEventListener('change', async () => {
           const id = select.getAttribute('data-id');
           const newStatus = select.value;
           const ords = getOrders();
           const ord = ords.find(o => String(o.id) === String(id));
-          if (ord) {
-            ord.status = newStatus;
-            saveOrders(ords);
-            showToast(`Order ${id} status updated to "${newStatus}".`, 'info');
-            renderAdmin();
-          }
+          if (!ord) return;
+
+          ord.status = newStatus;
+          saveOrders(ords);
+          const synced = await persistOrder('PUT', id, { status: newStatus });
+          showToast(
+            synced
+              ? `Order ${id} is now "${newStatus}".`
+              : `Order ${id} set to "${newStatus}" on this device only — the server refused the change.`,
+            synced ? 'info' : 'error'
+          );
         });
       });
 
       ordersTbody.querySelectorAll('.delete-order').forEach(btn => {
         btn.addEventListener('click', () => {
           const id = btn.getAttribute('data-id');
-          showCustomConfirm('Delete Order Record', `Are you sure you want to delete order "${id}"?`, () => {
+          showCustomConfirm('Delete Order Record', `Are you sure you want to delete order "${id}"?`, async () => {
             const ords = getOrders();
-            const updated = ords.filter(o => String(o.id) !== String(id));
-            saveOrders(updated);
-            showToast(`Order ${id} deleted.`, 'error');
-            renderAdmin();
+            saveOrders(ords.filter(o => String(o.id) !== String(id)));
+            const synced = await persistOrder('DELETE', id);
+            showToast(
+              synced ? `Order ${id} deleted.` : `Order ${id} removed on this device only — the server refused the change.`,
+              'error'
+            );
           });
         });
       });
@@ -2500,15 +2598,26 @@
         saveOrders(allOrds);
       }
 
+      // This swallowed every error and reported success regardless, so a
+      // rejected write still told the admin the price was agreed.
+      let synced = false;
       try {
-        await fetch(`/api/orders/${orderId}/price`, {
+        const res = await adminFetch(`/orders/${orderId}/price`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ price: agreedPrice, status: 'Price Confirmed' })
         });
-      } catch (err) {}
+        synced = res.ok;
+        if (!res.ok) console.error('Set price rejected:', res.status);
+      } catch (err) {
+        console.error('Set price failed:', err.message);
+      }
 
-      showToast(`Order ${orderId} agreed price set to PKR ${agreedPrice.toLocaleString()}!`, 'success');
+      showToast(
+        synced
+          ? `Order ${orderId} agreed price set to PKR ${agreedPrice.toLocaleString()}.`
+          : `Price recorded on this device only — the server refused the change.`,
+        synced ? 'success' : 'error'
+      );
       closeModal();
       renderAdmin();
     });
