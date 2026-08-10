@@ -12,7 +12,7 @@
     gtag('config', 'G-LFNWTKNGQX');
   </script>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Gold Bangles &amp; Diamond Bracelets Pakistan � Lavion Gems &amp; Jewellers</title>
   <meta name="description" content="Explore handcrafted 22k gold bangles, diamond tennis bracelets and platinum cuffs at Lavion Gems &amp; Jewellers Pakistan." />
   <meta name="keywords" content="gold bangles Pakistan, diamond bracelet Lahore, 22k gold bangle, tennis bracelet Pakistan, platinum bangle, bridal bangles Pakistan" />
@@ -32,7 +32,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Montserrat:wght@200;300;400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles/main.css?v=3.0" />
+  <link rel="stylesheet" href="styles/main.css?v=5.7" />
 </head>
 
 <body>
@@ -52,13 +52,45 @@
         <a href="index.html">Lavion <span>Gems</span> & Jewellers</a>
       </div>
       <ul class="nav-links">
-        <li><a href="high-jewellery.html">High Jewellery</a></li>
-        <li><a href="collections.html" class="active">Jewellery</a></li>
-        <li><a href="gems.html">Gems</a></li>
-        <li><a href="diamonds.html">Diamonds</a></li>
-        <li><a href="asian-jewellery.html">Asian Jewellery</a></li>
-        <li><a href="western-jewellery.html">Western Jewellery</a></li>
-        <li><a href="collections.html">Collections</a></li>
+        <li class="nav-item has-dropdown">
+          <a href="high-jewellery.html">High Jewellery</a>
+          <div class="nav-dropdown">
+            <a href="high-jewellery.html">Signature Collections</a>
+            <a href="high-jewellery.html">Bespoke Creations</a>
+            <a href="asian-jewellery.html">Heritage Pieces</a>
+          </div>
+        </li>
+        <li class="nav-item has-dropdown">
+          <a href="collections.html" class="active">Jewellery</a>
+          <div class="nav-dropdown">
+            <a href="asian-jewellery.html">Asian Jewellery</a>
+            <a href="western-jewellery.html">Western Jewellery</a>
+            <a href="rings.html">Rings</a>
+            <a href="necklaces.html">Necklaces</a>
+            <a href="earrings.html">Earrings</a>
+            <a href="bracelets.html">Bracelets</a>
+          </div>
+        </li>
+        <li class="nav-item has-dropdown">
+          <a href="diamonds.html">Diamonds</a>
+          <div class="nav-dropdown">
+            <a href="bracelets.html">Diamond Bracelets</a>
+            <a href="rings.html">Diamond Rings</a>
+            <a href="diamonds.html">Diamond Accessories</a>
+          </div>
+        </li>
+        <li class="nav-item"><a href="gems.html">Gems</a></li>
+        <li class="nav-item has-dropdown">
+          <a href="collections.html">Collections</a>
+          <div class="nav-dropdown">
+            <a href="collections.html">New Arrivals</a>
+            <a href="collections.html">Everyday Luxury</a>
+            <a href="high-jewellery.html">Limited Edition</a>
+          </div>
+        </li>
+        <li class="nav-item nav-item-accent"><a href="customized-jewellery.html">Customized</a></li>
+        <li class="nav-item nav-item-secondary"><a href="index.html#story">Our Story</a></li>
+        <li class="nav-item nav-item-secondary"><a href="index.html#services">Services</a></li>
       </ul>
       <div class="nav-icons">
         <a href="cart.html" style="position:relative;">
@@ -109,7 +141,7 @@
     <div class="footer-bottom"><p>© 2025 Lavion Gems & Jewellers. All rights reserved.</p></div>
   </footer>
 
-  <script src="scripts/main.js?v=3.0"></script>
+  <script src="scripts/main.js?v=5.7"></script>
   <script>
     document.addEventListener('DOMContentLoaded', () => { renderCategoryPage('bracelets'); });
     function renderCategoryPage(categorySlug) {
@@ -139,7 +171,7 @@
           <div class="product-card-body">
             <div class="product-card-name">${p.name}</div>
             <div class="product-card-desc">${p.desc || ''}</div>
-            <div class="product-card-price" style="font-size:12px; letter-spacing:0.5px;">📞 Price on Request</div>
+            <div class="product-card-price" style="font-size:12px; letter-spacing:0.5px;">✦ Price on Request</div>
             <div class="product-card-actions">
               <button class="btn-add-cart" onclick="window.addToCart('${p.id}', 1)">+ Add to Bag</button>
               <button class="btn-quick-view" onclick="window.openQuickView('${p.id}')">👁</button>

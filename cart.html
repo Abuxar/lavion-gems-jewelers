@@ -12,7 +12,7 @@
     gtag('config', 'G-LFNWTKNGQX');
   </script>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Shopping Bag — Lavion Gems & Jewellers</title>
   <meta name="description" content="Review your selected luxury jewellery pieces in your Lavion Gems & Jewellers shopping bag." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -20,7 +20,7 @@
   <link
     href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Montserrat:wght@200;300;400;500;600;700&display=swap"
     rel="stylesheet" />
-  <link rel="stylesheet" href="styles/main.css?v=3.0" />
+  <link rel="stylesheet" href="styles/main.css?v=5.7" />
 </head>
 
 <body>
@@ -62,10 +62,15 @@
       </div>
 
       <ul class="nav-links">
-        <li class="nav-item">
+        <li class="nav-item has-dropdown">
           <a href="high-jewellery.html">High Jewellery</a>
+          <div class="nav-dropdown">
+            <a href="high-jewellery.html">Signature Collections</a>
+            <a href="high-jewellery.html">Bespoke Creations</a>
+            <a href="asian-jewellery.html">Heritage Pieces</a>
+          </div>
         </li>
-        <li class="nav-item">
+        <li class="nav-item has-dropdown">
           <a href="collections.html">Jewellery</a>
           <div class="nav-dropdown">
             <a href="asian-jewellery.html">Asian Jewellery</a>
@@ -76,23 +81,26 @@
             <a href="bracelets.html">Bracelets</a>
           </div>
         </li>
-        <li class="nav-item">
-          <a href="gems.html">Gems</a>
-        </li>
-        <li class="nav-item">
+        <li class="nav-item has-dropdown">
           <a href="diamonds.html">Diamonds</a>
+          <div class="nav-dropdown">
+            <a href="bracelets.html">Diamond Bracelets</a>
+            <a href="rings.html">Diamond Rings</a>
+            <a href="diamonds.html">Diamond Accessories</a>
+          </div>
         </li>
-        <li class="nav-item">
-          <a href="asian-jewellery.html">Asian Jewellery</a>
-        </li>
-        <li class="nav-item">
-          <a href="western-jewellery.html">Western Jewellery</a>
-        </li>
-        <li class="nav-item">
+        <li class="nav-item"><a href="gems.html">Gems</a></li>
+        <li class="nav-item has-dropdown">
           <a href="collections.html">Collections</a>
+          <div class="nav-dropdown">
+            <a href="collections.html">New Arrivals</a>
+            <a href="collections.html">Everyday Luxury</a>
+            <a href="high-jewellery.html">Limited Edition</a>
+          </div>
         </li>
-        <li><a href="index.html#story">Our Story</a></li>
-        <li><a href="index.html#services">Services</a></li>
+        <li class="nav-item nav-item-accent"><a href="customized-jewellery.html">Customized</a></li>
+        <li class="nav-item nav-item-secondary"><a href="index.html#story">Our Story</a></li>
+        <li class="nav-item nav-item-secondary"><a href="index.html#services">Services</a></li>
       </ul>
 
       <div class="nav-icons">
@@ -244,7 +252,7 @@
     <div class="footer-top">
       <div class="footer-brand">
         <div class="footer-brand-name">Lavion <span>Gems</span> & Jewellers</div>
-        <p class="footer-brand-tagline">Pakistan's premier luxury jewellery house, crafting heirlooms since 1978.<br><span style="color:var(--color-gold-light); font-size:12px; display:inline-block; margin-top:6px;">📍 282 Y Block, Phase 3, DHA, Lahore, Pakistan</span></p>
+        <p class="footer-brand-tagline">Pakistan's premier luxury jewellery house, crafting heirlooms since 1978.<br><span style="color:var(--color-gold-light); font-size:12px; display:inline-block; margin-top:6px;">✦ 282 Y Block, Phase 3, DHA, Lahore, Pakistan</span></p>
       </div>
       <div class="footer-col">
         <div class="footer-col-title">Categories</div>
@@ -263,7 +271,7 @@
     </div>
   </footer>
 
-  <script src="scripts/main.js?v=3.0"></script>
+  <script src="scripts/main.js?v=5.7"></script>
   <script>
     (function () {
       let appliedDiscountPercent = 0;
@@ -357,7 +365,7 @@
                 <button class="qty-btn inc-qty" data-id="${item.id}">+</button>
               </div>
             </td>
-            <td style="font-weight: 600; color: var(--color-gold-dark); font-size:12px;">📞 Price on Request</td>
+            <td style="font-weight: 600; color: var(--color-gold-dark); font-size:12px;">✦ Price on Request</td>
             <td>
               <button class="cart-item-remove remove-item-btn" data-id="${item.id}" title="Remove item">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" style="width:18px;height:18px;">
@@ -379,7 +387,7 @@
               <div class="mobile-cart-details">
                 <div class="mobile-cart-title">${item.name}</div>
                 <div class="mobile-cart-cat">${item.category}</div>
-                <div class="mobile-cart-price" style="font-size:12px;">📞 Price on Request</div>
+                <div class="mobile-cart-price" style="font-size:12px;">✦ Price on Request</div>
               </div>
             </div>
             <div style="display:flex; justify-content:space-between; align-items:center; width:100%; border-top:1px solid rgba(255,255,255,0.1); padding-top:8px;">
@@ -680,6 +688,24 @@
           const orderId = data.order?.id || ('ORD-' + Math.floor(1000 + Math.random() * 9000));
           const today   = data.order?.date || new Date().toISOString().split('T')[0];
 
+          // Write the new order into the local store immediately. Without this
+          // it only appeared after a page reload re-synced from the API, so the
+          // "Download Invoice PDF" button on this very receipt could not find
+          // the order it had just created.
+          try {
+            const placed = data.order || {
+              id: orderId, date: today, customer: name, email: email || '',
+              phone, city, address, payment: paymentFormatted,
+              items: itemsSummary, total, notes, status: 'Pending'
+            };
+            const existing = window.getOrders();
+            if (!existing.some(o => String(o.id) === String(placed.id))) {
+              window.saveOrders([placed, ...existing]);
+            }
+          } catch (err) {
+            console.warn('Could not cache the new order locally:', err);
+          }
+
           window.clearCart();
           document.getElementById('checkout-modal')?.classList.remove('active');
           document.body.style.overflow = '';
@@ -694,7 +720,7 @@
               <div style="margin-bottom:8px; display:flex; justify-content:space-between;"><span>Delivery Address:</span><span style="color:rgba(255,255,255,0.8);">${address}, ${city}</span></div>
               <div style="margin-bottom:8px; display:flex; justify-content:space-between;"><span>Contact Phone:</span><span style="color:#fff;">${phone}</span></div>
               <div style="font-size:14px; font-weight:bold; color:var(--color-gold-light); margin-top:12px; border-top:1px dashed rgba(200,169,110,0.3); padding-top:10px; display:flex; justify-content:space-between; align-items:center;">
-                <span>Total Payable:</span> <span style="color:var(--color-gold-light); font-size:13px;">📞 Price on Request (Live Quotation)</span>
+                <span>Total Payable:</span> <span style="color:var(--color-gold-light); font-size:13px;">✦ Price on Request (Live Quotation)</span>
               </div>
 
               <div style="display:flex; gap:10px; margin-top:20px; flex-wrap:wrap;">

@@ -12,7 +12,7 @@
     gtag('config', 'G-LFNWTKNGQX');
   </script>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Your Wishlist — Lavion Gems & Jewellers</title>
   <meta name="description" content="View and manage your saved luxury gold, gemstone & diamond pieces at Lavion Gems & Jewellers." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -20,7 +20,7 @@
   <link
     href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Montserrat:wght@200;300;400;500;600;700&display=swap"
     rel="stylesheet" />
-  <link rel="stylesheet" href="styles/main.css?v=3.0" />
+  <link rel="stylesheet" href="styles/main.css?v=5.7" />
 </head>
 
 <body>
@@ -60,8 +60,15 @@
       </div>
 
       <ul class="nav-links">
-        <li class="nav-item"><a href="high-jewellery.html">High Jewellery</a></li>
-        <li class="nav-item">
+        <li class="nav-item has-dropdown">
+          <a href="high-jewellery.html">High Jewellery</a>
+          <div class="nav-dropdown">
+            <a href="high-jewellery.html">Signature Collections</a>
+            <a href="high-jewellery.html">Bespoke Creations</a>
+            <a href="asian-jewellery.html">Heritage Pieces</a>
+          </div>
+        </li>
+        <li class="nav-item has-dropdown">
           <a href="collections.html">Jewellery</a>
           <div class="nav-dropdown">
             <a href="asian-jewellery.html">Asian Jewellery</a>
@@ -72,13 +79,26 @@
             <a href="bracelets.html">Bracelets</a>
           </div>
         </li>
+        <li class="nav-item has-dropdown">
+          <a href="diamonds.html">Diamonds</a>
+          <div class="nav-dropdown">
+            <a href="bracelets.html">Diamond Bracelets</a>
+            <a href="rings.html">Diamond Rings</a>
+            <a href="diamonds.html">Diamond Accessories</a>
+          </div>
+        </li>
         <li class="nav-item"><a href="gems.html">Gems</a></li>
-        <li class="nav-item"><a href="diamonds.html">Diamonds</a></li>
-        <li class="nav-item"><a href="asian-jewellery.html">Asian Jewellery</a></li>
-        <li class="nav-item"><a href="western-jewellery.html">Western Jewellery</a></li>
-        <li class="nav-item"><a href="collections.html">Collections</a></li>
-        <li><a href="index.html#story">Our Story</a></li>
-        <li><a href="index.html#services">Services</a></li>
+        <li class="nav-item has-dropdown">
+          <a href="collections.html">Collections</a>
+          <div class="nav-dropdown">
+            <a href="collections.html">New Arrivals</a>
+            <a href="collections.html">Everyday Luxury</a>
+            <a href="high-jewellery.html">Limited Edition</a>
+          </div>
+        </li>
+        <li class="nav-item nav-item-accent"><a href="customized-jewellery.html">Customized</a></li>
+        <li class="nav-item nav-item-secondary"><a href="index.html#story">Our Story</a></li>
+        <li class="nav-item nav-item-secondary"><a href="index.html#services">Services</a></li>
       </ul>
 
       <div class="nav-icons">
@@ -150,7 +170,7 @@
     <div class="footer-top">
       <div class="footer-brand">
         <div class="footer-brand-name">Lavion <span>Gems</span> & Jewellers</div>
-        <p class="footer-brand-tagline">Pakistan's premier luxury jewellery house, crafting heirlooms since 1978.<br><span style="color:var(--color-gold-light); font-size:12px; display:inline-block; margin-top:6px;">📍 282 Y Block, Phase 3, DHA, Lahore, Pakistan</span></p>
+        <p class="footer-brand-tagline">Pakistan's premier luxury jewellery house, crafting heirlooms since 1978.<br><span style="color:var(--color-gold-light); font-size:12px; display:inline-block; margin-top:6px;">✦ 282 Y Block, Phase 3, DHA, Lahore, Pakistan</span></p>
       </div>
       <div class="footer-col">
         <div class="footer-col-title">Categories</div>
@@ -169,7 +189,7 @@
     </div>
   </footer>
 
-  <script src="scripts/main.js?v=3.0"></script>
+  <script src="scripts/main.js?v=5.7"></script>
   <script>
     (function () {
       function renderWishlist() {
@@ -220,7 +240,7 @@
                   </svg>
                 </button>
               </div>
-              <div class="product-card-price" style="margin-top: 4px; font-size:12px; letter-spacing:0.5px;">📞 Price on Request</div>
+              <div class="product-card-price" style="margin-top: 4px; font-size:12px; letter-spacing:0.5px;">✦ Price on Request</div>
               
               <div class="product-card-actions">
                 <button class="btn-add-cart add-to-bag-btn" data-id="${p.id}">
