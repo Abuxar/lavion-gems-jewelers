@@ -247,7 +247,15 @@
   /* ======================================
      NODE.JS BACKEND INTEGRATION CLIENT
   ====================================== */
-  const API_URL = 'http://localhost:5000/api';
+  // Same-origin everywhere it actually runs: scripts/dev-server.js serves the
+  // site and the API on one port, and Vercel rewrites /api to the serverless
+  // function. A hardcoded host here pointed every visitor's browser at their
+  // own machine in production. Only a separate static server (Live Server and
+  // friends, on some other port) needs to be told where the API lives.
+  const API_URL = (
+    location.protocol === 'file:' ||
+    (/^(localhost|127\.0\.0\.1)$/.test(location.hostname) && location.port !== '5000')
+  ) ? 'http://localhost:5000/api' : '/api';
 
   async function syncBackendData() {
     try {
