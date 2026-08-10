@@ -14,7 +14,7 @@ const customOrderRoutes = require('./routes/customOrders');
 const subscribeRoutes = require('./routes/subscribe');
 const whatsappRoutes = require('./routes/whatsapp');
 
-const { connectDB, isMongoConnected } = require('./config/db');
+const { connectDB, isMongoConnected, dbStatusNote } = require('./config/db');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -99,6 +99,8 @@ app.get('/api/health', (req, res) => {
     status: 'online',
     store: 'Lavion Gems & Jewellers API Server',
     database: isMongoConnected() ? 'MongoDB' : 'File DB Fallback',
+    // Without this, a fallback is indistinguishable from a misconfiguration.
+    databaseNote: dbStatusNote(),
     time: new Date().toISOString()
   });
 });

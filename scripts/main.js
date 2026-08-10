@@ -2014,6 +2014,9 @@
         ? `${icon} Account (${escapeHtml(String(user.name || '').split(' ')[0])})`
         : `${icon} Sign In / Register`;
     });
+    // The dock's own entry reads Sign In / Account from the same state, and on
+    // a phone it is the only one of these on screen.
+    if (typeof window.renderMobileAppDock === 'function') window.renderMobileAppDock();
   };
 
   function escapeHtml(s) {
@@ -2478,12 +2481,17 @@
     if (authControlsReady) return;
     authControlsReady = true;
 
-    document.querySelectorAll('#util-account, .account-link').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.preventDefault();
-        document.getElementById('mobile-menu')?.classList.remove('active');
-        window.openCustomerAuthModal();
-      });
+    // Delegated, because the dock's account entry is re-rendered whenever the
+    // bag or wishlist count changes. Binding to the nodes that happened to
+    // exist at start-up left every later copy inert.
+    document.addEventListener('click', (e) => {
+      // .account-open is deliberately not .account-link: updateAccountHeaderUI
+      // rewrites the innerHTML of every .account-link, which would flatten the
+      // dock entry's icon-over-label structure into a bare line of text.
+      if (!e.target.closest('#util-account, .account-link, .account-open')) return;
+      e.preventDefault();
+      document.getElementById('mobile-menu')?.classList.remove('active');
+      window.openCustomerAuthModal();
     });
 
     // Restore any existing session from the refresh cookie, then learn which
@@ -2979,6 +2987,12 @@
         </span>
         <span>Bag</span>
         ${cartCount > 0 ? `<span class="mobile-dock-badge">${cartCount}</span>` : ''}
+      </a>
+      <a href="#" class="mobile-dock-item account-open" aria-label="Sign in or view your account">
+        <span class="mobile-dock-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width:20px;height:20px;"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" /></svg>
+        </span>
+        <span>${window.Auth && window.Auth.user ? 'Account' : 'Sign In'}</span>
       </a>
     `;
   };

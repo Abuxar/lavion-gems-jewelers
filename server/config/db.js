@@ -6,6 +6,16 @@ const Customer = require('../models/Customer');
 const { readData } = require('../utils/db');
 
 
+/**
+ * Why the database is not in use, in words.
+ *
+ * "File DB Fallback" on its own could mean an unset MONGO_URI, a bad password
+ * or a host that never allowed the connection, and from outside the deployment
+ * the three are indistinguishable — which turns a five-minute fix into
+ * guesswork. /api/health reports this.
+ */
+let lastDbNote = 'Not attempted yet.';
+
 async function connectDB() {
   if (mongoose.connection && mongoose.connection.readyState >= 1) {
     return;
@@ -13,6 +23,7 @@ async function connectDB() {
 
   const mongoURI = process.env.MONGO_URI;
   if (!mongoURI) {
+    lastDbNote = 'MONGO_URI is not set on this deployment.';
     console.log(' ℹ️ MONGO_URI not set. Operating in File DB mode.');
     return;
   }
@@ -30,11 +41,17 @@ async function connectDB() {
     await mongoose.connect(mongoURI, {
       serverSelectionTimeoutMS: 3000
     });
+    lastDbNote = 'Connected.';
     console.log(' 🍃 MongoDB Connected Successfully!');
 
     // Seed database if empty
     await seedMongoIfEmpty();
   } catch (error) {
+    // Atlas answers a blocked source address with a server-selection failure,
+    // which is by far the most common cause on a host with rotating IPs.
+    lastDbNote = /server selection|ETIMEDOUT|ENOTFOUND|querySrv/i.test(error.message)
+      ? `Could not reach the cluster (${error.message.slice(0, 120)}). If this is MongoDB Atlas, add 0.0.0.0/0 under Network Access — a serverless host has no fixed IP to allowlist.`
+      : error.message.slice(0, 200);
     console.log(' ⚠️ MongoDB Atlas Connection Note:', error.message);
     console.log(' ℹ️ Operating in File DB mode.');
   }
@@ -81,7 +98,12 @@ function isMongoConnected() {
   return mongoose.connection.readyState === 1;
 }
 
+function dbStatusNote() {
+  return isMongoConnected() ? 'Connected.' : lastDbNote;
+}
+
 module.exports = {
   connectDB,
-  isMongoConnected
+  isMongoConnected,
+  dbStatusNote
 };

@@ -2877,12 +2877,26 @@ footer::before {
 /* Product Card Actions */
 .product-card-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   margin-top: 14px;
 }
 
+/* The two icon buttons must keep their square footprint while the label
+   button absorbs whatever width is left. */
+.product-card-actions .btn-quick-view,
+.product-card-actions .btn-wishlist-toggle {
+  flex: 0 0 auto;
+}
+
 .btn-add-cart {
   flex: 1;
+  /* A flex item defaults to min-width:auto, so it refuses to shrink below its
+     label. In a two-up grid on a narrow phone that pushed the row wider than
+     the card and the trailing buttons were clipped by the page's
+     overflow-x:hidden — they read as missing rather than cut off. */
+  min-width: 0;
+  white-space: nowrap;
   background: var(--color-dark);
   color: var(--gold-200);
   border: 1px solid var(--color-dark);
@@ -4265,21 +4279,36 @@ footer::before {
     box-shadow: 0 -10px 25px rgba(0, 0, 0, 0.5) !important;
   }
 
+  /* Fixed side padding made the items wider than a 360px screen could hold
+     once Sign In joined them, and the row spilled sideways. Equal flexible
+     columns fit whatever the dock contains. */
   .mobile-dock-item {
     display: flex !important;
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
     flex-direction: column !important;
     align-items: center !important;
     justify-content: center !important;
     color: rgba(255, 255, 255, 0.65) !important;
     font-family: var(--font-sans) !important;
-    font-size: 10px !important;
+    font-size: 9px !important;
     font-weight: 600 !important;
     text-transform: uppercase !important;
-    letter-spacing: 0.5px !important;
+    letter-spacing: 0.3px !important;
     gap: 3px !important;
     position: relative !important;
-    padding: 6px 12px !important;
+    padding: 6px 2px !important;
+    text-align: center !important;
     transition: color 0.2s ease !important;
+  }
+
+  /* Labels truncate rather than wrap onto a second line and push the dock's
+     height past the space the body padding reserves for it. */
+  .mobile-dock-item > span:not(.mobile-dock-icon):not(.mobile-dock-badge) {
+    max-width: 100% !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
   }
 
   .mobile-dock-item.active,
@@ -5301,6 +5330,84 @@ footer::before {
   /* Keep corners near-square on small cards — softness reads as cheap here */
   .product-card {
     border-radius: 2px !important;
+  }
+}
+
+/* ==========================================================================
+   NARROW-SCREEN OVERFLOW
+   Rows built as flex with a fixed gap and non-shrinking children were wider
+   than a 360px phone. Because the page sets overflow-x:hidden, the excess was
+   not scrollable — it was simply cut off, which is why controls at the end of
+   a row looked absent rather than clipped. Measured at 360px: .nav-icons ran
+   to 400px and the catalog filter row to 565px.
+   ========================================================================== */
+@media (max-width: 768px) {
+  .nav-inner {
+    gap: 10px !important;
+    min-width: 0 !important;
+  }
+
+  /* The wordmark yields first; the icons are the interactive part. */
+  .nav-logo {
+    min-width: 0 !important;
+    overflow: hidden !important;
+  }
+
+  .nav-logo a {
+    white-space: nowrap !important;
+  }
+
+  .nav-icons {
+    flex-shrink: 0 !important;
+  }
+
+  /* At 360px the hamburger, the wordmark at its desktop tracking, and the
+     three icons came to 374px against 328px of room, and the icons at the end
+     of the row were the part that got cut. The wordmark gives up the tracking.
+     ========================================================= */
+  @media (max-width: 420px) {
+    .nav-inner {
+      padding: 10px 12px !important;
+      gap: 8px !important;
+    }
+
+    .nav-logo a {
+      font-size: 13px !important;
+      letter-spacing: 1px !important;
+    }
+
+    .nav-icons {
+      gap: 10px !important;
+    }
+  }
+
+  /* The arrows hang 22px outside the track, which needs a page margin at least
+     that wide to land on. Below this width the container is only 14px from the
+     edge, so they tuck inside instead of being sheared off. */
+  .carousel-btn.prev-btn {
+    left: 2px !important;
+  }
+
+  .carousel-btn.next-btn {
+    right: 2px !important;
+  }
+
+  .category-filters {
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+
+  .category-filters > * {
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  .filter-search,
+  .filter-select {
+    flex: 1 1 140px !important;
+    min-width: 0 !important;
+    padding: 9px 12px !important;
   }
 }
 
