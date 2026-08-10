@@ -37,6 +37,15 @@ if (process.env.PUBLIC_BASE_URL) {
   allowedOrigins.push(process.env.PUBLIC_BASE_URL.replace(/\/$/, ''));
 }
 
+// Vercel publishes the deployment's own hostnames. Without these, a deployment
+// whose ALLOWED_ORIGINS / PUBLIC_BASE_URL are unset rejects requests coming
+// from the very page it just served — a same-origin request the browser only
+// labels with an Origin header because it is a POST. VERCEL_URL is unique per
+// deployment; VERCEL_PROJECT_PRODUCTION_URL is the stable production alias.
+for (const host of [process.env.VERCEL_URL, process.env.VERCEL_PROJECT_PRODUCTION_URL]) {
+  if (host) allowedOrigins.push(`https://${host}`);
+}
+
 app.use(cors({
   origin(origin, cb) {
     // Same-origin and server-to-server requests send no Origin header.
@@ -101,6 +110,27 @@ app.use(express.static(path.join(__dirname, '../')));
 // This is just a catch-all for API 404s
 app.get('/api/*', (req, res) => {
   res.status(404).json({ success: false, message: 'API endpoint not found.' });
+});
+
+/**
+ * Errors must not reach Express's default handler, which replies with an HTML
+ * stack trace. Clients here parse JSON, so an HTML body surfaces as an opaque
+ * "unable to reach the service" instead of the actual reason, and the trace
+ * discloses server paths.
+ */
+app.use((err, req, res, next) => {
+  if (res.headersSent) return next(err);
+  const isOrigin = /is not allowed/.test(err?.message || '');
+  if (isOrigin) {
+    console.error('CORS rejection:', err.message, '| allowed:', allowedOrigins.join(', '));
+    return res.status(403).json({
+      success: false,
+      message: 'Origin not allowed. Set ALLOWED_ORIGINS or PUBLIC_BASE_URL to this site\'s URL.',
+      code: 'ORIGIN_NOT_ALLOWED'
+    });
+  }
+  console.error('Unhandled error:', err);
+  res.status(500).json({ success: false, message: 'Server error.' });
 });
 
 // Start Server (only when run directly, not when imported by Vercel serverless function)
