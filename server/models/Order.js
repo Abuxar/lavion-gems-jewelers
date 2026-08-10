@@ -4,6 +4,10 @@ const OrderSchema = new mongoose.Schema({
   id: { type: String, required: true, unique: true },
   customer: { type: String, required: true },
   phone: { type: String, required: true },
+  // The routes write these two; without them here, strict mode drops them
+  // silently — the confirmation address and the quotation flag both vanish.
+  email: { type: String, default: '' },
+  priceConfirmed: { type: Boolean, default: false },
   city: { type: String, required: true },
   address: { type: String, required: true },
   payment: { type: String, default: 'Cash on Delivery' },
