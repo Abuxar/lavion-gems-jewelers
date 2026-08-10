@@ -2915,8 +2915,88 @@
     });
   };
 
+  /**
+   * Build the drawer and its trigger wherever a page lacks them.
+   *
+   * Only four pages carried the markup. rings.html and its siblings rendered a
+   * hamburger with no drawer behind it — a button that visibly did nothing —
+   * and collections.html had neither, so below 900px, where the top bar is
+   * hidden, those pages had no navigation and no route to signing in at all.
+   * Rendering it here means every page gets the same menu, the same way the
+   * bottom dock is already handled.
+   */
+  const MENU_LINKS = [
+    ['high-jewellery.html', '✦ High Jewellery'],
+    ['collections.html', '❖ Full Jewellery Catalog'],
+    ['customized-jewellery.html', '◇ Bespoke Jewellery Studio'],
+    ['gems.html', '✦ Precious Gems Showcase'],
+    ['diamonds.html', '❖ Certified Diamonds'],
+    ['asian-jewellery.html', '👑 Asian Heritage Jewellery'],
+    ['western-jewellery.html', '◇ Western Haute Jewellery'],
+    ['rings.html', '✦ Rings Collection'],
+    ['necklaces.html', '❖ Fine Necklaces'],
+    ['earrings.html', '◇ Luxury Earrings'],
+    ['bracelets.html', '✦ Handcrafted Bracelets']
+  ];
+
+  function ensureMobileMenu() {
+    // A trigger with nothing behind it is worse than no trigger.
+    let hamburger = document.getElementById('nav-hamburger');
+    if (!hamburger) {
+      // track-order.html was built with a different header, so accept either.
+      const navInner = document.querySelector('.nav-inner, .primary-container');
+      if (navInner) {
+        hamburger = document.createElement('button');
+        hamburger.className = 'nav-hamburger';
+        hamburger.id = 'nav-hamburger';
+        hamburger.setAttribute('aria-label', 'Open menu');
+        hamburger.innerHTML = '<span></span><span></span><span></span>';
+        navInner.insertBefore(hamburger, navInner.firstChild);
+      }
+    }
+
+    const existing = document.getElementById('mobile-menu');
+    if (existing) {
+      // Pages that ship their own drawer predate the account entries, so top
+      // them up rather than leaving those pages without a way to sign in.
+      const links = existing.querySelector('.mobile-menu-links') || existing;
+      if (!links.querySelector('.account-link')) {
+        links.insertAdjacentHTML('beforeend',
+          '<a href="#" class="account-link" style="color:var(--color-gold-light); font-weight:700;">✦ Sign In / My Account</a>');
+      }
+      if (!links.querySelector('.account-open')) {
+        links.insertAdjacentHTML('beforeend',
+          '<a href="#" class="account-open" style="color:var(--color-gold-light); font-weight:700;">✦ Create an Account</a>');
+      }
+      return;
+    }
+
+    const menu = document.createElement('div');
+    menu.className = 'mobile-menu';
+    menu.id = 'mobile-menu';
+    menu.setAttribute('role', 'dialog');
+    menu.setAttribute('aria-modal', 'true');
+    menu.setAttribute('aria-label', 'Mobile navigation');
+    menu.innerHTML = `
+      <div class="mobile-menu-header">
+        <span style="font-family:var(--font-serif);font-size:18px;letter-spacing:3px;text-transform:uppercase;">Lavion <span style="color:var(--color-gold-dark)">Gems</span> &amp; Jewellers</span>
+        <button class="mobile-menu-close" id="mobile-menu-close" aria-label="Close menu">&times;</button>
+      </div>
+      <nav class="mobile-menu-links">
+        ${MENU_LINKS.map(([href, label]) => `<a href="${href}">${label}</a>`).join('')}
+        <div style="border-top:1px solid rgba(200,169,110,0.3); margin:10px 0; padding-top:10px;"></div>
+        <a href="#" class="account-link" style="color:var(--color-gold-light); font-weight:700;">✦ Sign In / My Account</a>
+        <a href="#" class="account-open" style="color:var(--color-gold-light); font-weight:700;">✦ Create an Account</a>
+        <a href="track-order.html">📦 Track My Order</a>
+      </nav>
+    `;
+    document.body.appendChild(menu);
+  }
+
   /* ---- Mobile Menu Drawer Handler ---- */
   function initMobileMenu() {
+    ensureMobileMenu();
+
     const hamburgerBtn = document.getElementById('nav-hamburger');
     const mobileMenu = document.getElementById('mobile-menu');
     const mobileMenuClose = document.getElementById('mobile-menu-close');
