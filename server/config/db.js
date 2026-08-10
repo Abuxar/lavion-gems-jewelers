@@ -15,6 +15,7 @@ const { readData } = require('../utils/db');
  * guesswork. /api/health reports this.
  */
 let lastDbNote = 'Not attempted yet.';
+let lastDbDetail = null;
 
 async function connectDB() {
   if (mongoose.connection && mongoose.connection.readyState >= 1) {
@@ -27,6 +28,10 @@ async function connectDB() {
     console.log(' ℹ️ MONGO_URI not set. Operating in File DB mode.');
     return;
   }
+
+  // Describe the URI without disclosing it: enough to tell a wrong host or a
+  // mangled value from a network refusal, which the summary line cannot.
+  lastDbDetail = describeUri(mongoURI);
 
   try {
     mongoose.set('strictQuery', false);
@@ -52,6 +57,19 @@ async function connectDB() {
     lastDbNote = /server selection|ETIMEDOUT|ENOTFOUND|querySrv/i.test(error.message)
       ? `Could not reach the cluster (${error.message.slice(0, 120)}). If this is MongoDB Atlas, add 0.0.0.0/0 under Network Access — a serverless host has no fixed IP to allowlist.`
       : error.message.slice(0, 200);
+
+    lastDbDetail = {
+      ...lastDbDetail,
+      errorName: error.name,
+      errorCode: error.code || null,
+      // The driver records why it rejected each candidate host. That is what
+      // separates a blocked address from a wrong one or a bad password.
+      servers: error.reason && error.reason.servers
+        ? Object.fromEntries([...error.reason.servers].map(([host, d]) => [host, d.error ? String(d.error).slice(0, 160) : d.type]))
+        : null,
+      setName: error.reason ? error.reason.setName : null,
+      message: error.message.slice(0, 300)
+    };
     console.log(' ⚠️ MongoDB Atlas Connection Note:', error.message);
     console.log(' ℹ️ Operating in File DB mode.');
   }
@@ -98,12 +116,46 @@ function isMongoConnected() {
   return mongoose.connection.readyState === 1;
 }
 
+/**
+ * Facts about the configured URI that are safe to expose: never the password,
+ * never the full string. Enough to answer "is the value even the shape we
+ * think it is" without a redeploy to add a console.log.
+ */
+function describeUri(uri) {
+  try {
+    const u = new URL(uri);
+    return {
+      scheme: u.protocol.replace(':', ''),
+      host: u.hostname,
+      database: u.pathname.replace(/^\//, '') || '(none)',
+      hasUser: Boolean(u.username),
+      hasPassword: Boolean(u.password),
+      passwordLength: u.password ? u.password.length : 0,
+      options: u.search ? u.search.slice(1) : '(none)',
+      // A value pasted with quotes or a stray newline fails in ways that look
+      // like a network problem.
+      suspiciousWrapping: /^["']|["']$|\s$/.test(uri)
+    };
+  } catch (e) {
+    return { parseError: e.message.slice(0, 120), rawLength: uri.length };
+  }
+}
+
 function dbStatusNote() {
   return isMongoConnected() ? 'Connected.' : lastDbNote;
+}
+
+function dbDiagnostics() {
+  return {
+    connected: isMongoConnected(),
+    note: dbStatusNote(),
+    uri: lastDbDetail
+  };
 }
 
 module.exports = {
   connectDB,
   isMongoConnected,
-  dbStatusNote
+  dbStatusNote,
+  dbDiagnostics
 };

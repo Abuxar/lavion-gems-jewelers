@@ -14,7 +14,8 @@ const customOrderRoutes = require('./routes/customOrders');
 const subscribeRoutes = require('./routes/subscribe');
 const whatsappRoutes = require('./routes/whatsapp');
 
-const { connectDB, isMongoConnected, dbStatusNote } = require('./config/db');
+const { connectDB, isMongoConnected, dbStatusNote, dbDiagnostics } = require('./config/db');
+const { authenticateToken, requireAdmin } = require('./middleware/auth');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -103,6 +104,18 @@ app.get('/api/health', (req, res) => {
     databaseNote: dbStatusNote(),
     time: new Date().toISOString()
   });
+});
+
+/**
+ * Why the database is or is not connected, in detail.
+ *
+ * Admin-only: it describes the configured connection — host, database, whether
+ * a password is present and how the driver rejected each candidate server —
+ * which is exactly what distinguishes a blocked address from a wrong host or a
+ * mangled environment variable. It never returns the URI or the password.
+ */
+app.get('/api/health/db', authenticateToken, requireAdmin, (req, res) => {
+  res.json({ success: true, ...dbDiagnostics() });
 });
 
 // Serve frontend static files from root directory
