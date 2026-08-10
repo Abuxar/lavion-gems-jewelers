@@ -3075,13 +3075,16 @@ footer::before {
   opacity: 0.7;
 }
 
+/* The bag sits on ivory, so an onyx summary read as a panel bolted on from a
+   different site. It is paper now, like the table beside it, and carries the
+   gold as edging and accents rather than as the whole surface. */
 .cart-summary-card {
-  background: var(--color-dark);
-  color: #fff;
-  border: 1px solid rgba(201, 169, 97, 0.32);
+  background: var(--color-bg-pure);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
   border-radius: 2px;
-  padding: 36px 28px;
-  box-shadow: var(--shadow-lg);
+  padding: 32px 26px;
+  box-shadow: var(--shadow-md);
   position: relative;
   overflow: hidden;
 }
@@ -3102,10 +3105,10 @@ footer::before {
   font-size: 26px;
   font-weight: 400;
   letter-spacing: 1.5px;
-  color: var(--gold-200);
-  margin-bottom: 26px;
+  color: var(--color-dark);
+  margin-bottom: 24px;
   padding-bottom: 14px;
-  border-bottom: 1px solid rgba(201, 169, 97, 0.26);
+  border-bottom: 1px solid var(--color-border-gold);
 }
 
 .cart-summary-row {
@@ -3115,34 +3118,116 @@ footer::before {
   font-family: var(--font-sans);
   font-size: 13px;
   margin-bottom: 14px;
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--color-text-muted);
 }
 
 .cart-summary-row.total {
   font-size: 19px;
   font-weight: 600;
-  color: var(--gold-200);
+  /* gold-600 rather than the pale gold-200, which vanished on paper */
+  color: var(--gold-600);
   padding-top: 18px;
-  border-top: 1px solid rgba(201, 169, 97, 0.26);
+  border-top: 1px solid var(--color-border);
   margin-top: 18px;
   margin-bottom: 26px;
+}
+
+/* ---- Summary blocks ---- */
+.summary-notice {
+  background: rgba(201, 169, 97, 0.09);
+  border: 1px solid var(--color-border-gold);
+  border-radius: 4px;
+  padding: 13px 14px;
+  margin-bottom: 20px;
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--color-text-muted);
+}
+
+.summary-notice strong {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  color: var(--gold-700);
+}
+
+.summary-enquiry {
+  text-align: center;
+  padding: 20px 0;
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: 22px;
+}
+
+.summary-enquiry-title {
+  font-family: var(--font-serif);
+  font-size: 17px;
+  color: var(--color-dark);
+  margin-bottom: 6px;
+}
+
+.summary-enquiry-note {
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--color-text-muted);
+}
+
+.summary-field {
+  margin: 0 0 20px;
+}
+
+.summary-field-label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1.6px;
+  color: var(--color-text-muted);
+}
+
+.summary-hint {
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+.summary-hint strong {
+  color: var(--gold-700);
 }
 
 .promo-wrap {
   display: flex;
   gap: 8px;
-  margin-bottom: 20px;
+  margin-bottom: 10px;
 }
 
 .promo-input {
   flex: 1;
-  background: #161412;
-  border: 1px solid rgba(200, 169, 110, 0.3);
-  color: #fff;
-  padding: 8px 12px;
-  border-radius: 4px;
+  min-width: 0;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  padding: 10px 12px;
+  border-radius: 3px;
+  font-family: var(--font-sans);
   font-size: 12px;
+  letter-spacing: 1px;
   text-transform: uppercase;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.promo-input::placeholder {
+  color: var(--color-text-light);
+  letter-spacing: 0.5px;
+}
+
+.promo-input:focus {
+  outline: none;
+  border-color: var(--gold-400);
+  box-shadow: 0 0 0 3px rgba(201, 169, 97, 0.16);
 }
 
 .promo-btn {
@@ -3161,6 +3246,83 @@ footer::before {
 
 .promo-btn:hover {
   filter: brightness(1.1);
+}
+
+/* ---- WhatsApp actions ----
+   Brand green as a full fill fought the ivory-and-gold palette and made every
+   enquiry button shout louder than "Proceed to Checkout". These follow the
+   floating button's approach instead: the site's own surface, with the green
+   kept on the glyph, which is the part that carries the recognition. That also
+   restores the hierarchy — WhatsApp is the quiet route, gold is the primary. */
+.summary-wa-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 13px;
+  margin-bottom: 10px;
+  background: var(--color-dark);
+  color: var(--gold-200);
+  border: 1px solid var(--color-border-gold);
+  border-radius: 2px;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+  text-decoration: none;
+  transition: background var(--transition), color var(--transition),
+    border-color var(--transition), transform var(--transition);
+}
+
+.summary-wa-btn svg {
+  width: 17px;
+  height: 17px;
+  flex-shrink: 0;
+  color: #25d366;
+  transition: color var(--transition);
+}
+
+.summary-wa-btn:hover {
+  background: var(--color-charcoal);
+  border-color: var(--gold-400);
+  color: var(--gold-100);
+  transform: translateY(-1px);
+}
+
+/* Row-level "request the price for this piece" pill */
+.wa-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 13px;
+  background: var(--color-bg);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  font-family: var(--font-sans);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition),
+    color var(--transition);
+}
+
+.wa-pill svg {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+  color: #25d366;
+}
+
+.wa-pill:hover {
+  background: var(--color-bg-soft);
+  border-color: var(--gold-400);
+  color: var(--color-dark);
 }
 
 .empty-cart-state {
@@ -3808,25 +3970,45 @@ footer::before {
     display: none !important;
   }
 
+  /* Same paper-and-gold treatment as the table these replace, so the bag reads
+     as one page rather than switching theme at the breakpoint. */
   .mobile-cart-card {
     display: flex !important;
-    background: #1c1a17;
-    border: 1px solid rgba(200, 169, 110, 0.3);
-    border-radius: 10px;
+    flex-direction: column;
+    background: var(--color-bg-pure);
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
     padding: 14px;
     margin-bottom: 12px;
     gap: 12px;
-    align-items: center;
+    align-items: stretch;
     position: relative;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .mobile-cart-head {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    width: 100%;
+  }
+
+  .mobile-cart-foot {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding-top: 10px;
+    border-top: 1px solid var(--color-border);
   }
 
   .mobile-cart-img {
     width: 64px;
     height: 64px;
     object-fit: cover;
-    border-radius: 8px;
-    border: 1px solid rgba(200, 169, 110, 0.2);
+    border-radius: 4px;
+    border: 1px solid var(--color-border);
     flex-shrink: 0;
   }
 
@@ -3836,10 +4018,10 @@ footer::before {
   }
 
   .mobile-cart-title {
-    font-family: var(--font-sans);
-    font-size: 13px;
-    font-weight: 600;
-    color: #ffffff;
+    font-family: var(--font-serif);
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--color-dark);
     margin-bottom: 3px;
     white-space: nowrap;
     overflow: hidden;
@@ -3848,24 +4030,42 @@ footer::before {
 
   .mobile-cart-cat {
     font-size: 10px;
-    color: rgba(255, 255, 255, 0.5);
+    color: var(--color-text-muted);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 1px;
     margin-bottom: 6px;
   }
 
   .mobile-cart-price {
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--color-gold-light);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--gold-600);
   }
 
   .mobile-cart-actions {
     display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 10px;
+    align-items: center;
+    gap: 8px;
     flex-shrink: 0;
+  }
+
+  .mobile-cart-remove {
+    background: transparent;
+    border: 1px solid rgba(192, 57, 43, 0.35);
+    color: #c0392b;
+    padding: 5px 11px;
+    border-radius: 999px;
+    font-family: var(--font-sans);
+    font-size: 10.5px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background var(--transition), border-color var(--transition);
+  }
+
+  .mobile-cart-remove:hover {
+    background: rgba(192, 57, 43, 0.08);
+    border-color: #c0392b;
   }
 }
 
