@@ -47,16 +47,46 @@ for (const host of [process.env.VERCEL_URL, process.env.VERCEL_PROJECT_PRODUCTIO
   if (host) allowedOrigins.push(`https://${host}`);
 }
 
-app.use(cors({
-  origin(origin, cb) {
-    // Same-origin and server-to-server requests send no Origin header.
-    if (!origin) return cb(null, true);
-    if (allowedOrigins.includes(origin)) return cb(null, true);
-    return cb(new Error(`Origin ${origin} is not allowed.`));
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS']
-}));
+/**
+ * A page calling its own host is not a cross-origin request, whatever the
+ * allowlist says.
+ *
+ * Browsers omit Origin on a same-origin GET but always send it on a POST, so
+ * with only the allowlist to go on, a newly attached domain served GETs
+ * happily and rejected every POST: sign-in, registration, checkout and bespoke
+ * requests all came back 403 on a site that was otherwise working. Comparing
+ * the Origin against the host actually being addressed settles that case
+ * without an environment variable, and a genuinely foreign origin still has to
+ * be listed, since a browser will not let a page forge either header.
+ */
+const corsDelegate = (req, done) => {
+  const origin = req.headers.origin;
+  const host = req.headers['x-forwarded-host'] || req.headers.host;
+
+  let sameOrigin = false;
+  if (origin && host) {
+    try {
+      sameOrigin = new URL(origin).host === host;
+    } catch (e) {
+      sameOrigin = false;
+    }
+  }
+
+  const options = {
+    credentials: true,
+    methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
+    origin(o, cb) {
+      // Same-origin and server-to-server requests send no Origin header.
+      if (!o) return cb(null, true);
+      if (sameOrigin) return cb(null, true);
+      if (allowedOrigins.includes(o)) return cb(null, true);
+      return cb(new Error(`Origin ${o} is not allowed.`));
+    }
+  };
+  done(null, options);
+};
+
+app.use(cors(corsDelegate));
 
 app.use(cookieParser());
 // Bound body size so a large payload cannot exhaust a serverless instance.

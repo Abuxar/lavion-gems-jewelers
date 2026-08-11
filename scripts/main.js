@@ -1988,6 +1988,11 @@
     accessToken: null,
     user: null,
     providers: [],
+    // null until the providers probe answers. It was left undefined, which is
+    // falsy, so opening the sign-in modal before the probe returned announced
+    // that the account service was down — on a cold start that window is
+    // seconds long and the claim was simply untrue.
+    apiReachable: null,
     ready: false
   };
   window.Auth = Auth;
@@ -2120,11 +2125,19 @@
   }
 
   function providerButtonsHtml() {
-    if (!Auth.apiReachable) {
-      return `<p class="auth-notice">
-        Social sign-in is unavailable because the account API is not responding.
-        Open the site through the Node server (<code>npm start</code>), not a static file server.
-      </p>`;
+    // Still probing: say nothing rather than accuse the service of being down.
+    if (Auth.apiReachable === null) return '';
+
+    if (Auth.apiReachable === false) {
+      // The "run npm start" advice only makes sense to someone working on the
+      // site locally; on a real domain it reads as gibberish to a customer.
+      const local = /^(localhost|127\.0\.0\.1)$/.test(location.hostname) ||
+        location.protocol === 'file:';
+      return `<p class="auth-notice">${local
+        ? 'Social sign-in is unavailable because the account API is not responding. ' +
+          'Open the site through the Node server (<code>npm start</code>), not a static file server.'
+        : 'Social sign-in is not available at the moment. You can still sign in with your ' +
+          'email address and password below.'}</p>`;
     }
     if (!Auth.providers.length) return '';
 
