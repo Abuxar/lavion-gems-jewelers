@@ -715,15 +715,19 @@
           // whichever way it went — every request refused by the server was
           // reported to the customer as accepted.
           if (!res.ok || !payload.success) {
-            throw new Error(payload.message || 'The request could not be submitted (' + res.status + ').');
+            const reason = new Error(payload.message || 'The request could not be submitted (' + res.status + ').');
+            // A message from the server already tells the customer what to do;
+            // only a connection failure needs advice added to it.
+            reason.fromServer = !!payload.message;
+            throw reason;
           }
         } catch (err) {
           submitBtn.disabled = false;
           submitBtn.innerHTML = originalLabel;
-          return showError(
-            (err && err.message ? err.message : 'The request could not be submitted.') +
-            ' Please try again, or message us on WhatsApp at +92 324 1769500 and we will take the details there.'
-          );
+          const base = err && err.message ? err.message : 'The request could not be submitted.';
+          return showError(err && err.fromServer ? base : base +
+            ' Please check your connection and try again, or message us on WhatsApp at +92 324 1769500 ' +
+            'and we will take the details there.');
         }
 
         submitBtn.disabled = false;

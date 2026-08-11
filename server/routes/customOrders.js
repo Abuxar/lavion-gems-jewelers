@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { readData, writeDataOrThrow, failWith } = require('../utils/db');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
-const { isMongoConnected } = require('../config/db');
+const { isMongoConnected, ensureMongo } = require('../config/db');
 const { sendCustomOrderEmail } = require('../utils/email');
 const CustomOrder = require('../models/CustomOrder');
 const Order = require('../models/Order');
@@ -90,6 +90,16 @@ router.post('/', async (req, res) => {
       date: today
     };
 
+    /**
+     * Wait for the database rather than falling straight through to the file
+     * store. The shared middleware gives a reconnect 3.5s, which a cold
+     * serverless instance can miss — and the fallback it lands on cannot be
+     * written to in production, so the customer's brief is refused for no
+     * reason other than timing. A commission is worth a second attempt; a
+     * catalogue read is not, which is why this waits here and not globally.
+     */
+    if (!usingMongo()) await ensureMongo().catch(() => false);
+
     if (usingMongo()) {
       await CustomOrder.create(request);
       await Order.create(tracking);
@@ -115,6 +125,19 @@ router.post('/', async (req, res) => {
     });
   } catch (error) {
     console.error('custom order error:', error);
+
+    // "The catalog is read-only on this deployment, a database is required" is
+    // a note for whoever runs the site, not for the customer reading it. Say
+    // what they can actually do instead.
+    if (error && error.code === 'DB_READ_ONLY') {
+      return res.status(503).json({
+        success: false,
+        message: 'We could not reach our design desk just now. Please try again in a moment, ' +
+          'or send us the details on WhatsApp at +92 324 1769500 and we will take them there.',
+        code: 'STORE_UNAVAILABLE'
+      });
+    }
+
     failWith(res, error, 'Failed to submit the bespoke request.');
   }
 });
