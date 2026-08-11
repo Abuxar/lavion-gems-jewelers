@@ -749,6 +749,15 @@
 
   // Render Function
   function renderAdmin() {
+    /**
+     * Only the pages carrying the admin panel have these nodes. saveOrders and
+     * saveProducts call this unconditionally, so on any other page the first
+     * lookup returned null and the whole save threw — which is what stopped the
+     * bespoke studio from ever showing its confirmation: the request had been
+     * stored, then the receipt died on the line after it.
+     */
+    if (!document.getElementById('stat-total-products')) return;
+
     const products = getProducts();
     const orders = getOrders();
 
