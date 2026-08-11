@@ -2235,7 +2235,6 @@
         closeAuthModal();
         return;
       }
-      if (data.code === 'EMAIL_UNVERIFIED') return renderVerifyNoticeView(email);
       if (data.code === 'PROVIDER_ONLY') {
         return showFormError(form, data.message || 'Use your connected provider to sign in.');
       }
@@ -2298,31 +2297,19 @@
       const { ok, data } = await api('/api/auth/register', { method: 'POST', body: payload });
       setBusy(form, false);
 
-      if (ok) return renderVerifyNoticeView(payload.email);
+      // Registering signs you straight in — there is no confirmation step.
+      if (ok && data.accessToken) {
+        applySession(data.accessToken, data.user);
+        showToast(data.message || 'Account created.', 'success');
+        closeAuthModal();
+        return;
+      }
+      if (data.code === 'EMAIL_TAKEN') {
+        showFormError(form, data.message || 'That email already has an account.');
+        document.getElementById('reg-email').focus();
+        return;
+      }
       showFormError(form, data.message || 'Could not create the account.');
-    });
-  }
-
-  function renderVerifyNoticeView(email) {
-    openModalShell(`
-      ${authHeaderHtml('Check your inbox', `We sent a confirmation link to ${email}.`)}
-      <p class="auth-body-text">
-        Open the link to activate your account. It expires in 24 hours.
-        Remember to check your spam folder.
-      </p>
-      <button type="button" class="btn-outline auth-submit" id="auth-resend">Resend the link</button>
-      <p class="auth-foot">
-        <button type="button" class="auth-link-btn" id="auth-back-signin">Back to sign in</button>
-      </p>
-    `);
-
-    document.getElementById('auth-back-signin').addEventListener('click', renderSignInView);
-    document.getElementById('auth-resend').addEventListener('click', async (e) => {
-      e.target.disabled = true;
-      e.target.textContent = 'Sending…';
-      const { data } = await api('/api/auth/resend-verification', { method: 'POST', body: { email } });
-      showToast(data.message || 'If that address needs confirming, a link is on its way.', 'info');
-      e.target.textContent = 'Link sent';
     });
   }
 
@@ -2363,15 +2350,14 @@
 
   function renderProfileView() {
     const u = Auth.user;
+    // No verified / not-verified badge while confirmation is switched off: it
+    // would flag older accounts for something they have no way to resolve.
     const providerTags = (u.providers || []).map(p =>
       `<span class="auth-tag">${escapeHtml(p)}</span>`).join('');
 
     openModalShell(`
       ${authHeaderHtml(u.name, u.email)}
       <div class="auth-profile-meta">
-        ${u.emailVerified
-          ? '<span class="auth-tag verified">Email verified</span>'
-          : '<span class="auth-tag warn">Email not verified</span>'}
         ${providerTags}
       </div>
 

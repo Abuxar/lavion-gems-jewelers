@@ -87,26 +87,25 @@ router.post('/register', requireDb, limiter('register', 10, 60 * 60 * 1000), asy
     const normalised = String(email).toLowerCase().trim();
     const existing = await Customer.findOne({ email: normalised });
 
-    // Do not confirm or deny that an address is registered. Either way the
-    // response is identical; an existing owner gets an email, nobody else
-    // learns anything.
+    /**
+     * A taken address has to be reported plainly while verification is off.
+     * The generic "check your inbox" reply worked only because a confirmation
+     * mail reached the real owner and told them the truth; with no mail to
+     * send, that same reply leaves the person staring at a form that appears
+     * to succeed and an account they cannot sign into. The cost is that this
+     * endpoint can now be used to test whether an address is registered — the
+     * rate limiter above bounds how fast, and the non-committal response comes
+     * back when verification is reinstated.
+     */
     if (existing) {
-      if (!existing.emailVerified) {
-        const token = randomToken();
-        existing.verifyTokenHash = hashToken(token);
-        existing.verifyTokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
-        await existing.save();
-        sendVerificationEmail({ name: existing.name, email: existing.email, token }).catch(() => {});
-      }
-      return res.status(202).json({
-        success: true,
-        message: 'Check your inbox to confirm your email address.',
-        requiresVerification: true
+      return res.status(409).json({
+        success: false,
+        message: 'An account already exists for that email address. Sign in instead.',
+        code: 'EMAIL_TAKEN'
       });
     }
 
     const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
-    const token = randomToken();
 
     const user = await Customer.create({
       id: newUserId(),
@@ -115,18 +114,23 @@ router.post('/register', requireDb, limiter('register', 10, 60 * 60 * 1000), asy
       phone: (phone || '').trim(),
       city: (city || 'Pakistan').trim(),
       passwordHash,
-      emailVerified: false,
-      verifyTokenHash: hashToken(token),
-      verifyTokenExpires: new Date(Date.now() + 24 * 60 * 60 * 1000)
+      // Confirmation is not part of the flow yet, so an address cannot be
+      // proven either way — accounts start usable rather than half-created.
+      // Reinstating verification means setting this back to false and
+      // restoring the EMAIL_UNVERIFIED gate in /login below.
+      emailVerified: true,
+      lastLoginAt: new Date()
     });
 
-    sendVerificationEmail({ name: user.name, email: user.email, token }).catch(() => {});
+    sendWelcomeEmail({ name: user.name, email: user.email });
     sendNewRegistrationAlert({ name: user.name, email: user.email, phone: user.phone, city: user.city });
 
+    // Signed in on the spot: there is no confirmation step left to wait for.
+    const session = await issueSession(user, req, res);
     res.status(201).json({
       success: true,
-      message: 'Account created. Check your inbox to confirm your email address.',
-      requiresVerification: true
+      message: `Welcome to Lavion, ${user.name}.`,
+      ...session
     });
   } catch (error) {
     console.error('register error:', error);
@@ -135,7 +139,13 @@ router.post('/register', requireDb, limiter('register', 10, 60 * 60 * 1000), asy
 });
 
 /* ------------------------------------------------------------------ *
- * Email verification
+ * Email verification — dormant
+ *
+ * Nothing in the sign-up or sign-in flow issues a verification token any more,
+ * so these two endpoints are unreachable from the storefront. They are kept
+ * working so that any link already sitting in someone's inbox still confirms
+ * their address, and so reinstating the flow is a matter of sending the mail
+ * again rather than rebuilding the exchange.
  * ------------------------------------------------------------------ */
 
 router.post('/verify-email', requireDb, limiter('verify', 20, 60 * 60 * 1000), async (req, res) => {
@@ -243,13 +253,10 @@ router.post('/login', requireDb, limiter('login', 20, 15 * 60 * 1000), async (re
       return res.status(401).json(invalid);
     }
 
-    if (!user.emailVerified) {
-      return res.status(403).json({
-        success: false,
-        message: 'Please confirm your email address before signing in.',
-        code: 'EMAIL_UNVERIFIED'
-      });
-    }
+    // Email confirmation is not required to sign in yet. Restoring it means
+    // rejecting !user.emailVerified here with code EMAIL_UNVERIFIED — the
+    // browser already knows how to route that back to the "check your inbox"
+    // view once that view is wired up again.
 
     user.failedAttempts = 0;
     user.lockedUntil = null;
