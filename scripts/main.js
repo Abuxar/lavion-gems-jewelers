@@ -1624,12 +1624,42 @@
         document.body.style.overflow = '';
       });
 
-      document.getElementById('tracker-lookup-form')?.addEventListener('submit', (e) => {
+      document.getElementById('tracker-lookup-form')?.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const query = document.getElementById('tracker-query').value.trim().toLowerCase();
-        const orders = window.getOrders();
-        const found = orders.find(o => o.id.toLowerCase() === query || o.phone.includes(query));
-        renderOrderProgress(found, query);
+        const raw = document.getElementById('tracker-query').value.trim();
+        if (!raw) return;
+
+        const area = document.getElementById('tracker-results-area');
+        if (area) {
+          area.innerHTML =
+            '<p style="margin-top:16px;font-size:13px;color:rgba(255,255,255,0.6);text-align:center;">Looking up your order…</p>';
+        }
+
+        /**
+         * Ask the server first. This used to search localStorage alone, which
+         * only ever holds orders placed in this browser — so a customer opening
+         * the tracker on their phone after ordering on a laptop, or after
+         * clearing their history, was told no such order existed. The local
+         * copy stays as a fallback for offline and for the file-store setup.
+         */
+        let found = null;
+        try {
+          const res = await fetch(`${API_URL}/orders/track/${encodeURIComponent(raw)}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.success && data.order) found = data.order;
+          }
+        } catch (err) {
+          console.warn('Order lookup unavailable, falling back to this device:', err.message);
+        }
+
+        if (!found && window.getOrders) {
+          const q = raw.toLowerCase();
+          found = window.getOrders().find(o =>
+            String(o.id).toLowerCase() === q || String(o.phone || '').includes(q));
+        }
+
+        renderOrderProgress(found, raw);
       });
     }
 
@@ -1640,7 +1670,7 @@
       if (!order) {
         area.innerHTML = `
           <div style="background:rgba(231,76,60,0.15); border:1px solid #e74c3c; padding:16px; border-radius:6px; color:#e74c3c; font-size:13px; text-align:center; margin-top:16px;">
-            ⚠️ No order record found for "<strong>${query}</strong>". Please verify your Order Reference ID or contact customer support on WhatsApp +92 324 1769500.
+            ⚠️ No order record found for "<strong>${escapeHtml(query)}</strong>". Please verify your Order Reference ID or contact customer support on WhatsApp +92 324 1769500.
           </div>
         `;
         return;
@@ -1656,8 +1686,8 @@
       area.innerHTML = `
         <div style="background:#12100e; border:1px solid rgba(200,169,110,0.3); border-radius:8px; padding:20px; margin-top:16px;">
           <div style="display:flex; justify-content:space-between; margin-bottom:12px; font-size:13px; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:8px;">
-            <span>Customer: <strong>${order.customer}</strong></span>
-            <span style="color:var(--color-gold-light);">Ref: <strong>${order.id}</strong></span>
+            <span>Customer: <strong>${escapeHtml(order.customer)}</strong></span>
+            <span style="color:var(--color-gold-light);">Ref: <strong>${escapeHtml(order.id)}</strong></span>
           </div>
 
           <!-- Timeline UI -->
@@ -1683,20 +1713,36 @@
           </div>
 
           <div style="font-size:12px; color:rgba(255,255,255,0.8); margin-top:16px; line-height:1.6;">
-            • <strong>Ordered Items:</strong> ${order.items}<br>
-            • <strong>Destination:</strong> ${order.city}<br>
-            • <strong>Order Total:</strong> PKR ${order.total.toLocaleString()}<br>
-            • <strong>Current Status:</strong> <span style="color:var(--color-gold-light); font-weight:700;">${order.status}</span>
+            • <strong>Ordered Items:</strong> ${escapeHtml(order.items)}<br>
+            • <strong>Destination:</strong> ${escapeHtml(order.city)}<br>
+            • <strong>Order Total:</strong> ${
+              // A bespoke commission is stored with a total of 0 until it has
+              // been quoted; printing "PKR 0" would read as free.
+              Number(order.total) > 0
+                ? 'PKR ' + Number(order.total).toLocaleString()
+                : 'Awaiting quotation'
+            }<br>
+            • <strong>Current Status:</strong> <span style="color:var(--color-gold-light); font-weight:700;">${escapeHtml(order.status)}</span>
           </div>
         </div>
       `;
     }
 
-    document.querySelectorAll('.open-order-tracker, #open-order-tracker').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        document.getElementById('mobile-menu')?.classList.remove('active');
-        openTracker(e);
-      });
+    /**
+     * Delegated, because the triggers are not all in the document when this
+     * runs: the drawer is injected on pages that lack one, and topped up on
+     * pages that have their own. Binding each node once at startup missed
+     * every link created afterwards.
+     *
+     * Each trigger is a real link to track-order.html, so the page still works
+     * with scripting off; the modal simply takes over when it can.
+     */
+    document.addEventListener('click', (e) => {
+      const trigger = e.target.closest('.open-order-tracker, #open-order-tracker');
+      if (!trigger) return;
+      document.getElementById('mobile-menu')?.classList.remove('active');
+      document.body.style.overflow = '';
+      openTracker(e);
     });
   }
 
@@ -2987,6 +3033,14 @@
         links.insertAdjacentHTML('beforeend',
           '<a href="#" class="account-open" style="color:var(--color-gold-light); font-weight:700;">✦ Create an Account</a>');
       }
+      // The utility bar carrying Track Order is hidden below 1024px, so on a
+      // phone the drawer is the only place the option can live. Hand-written
+      // drawers were missing it, which left the cart — where someone lands
+      // straight after ordering — with no way to reach tracking at all.
+      if (!links.querySelector('a[href*="track-order"]')) {
+        links.insertAdjacentHTML('beforeend',
+          '<a href="track-order.html" class="open-order-tracker">📦 Track My Order</a>');
+      }
       return;
     }
 
@@ -3006,7 +3060,7 @@
         <div style="border-top:1px solid rgba(200,169,110,0.3); margin:10px 0; padding-top:10px;"></div>
         <a href="#" class="account-link" style="color:var(--color-gold-light); font-weight:700;">✦ Sign In / My Account</a>
         <a href="#" class="account-open" style="color:var(--color-gold-light); font-weight:700;">✦ Create an Account</a>
-        <a href="track-order.html">📦 Track My Order</a>
+        <a href="track-order.html" class="open-order-tracker">📦 Track My Order</a>
       </nav>
     `;
     document.body.appendChild(menu);
