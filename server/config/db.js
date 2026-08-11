@@ -23,11 +23,27 @@ let attempts = 0;
 /** Don't hammer an unreachable cluster on every single request. */
 const RETRY_COOLDOWN_MS = 15000;
 
-async function connectDB() {
+/**
+ * One handshake at a time, and everyone waits on the same one.
+ *
+ * The instance's boot call used to run outside this bookkeeping: it set
+ * lastAttemptAt but never published itself as in-flight, so a request arriving
+ * while it was still connecting saw "an attempt was made a moment ago", hit the
+ * cooldown below and gave up instantly — falling back to a store that is
+ * read-only in production. Every cold start therefore refused writes for as
+ * long as the first connection took.
+ */
+function connectDB() {
   if (mongoose.connection && mongoose.connection.readyState >= 1) {
-    return;
+    return Promise.resolve();
   }
+  if (!inFlight) {
+    inFlight = attemptConnect().finally(() => { inFlight = null; });
+  }
+  return inFlight;
+}
 
+async function attemptConnect() {
   const mongoURI = process.env.MONGO_URI;
   if (!mongoURI) {
     lastDbNote = 'MONGO_URI is not set on this deployment.';
@@ -161,15 +177,14 @@ function describeUri(uri) {
  */
 function ensureMongo() {
   if (isMongoConnected()) return Promise.resolve(true);
-  if (inFlight) return inFlight;
+
+  // A handshake already running — the boot one included — is the thing to wait
+  // for, not a reason to give up.
+  if (inFlight) return inFlight.then(() => isMongoConnected()).catch(() => false);
+
   if (Date.now() - lastAttemptAt < RETRY_COOLDOWN_MS) return Promise.resolve(false);
 
-  inFlight = connectDB()
-    .then(() => isMongoConnected())
-    .catch(() => false)
-    .finally(() => { inFlight = null; });
-
-  return inFlight;
+  return connectDB().then(() => isMongoConnected()).catch(() => false);
 }
 
 /**
