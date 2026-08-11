@@ -2905,12 +2905,14 @@ footer::before {
 }
 
 .btn-add-cart {
-  flex: 1;
-  /* A flex item defaults to min-width:auto, so it refuses to shrink below its
-     label. In a two-up grid on a narrow phone that pushed the row wider than
-     the card and the trailing buttons were clipped by the page's
-     overflow-x:hidden — they read as missing rather than cut off. */
-  min-width: 0;
+  flex: 1 1 auto;
+  /* Never narrower than its own label. min-width:0 was allowed here to stop the
+     row pushing wider than the card in a two-up grid, but a flex item that may
+     shrink to nothing does exactly that: the button collapsed to a square and
+     the nowrap label ran out through both of its edges. Holding the label's
+     width instead makes the wrap above do the work — the button drops onto a
+     row of its own when the icons leave it too little room. */
+  min-width: max-content;
   white-space: nowrap;
   background: var(--color-dark);
   color: var(--gold-200);
