@@ -12,6 +12,14 @@
     {
       "source": "/api/(.*)",
       "destination": "/api"
+    },
+    {
+      "source": "/admin",
+      "destination": "/"
+    },
+    {
+      "source": "/admin-panel",
+      "destination": "/"
     }
   ]
 }
