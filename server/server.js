@@ -153,8 +153,15 @@ app.get('/api/health/db', authenticateToken, requireAdmin, (req, res) => {
   res.json({ success: true, ...dbDiagnostics() });
 });
 
-// Serve frontend static files from root directory
-app.use(express.static(path.join(__dirname, '../')));
+/**
+ * Serve frontend static files from root directory.
+ *
+ * `extensions` resolves /gems to gems.html, which is what Vercel's cleanUrls
+ * does in production. Without it the links, now written without .html, would
+ * 404 in local development and the two environments would disagree about what
+ * a route even is.
+ */
+app.use(express.static(path.join(__dirname, '../'), { extensions: ['html'] }));
 
 // For all other routes (SPA fallback), Vercel's rewrite handles it
 // This is just a catch-all for API 404s

@@ -58,7 +58,7 @@ async function deliver({ to, subject, html, url, label }) {
 }
 
 async function sendVerificationEmail({ name, email, token }) {
-  const url = `${baseUrl()}/verify-email.html?token=${encodeURIComponent(token)}`;
+  const url = `${baseUrl()}/verify-email?token=${encodeURIComponent(token)}`;
   return deliver({
     to: email,
     subject: 'Confirm your email — Lavion Gems & Jewellers',
@@ -75,7 +75,7 @@ async function sendVerificationEmail({ name, email, token }) {
 }
 
 async function sendPasswordResetEmail({ name, email, token }) {
-  const url = `${baseUrl()}/reset-password.html?token=${encodeURIComponent(token)}`;
+  const url = `${baseUrl()}/reset-password?token=${encodeURIComponent(token)}`;
   return deliver({
     to: email,
     subject: 'Reset your password — Lavion Gems & Jewellers',
@@ -105,7 +105,7 @@ async function sendProviderOnlyNotice({ email, providers }) {
       'Use your connected account',
       `This address signs in with <strong>${esc(list)}</strong>, so there is no password to reset. Continue with that provider, and you can add a password later from your account page.`,
       'Go to Sign In',
-      `${baseUrl()}/index.html?signin=1`,
+      `${baseUrl()}/?signin=1`,
       'If you did not request this, you can safely ignore this email.'
     )
   });
@@ -119,7 +119,7 @@ async function sendPasswordChangedEmail({ name, email }) {
       'Password changed',
       `Hello ${esc(name)}, the password on your account was just changed and all other sessions were signed out.`,
       'Review Your Account',
-      `${baseUrl()}/index.html?signin=1`,
+      `${baseUrl()}/?signin=1`,
       'If this was not you, reset your password immediately and contact us.'
     )
   });

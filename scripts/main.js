@@ -438,8 +438,8 @@
    */
   function openAdminLoginDirectly() {
     if (!loginModal) {
-      // Only index.html carries the admin markup; send other pages there.
-      window.location.href = 'index.html?admin=true';
+      // Only / carries the admin markup; send other pages there.
+      window.location.href = '/?admin=true';
       return;
     }
     if (loginErrorMsg) loginErrorMsg.style.display = 'none';
@@ -1069,7 +1069,7 @@
 
         <div class="cart-prompt-actions">
           <button class="cart-prompt-btn secondary" id="cart-prompt-continue-btn">Continue Browsing</button>
-          <a href="cart.html" class="cart-prompt-btn primary" id="cart-prompt-open-btn">
+          <a href="cart" class="cart-prompt-btn primary" id="cart-prompt-open-btn">
             Open Shopping Bag (${totalCartCount})
           </a>
         </div>
@@ -1139,7 +1139,7 @@
     }
 
     window.saveCart(cart);
-    if (window.location.pathname.includes('cart.html') || window.location.pathname.includes('/cart')) {
+    if (window.location.pathname.includes('cart') || window.location.pathname.includes('/cart')) {
       showToast(`Added "${product.name}" to your Shopping Bag!`, 'success');
       if (typeof window.renderCart === 'function') window.renderCart();
     } else {
@@ -1734,7 +1734,7 @@
      * pages that have their own. Binding each node once at startup missed
      * every link created afterwards.
      *
-     * Each trigger is a real link to track-order.html, so the page still works
+     * Each trigger is a real link to track-order, so the page still works
      * with scripting off; the modal simply takes over when it can.
      */
     document.addEventListener('click', (e) => {
@@ -2051,7 +2051,7 @@
     window.updateAccountHeaderUI();
   }
 
-  // Kept for callers such as cart.html that expect a synchronous read.
+  // Kept for callers such as cart that expect a synchronous read.
   window.getActiveCustomer = function () {
     return Auth.user;
   };
@@ -2996,32 +2996,32 @@
   /**
    * Build the drawer and its trigger wherever a page lacks them.
    *
-   * Only four pages carried the markup. rings.html and its siblings rendered a
+   * Only four pages carried the markup. rings and its siblings rendered a
    * hamburger with no drawer behind it — a button that visibly did nothing —
-   * and collections.html had neither, so below 900px, where the top bar is
+   * and collections had neither, so below 900px, where the top bar is
    * hidden, those pages had no navigation and no route to signing in at all.
    * Rendering it here means every page gets the same menu, the same way the
    * bottom dock is already handled.
    */
   const MENU_LINKS = [
-    ['high-jewellery.html', '✦ High Jewellery'],
-    ['collections.html', '❖ Full Jewellery Catalog'],
-    ['customized-jewellery.html', '◇ Bespoke Jewellery Studio'],
-    ['gems.html', '✦ Precious Gems Showcase'],
-    ['diamonds.html', '❖ Certified Diamonds'],
-    ['asian-jewellery.html', '👑 Asian Heritage Jewellery'],
-    ['western-jewellery.html', '◇ Western Haute Jewellery'],
-    ['rings.html', '✦ Rings Collection'],
-    ['necklaces.html', '❖ Fine Necklaces'],
-    ['earrings.html', '◇ Luxury Earrings'],
-    ['bracelets.html', '✦ Handcrafted Bracelets']
+    ['high-jewellery', '✦ High Jewellery'],
+    ['collections', '❖ Full Jewellery Catalog'],
+    ['customized-jewellery', '◇ Bespoke Jewellery Studio'],
+    ['gems', '✦ Precious Gems Showcase'],
+    ['diamonds', '❖ Certified Diamonds'],
+    ['asian-jewellery', '👑 Asian Heritage Jewellery'],
+    ['western-jewellery', '◇ Western Haute Jewellery'],
+    ['rings', '✦ Rings Collection'],
+    ['necklaces', '❖ Fine Necklaces'],
+    ['earrings', '◇ Luxury Earrings'],
+    ['bracelets', '✦ Handcrafted Bracelets']
   ];
 
   function ensureMobileMenu() {
     // A trigger with nothing behind it is worse than no trigger.
     let hamburger = document.getElementById('nav-hamburger');
     if (!hamburger) {
-      // track-order.html was built with a different header, so accept either.
+      // track-order was built with a different header, so accept either.
       const navInner = document.querySelector('.nav-inner, .primary-container');
       if (navInner) {
         hamburger = document.createElement('button');
@@ -3052,7 +3052,7 @@
       // straight after ordering — with no way to reach tracking at all.
       if (!links.querySelector('a[href*="track-order"]')) {
         links.insertAdjacentHTML('beforeend',
-          '<a href="track-order.html" class="open-order-tracker">📦 Track My Order</a>');
+          '<a href="track-order" class="open-order-tracker">📦 Track My Order</a>');
       }
       return;
     }
@@ -3073,7 +3073,7 @@
         <div style="border-top:1px solid rgba(200,169,110,0.3); margin:10px 0; padding-top:10px;"></div>
         <a href="#" class="account-link" style="color:var(--color-gold-light); font-weight:700;">✦ Sign In / My Account</a>
         <a href="#" class="account-open" style="color:var(--color-gold-light); font-weight:700;">✦ Create an Account</a>
-        <a href="track-order.html" class="open-order-tracker">📦 Track My Order</a>
+        <a href="track-order" class="open-order-tracker">📦 Track My Order</a>
       </nav>
     `;
     document.body.appendChild(menu);
@@ -3123,42 +3123,42 @@
     }
 
     const currentPath = window.location.pathname.toLowerCase();
-    const isHome = currentPath.endsWith('index.html') || currentPath.endsWith('/') || currentPath === '';
-    const isCatalog = currentPath.includes('collections.html');
-    const isBespoke = currentPath.includes('customized-jewellery.html');
-    const isWishlist = currentPath.includes('wishlist.html');
-    const isCart = currentPath.includes('cart.html');
+    const isHome = currentPath.endsWith('/') || currentPath.endsWith('/') || currentPath === '';
+    const isCatalog = currentPath.includes('collections');
+    const isBespoke = currentPath.includes('customized-jewellery');
+    const isWishlist = currentPath.includes('wishlist');
+    const isCart = currentPath.includes('cart');
 
     const cartCount = window.getCart ? window.getCart().reduce((sum, item) => sum + item.qty, 0) : 0;
     const wishlistCount = window.getWishlist ? window.getWishlist().length : 0;
 
     dock.innerHTML = `
-      <a href="index.html" class="mobile-dock-item ${isHome ? 'active' : ''}">
+      <a href="/" class="mobile-dock-item ${isHome ? 'active' : ''}">
         <span class="mobile-dock-icon">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width:20px;height:20px;"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" /></svg>
         </span>
         <span>Home</span>
       </a>
-      <a href="collections.html" class="mobile-dock-item ${isCatalog ? 'active' : ''}">
+      <a href="collections" class="mobile-dock-item ${isCatalog ? 'active' : ''}">
         <span class="mobile-dock-icon">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width:20px;height:20px;"><path stroke-linecap="round" stroke-linejoin="round" d="M21 7.5l-9-5.25L3 7.5m18 0l-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9" /></svg>
         </span>
         <span>Catalog</span>
       </a>
-      <a href="customized-jewellery.html" class="mobile-dock-item ${isBespoke ? 'active' : ''}">
+      <a href="customized-jewellery" class="mobile-dock-item ${isBespoke ? 'active' : ''}">
         <span class="mobile-dock-icon">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width:20px;height:20px;"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z" /></svg>
         </span>
         <span>Bespoke</span>
       </a>
-      <a href="wishlist.html" class="mobile-dock-item ${isWishlist ? 'active' : ''}">
+      <a href="wishlist" class="mobile-dock-item ${isWishlist ? 'active' : ''}">
         <span class="mobile-dock-icon">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width:20px;height:20px;"><path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" /></svg>
         </span>
         <span>Wishlist</span>
         ${wishlistCount > 0 ? `<span class="mobile-dock-badge">${wishlistCount}</span>` : ''}
       </a>
-      <a href="cart.html" class="mobile-dock-item ${isCart ? 'active' : ''}">
+      <a href="cart" class="mobile-dock-item ${isCart ? 'active' : ''}">
         <span class="mobile-dock-icon">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width:20px;height:20px;"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007z" /></svg>
         </span>
@@ -3199,7 +3199,7 @@
 
 // ===================== PRODUCT DEEP-LINK HANDLER =====================
 // Reads ?product=ID from the URL and auto-opens the Quick View modal
-// Example: rings.html?product=2 will open the Quick View for product ID 2
+// Example: rings?product=2 will open the Quick View for product ID 2
 (function handleProductDeepLink() {
   function tryOpen() {
     const params = new URLSearchParams(window.location.search);
