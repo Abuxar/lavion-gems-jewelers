@@ -10,6 +10,12 @@ try {
   console.log('[Email] resend package not installed or failed to load.');
 }
 
+// Links in these emails used to be hardcoded to laviongemsjewellers.com, which
+// does not resolve — every "Track Order" button a customer received was dead.
+// baseUrl() is the same helper the OAuth redirects use, so the site only ever
+// has one idea of its own address.
+const { baseUrl } = require('./oauth');
+
 // Lazy-initialize so dotenv has loaded before Resend is constructed
 let _resend;
 function getResend() {
@@ -93,7 +99,7 @@ async function sendWelcomeEmail({ name, email }) {
                     Your account is now active. Explore our exclusive collections of diamonds, gemstones, and bespoke jewellery crafted with unparalleled precision.
                   </p>
                   <div style="text-align:center;margin:30px 0;">
-                    <a href="https://laviongemsjewellers.com/collections" style="background:linear-gradient(135deg,#c9a84c,#f0d080);color:#0a0a0a;text-decoration:none;padding:14px 36px;border-radius:6px;font-weight:700;font-size:14px;letter-spacing:2px;text-transform:uppercase;display:inline-block;">Explore Collections</a>
+                    <a href="${baseUrl()}/collections" style="background:linear-gradient(135deg,#c9a84c,#f0d080);color:#0a0a0a;text-decoration:none;padding:14px 36px;border-radius:6px;font-weight:700;font-size:14px;letter-spacing:2px;text-transform:uppercase;display:inline-block;">Explore Collections</a>
                   </div>
                   <hr style="border:none;border-top:1px solid #2a2010;margin:30px 0;">
                   <p style="color:#888;font-size:12px;text-align:center;margin:0;">
@@ -185,7 +191,7 @@ async function sendOrderConfirmationEmail(order) {
                 Our team will contact you shortly to confirm delivery details. You can track your order anytime using your Order ID above.
               </p>
               <div style="text-align:center;margin:24px 0;">
-                <a href="https://laviongemsjewellers.com/track-order?orderId=${order.id}" style="background:linear-gradient(135deg,#c9a84c,#f0d080);color:#0a0a0a;text-decoration:none;padding:12px 30px;border-radius:6px;font-weight:700;font-size:13px;letter-spacing:2px;text-transform:uppercase;display:inline-block;">Track Order (${order.id})</a>
+                <a href="${baseUrl()}/track-order?orderId=${order.id}" style="background:linear-gradient(135deg,#c9a84c,#f0d080);color:#0a0a0a;text-decoration:none;padding:12px 30px;border-radius:6px;font-weight:700;font-size:13px;letter-spacing:2px;text-transform:uppercase;display:inline-block;">Track Order (${order.id})</a>
               </div>
               <hr style="border:none;border-top:1px solid #2a2010;margin:24px 0;">
               <p style="color:#666;font-size:12px;text-align:center;margin:0;">Lavion Gems &amp; Jewellers · Pakistan's Premier Luxury Jeweller</p>
