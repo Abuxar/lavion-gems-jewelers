@@ -318,7 +318,11 @@ async function sendCustomOrderEmail(order) {
   }
 }
 
-module.exports = { sendEmailMessage, sendWelcomeEmail, sendOrderConfirmationEmail, sendCustomOrderEmail, sendNewRegistrationAlert, sendLoginAlert, sendSubscriberAlert };
+module.exports = {
+  sendEmailMessage, sendWelcomeEmail, sendOrderConfirmationEmail, sendCustomOrderEmail,
+  sendNewRegistrationAlert, sendLoginAlert, sendSubscriberAlert,
+  buildPromotionalEmail, sendSubscriberWelcome, sendCampaign
+};
 
 // ─── Shared admin email builder ───────────────────────────────────────────────
 function buildAdminEmail({ icon, title, subtitle, rows }) {
@@ -424,5 +428,127 @@ async function sendSubscriberAlert({ email }) {
   } catch (err) {
     console.error('[Email] Failed to send subscriber alert:', err.message);
   }
+}
+
+// ─── Promotional / campaign email ─────────────────────────────────────────────
+
+/** Escape anything admin-authored before it lands in an HTML email. */
+function escHtml(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+  ));
+}
+
+/**
+ * The template an admin-composed promotion is poured into.
+ *
+ * The body is escaped and then given back its paragraph breaks, so an admin can
+ * type plain text in the panel without being able to inject markup into mail
+ * that goes out under the shop's own verified domain.
+ *
+ * The unsubscribe footer is not optional: bulk mail without a working opt-out
+ * breaches UK PECR/GDPR and is the fastest way to get a sending domain blocked.
+ */
+function buildPromotionalEmail({ heading, body, ctaLabel, ctaUrl, unsubscribeUrl }) {
+  const paragraphs = String(body || '')
+    .split(/\n\s*\n/)
+    .map(p => `<p style="margin:0 0 16px;color:#d4c5a9;font-size:15px;line-height:1.8;">${escHtml(p.trim()).replace(/\n/g, '<br>')}</p>`)
+    .join('');
+
+  const cta = (ctaLabel && ctaUrl)
+    ? `<div style="text-align:center;margin:30px 0;">
+         <a href="${encodeURI(ctaUrl)}" style="background:linear-gradient(135deg,#c9a84c,#f0d080);color:#0a0a0a;text-decoration:none;padding:14px 36px;border-radius:6px;font-weight:700;font-size:14px;letter-spacing:2px;text-transform:uppercase;display:inline-block;">${escHtml(ctaLabel)}</a>
+       </div>`
+    : '';
+
+  return `<!DOCTYPE html>
+  <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+  <body style="margin:0;padding:0;background:#0a0a0a;font-family:'Georgia',serif;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="background:#0a0a0a;padding:40px 20px;">
+      <tr><td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background:linear-gradient(135deg,#1a1208,#0d0d0d);border:1px solid #c9a84c;border-radius:12px;overflow:hidden;max-width:600px;">
+          <tr><td style="background:linear-gradient(135deg,#c9a84c,#f0d080,#c9a84c);padding:40px 40px 30px;text-align:center;">
+            <h1 style="margin:0;color:#0a0a0a;font-size:28px;font-weight:700;letter-spacing:3px;text-transform:uppercase;">LAVION</h1>
+            <p style="margin:4px 0 0;color:#3a2a00;font-size:13px;letter-spacing:5px;text-transform:uppercase;">Gems &amp; Jewellers</p>
+          </td></tr>
+          <tr><td style="padding:40px;">
+            <h2 style="color:#c9a84c;font-size:22px;margin:0 0 18px;">${escHtml(heading)}</h2>
+            ${paragraphs}
+            ${cta}
+            <hr style="border:none;border-top:1px solid #2a2010;margin:30px 0;">
+            <p style="color:#777;font-size:12px;text-align:center;line-height:1.7;margin:0;">
+              Lavion Gems &amp; Jewellers · Pakistan's Premier Luxury Jeweller<br>
+              You are receiving this because you subscribed to our newsletter.<br>
+              <a href="${encodeURI(unsubscribeUrl)}" style="color:#c9a84c;">Unsubscribe</a>
+            </p>
+          </td></tr>
+        </table>
+      </td></tr>
+    </table>
+  </body></html>`;
+}
+
+/** Sent the moment someone subscribes, so the opt-in is confirmed in writing. */
+async function sendSubscriberWelcome({ email, unsubscribeUrl }) {
+  return sendEmailMessage({
+    to: email,
+    subject: '✨ Welcome to the Lavion Inner Circle',
+    html: buildPromotionalEmail({
+      heading: 'You are on the list',
+      body: 'Thank you for joining the Lavion Inner Circle.\n\n'
+          + 'You will be first to hear about new collections, exclusive events and private previews — '
+          + 'and nothing else. We never share your details.',
+      ctaLabel: 'Explore Collections',
+      ctaUrl: `${baseUrl()}/collections`,
+      unsubscribeUrl
+    })
+  });
+}
+
+/**
+ * Send one campaign to many subscribers.
+ *
+ * Uses Resend's batch endpoint in chunks rather than a send per address: this
+ * function runs on a 30-second serverless budget, and one HTTP round trip per
+ * recipient would exhaust that after a few dozen. Each recipient still gets
+ * their own message with their own unsubscribe link — nobody is BCC'd, so no
+ * subscriber can see another's address.
+ */
+const BATCH_SIZE = 100;
+
+async function sendCampaign({ subject, heading, body, ctaLabel, ctaUrl, recipients }) {
+  const resend = getResend();
+  if (!resend) {
+    return { sent: 0, failed: recipients.length, error: 'Email delivery is not configured (RESEND_API_KEY missing).' };
+  }
+
+  let sent = 0;
+  let failed = 0;
+  const errors = [];
+
+  for (let i = 0; i < recipients.length; i += BATCH_SIZE) {
+    const chunk = recipients.slice(i, i + BATCH_SIZE);
+    const payload = chunk.map(r => ({
+      from: FROM_EMAIL(),
+      to: r.email,
+      subject,
+      html: buildPromotionalEmail({ heading, body, ctaLabel, ctaUrl, unsubscribeUrl: r.unsubscribeUrl })
+    }));
+
+    try {
+      const result = await resend.batch.send(payload);
+      if (result.error) {
+        failed += chunk.length;
+        errors.push(result.error.message || JSON.stringify(result.error));
+      } else {
+        sent += chunk.length;
+      }
+    } catch (err) {
+      failed += chunk.length;
+      errors.push(err.message);
+    }
+  }
+
+  return { sent, failed, errors };
 }
 

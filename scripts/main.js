@@ -578,7 +578,115 @@
       btn.classList.add('active');
       const targetId = btn.getAttribute('data-tab');
       document.getElementById(targetId)?.classList.add('active');
+      // The subscriber list is fetched on demand rather than at login, so
+      // opening the panel does not pay for a query nobody asked for.
+      if (targetId === 'admin-newsletter') loadSubscribers();
     });
+  });
+
+  /* ======================================
+     NEWSLETTER SUBSCRIBERS & PROMOTIONS
+  ====================================== */
+  let subscriberCache = [];
+
+  function renderSubscribers() {
+    const tbody = document.getElementById('admin-subs-tbody');
+    if (!tbody) return;
+    const term = (document.getElementById('admin-search-subs')?.value || '').trim().toLowerCase();
+    const rows = term ? subscriberCache.filter(s => s.email.includes(term)) : subscriberCache;
+
+    if (!rows.length) {
+      tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:28px; color:rgba(255,255,255,0.5);">
+        ${subscriberCache.length ? 'No subscribers match that search.' : 'Nobody has subscribed yet.'}</td></tr>`;
+      return;
+    }
+
+    const when = v => v ? new Date(v).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+    tbody.innerHTML = rows.map(s => `
+      <tr>
+        <td>${s.email}</td>
+        <td><span class="admin-status-tag ${s.status === 'active' ? 'instock' : ''}"
+             style="${s.status === 'active'
+               ? 'background:#1e4620;color:#2ecc71;border:1px solid #2ecc71;'
+               : 'background:#3a1a1a;color:#e74c3c;border:1px solid #e74c3c;'} padding:3px 9px; font-size:11px;">
+             ${s.status === 'active' ? 'Active' : 'Unsubscribed'}</span></td>
+        <td>${s.source || 'homepage'}</td>
+        <td>${when(s.subscribedAt)}</td>
+        <td>${when(s.lastCampaignAt)}</td>
+      </tr>`).join('');
+  }
+
+  async function loadSubscribers() {
+    const tbody = document.getElementById('admin-subs-tbody');
+    if (tbody) tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:28px; color:rgba(255,255,255,0.5);">Loading…</td></tr>`;
+    try {
+      const res = await adminFetch('/subscribe/list');
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.message || 'Failed to load subscribers.');
+
+      subscriberCache = data.subscribers || [];
+      document.getElementById('stat-subs-active').textContent = data.active || 0;
+      document.getElementById('stat-subs-unsub').textContent = data.unsubscribed || 0;
+      document.getElementById('stat-subs-total').textContent = data.total || 0;
+      renderSubscribers();
+    } catch (err) {
+      if (tbody) tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:28px; color:#e74c3c;">${err.message}</td></tr>`;
+    }
+  }
+
+  document.getElementById('admin-search-subs')?.addEventListener('input', renderSubscribers);
+  document.getElementById('promo-refresh-btn')?.addEventListener('click', loadSubscribers);
+
+  /** Read the compose form, refusing anything the server would reject anyway. */
+  function readCampaignForm() {
+    const subject = document.getElementById('promo-subject')?.value.trim() || '';
+    const body = document.getElementById('promo-body')?.value.trim() || '';
+    if (!subject) { showToast('A subject line is required.', 'error'); return null; }
+    if (!body) { showToast('The message body cannot be empty.', 'error'); return null; }
+    return {
+      subject,
+      heading: document.getElementById('promo-heading')?.value.trim() || subject,
+      body,
+      ctaLabel: document.getElementById('promo-cta-label')?.value.trim() || '',
+      ctaUrl: document.getElementById('promo-cta-url')?.value.trim() || ''
+    };
+  }
+
+  async function postCampaign(payload, btn, busyLabel) {
+    const original = btn ? btn.textContent : '';
+    if (btn) { btn.disabled = true; btn.textContent = busyLabel; }
+    try {
+      const res = await adminFetch('/subscribe/campaign', { method: 'POST', body: JSON.stringify(payload) });
+      const data = await res.json();
+      showToast(data.message || (data.success ? 'Sent.' : 'Send failed.'), data.success ? 'success' : 'error');
+      if (data.success && !payload.test) loadSubscribers();
+    } catch (err) {
+      showToast(`Could not reach the server: ${err.message}`, 'error');
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = original; }
+    }
+  }
+
+  document.getElementById('promo-test-btn')?.addEventListener('click', () => {
+    const campaign = readCampaignForm();
+    if (!campaign) return;
+    postCampaign({ ...campaign, test: true }, document.getElementById('promo-test-btn'), 'Sending…');
+  });
+
+  document.getElementById('promo-send-btn')?.addEventListener('click', () => {
+    const campaign = readCampaignForm();
+    if (!campaign) return;
+    const active = Number(document.getElementById('stat-subs-active')?.textContent || 0);
+    if (!active) { showToast('There are no active subscribers to send to.', 'error'); return; }
+
+    // A bulk send cannot be undone, so it goes through the same confirm dialog
+    // that guards deletions rather than firing straight off a single click.
+    showCustomConfirm(
+      'Send to all subscribers?',
+      `This will email ${active} active subscriber${active === 1 ? '' : 's'} immediately. This cannot be undone.`,
+      () => postCampaign(campaign, document.getElementById('promo-send-btn'), 'Sending…'),
+      'Send Now'
+    );
   });
 
   document.getElementById('quick-add-btn')?.addEventListener('click', () => openProductModal());
@@ -595,9 +703,15 @@
   const confirmCancelBtn = document.getElementById('confirm-cancel-btn');
   let pendingConfirmAction = null;
 
-  function showCustomConfirm(title, message, onConfirm) {
+  /**
+   * `confirmLabel` exists because this dialog is no longer only used for
+   * deletions — a bulk newsletter send is just as irreversible. It defaults to
+   * the old wording so existing callers are unaffected.
+   */
+  function showCustomConfirm(title, message, onConfirm, confirmLabel) {
     if (confirmTitle) confirmTitle.textContent = title || 'Confirm Action';
     if (confirmMsg) confirmMsg.textContent = message || 'Are you sure you want to proceed?';
+    if (confirmOkBtn) confirmOkBtn.textContent = confirmLabel || 'Confirm Delete';
     pendingConfirmAction = onConfirm;
     confirmModal?.classList.add('active');
   }

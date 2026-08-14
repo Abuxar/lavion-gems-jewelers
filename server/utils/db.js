@@ -26,7 +26,8 @@ function readData() {
         lastUpdated: 'Official Gujranwala Sarafa Market Rate'
       },
       customers: [],
-      customOrders: []
+      customOrders: [],
+      subscribers: []
     };
   }
 }
