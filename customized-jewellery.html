@@ -441,16 +441,24 @@
                   <p class="studio-field-hint">Optional. Arabic and Urdu script welcome.</p>
                 </div>
 
-                <div class="custom-form-group">
-                  <label for="budget-select">Estimated budget range <span class="studio-required">*</span></label>
-                  <!-- Also rebuilt by applyRegion(), in the currency of the market chosen above. -->
-                  <select id="budget-select" required>
-                    <option value="PKR 50,000 - PKR 150,000">PKR 50,000 – PKR 150,000</option>
-                    <option value="PKR 150,000 - PKR 350,000">PKR 150,000 – PKR 350,000</option>
-                    <option value="PKR 350,000 - PKR 750,000">PKR 350,000 – PKR 750,000</option>
-                    <option value="PKR 750,000 - PKR 1,500,000">PKR 750,000 – PKR 1,500,000</option>
-                    <option value="PKR 1,500,000+ (High Jewellery)">PKR 1,500,000+ (Bespoke High Jewellery)</option>
-                  </select>
+                <!--
+                  This replaced a dropdown of budget bands the customer picked
+                  from. Asking someone to guess what their own commission is
+                  worth told the shop nothing it could quote against, and told
+                  the customer nothing at all — the price of a 10 tola set is
+                  whatever gold is worth today, which is knowable.
+                -->
+                <div class="studio-estimate" id="estimate-panel">
+                  <div class="studio-estimate-head">
+                    <span class="studio-estimate-label">Indicative price for this piece</span>
+                    <span class="studio-estimate-live" id="estimate-live" hidden>Live market</span>
+                  </div>
+                  <div class="studio-estimate-figure pending" id="estimate-figure">
+                    Add a metal weight above and we will price this against today's market.
+                  </div>
+                  <ul class="studio-estimate-lines" id="estimate-lines" hidden></ul>
+                  <div class="studio-estimate-caveat" id="estimate-caveat" hidden></div>
+                  <p class="studio-estimate-foot" id="estimate-foot"></p>
                 </div>
 
                 <p class="studio-market-note" id="market-note">
@@ -618,6 +626,7 @@
       renderCustomGrid();
       initMarket();
       initWeights();
+      initEstimate();
       initReferenceImage();
       initCustomForm();
     });
@@ -646,13 +655,6 @@
           ['Platinum 950', 'Platinum (950)'],
           ['925 Sterling Silver', '925 Sterling Silver']
         ],
-        budgets: [
-          'PKR 50,000 - PKR 150,000',
-          'PKR 150,000 - PKR 350,000',
-          'PKR 350,000 - PKR 750,000',
-          'PKR 750,000 - PKR 1,500,000',
-          'PKR 1,500,000+ (High Jewellery)'
-        ],
         note: 'Weights are quoted in tola at the day\'s Sarafa rate. Making charges are confirmed with your sketch.',
         weightPlaceholder: 'e.g. 10',
         weightHint: 'Optional — enter any weight you need, from a 1 tola band to a 15 tola bridal set. ' +
@@ -673,13 +675,6 @@
           ['Palladium 950', 'Palladium (950)'],
           ['925 Sterling Silver', '925 Sterling Silver']
         ],
-        budgets: [
-          'GBP 500 - GBP 1,500',
-          'GBP 1,500 - GBP 3,500',
-          'GBP 3,500 - GBP 7,500',
-          'GBP 7,500 - GBP 15,000',
-          'GBP 15,000+ (High Jewellery)'
-        ],
         note: 'UK law requires an Assay Office hallmark on gold above 1 g, platinum above 0.5 g and silver above 7.78 g. Every piece we ship to the UK is hallmarked and duty-paid.',
         weightPlaceholder: 'e.g. 12.5',
         weightHint: 'Optional — enter any weight you need, from a 2 g band to a 60 g statement piece. ' +
@@ -698,13 +693,6 @@
           ['950 Platinum', 'Platinum (950)'],
           ['950 Palladium', 'Palladium (950)'],
           ['925 Sterling Silver', '925 Sterling Silver']
-        ],
-        budgets: [
-          'EUR 600 - EUR 1,750',
-          'EUR 1,750 - EUR 4,000',
-          'EUR 4,000 - EUR 8,500',
-          'EUR 8,500 - EUR 17,500',
-          'EUR 17,500+ (High Jewellery)'
         ],
         note: 'Pieces are struck with their fineness mark (585 / 750) to the CEN standard, with a responsible-sourcing certificate for every stone.',
         weightPlaceholder: 'e.g. 12.5',
@@ -741,21 +729,16 @@
     function applyRegion(userChanged) {
       const market = MARKETS[currentRegion()];
       const metal = document.getElementById('metal-select');
-      const budget = document.getElementById('budget-select');
       const unit = document.getElementById('metal-weight-unit');
       const noteText = document.getElementById('market-note-text');
       const weight = document.getElementById('metal-weight');
 
       const keepMetal = userChanged ? '' : metal.value;
-      const keepBudget = userChanged ? '' : budget.value;
 
       metal.innerHTML = market.metals
         .map(([value, label]) => `<option value="${value}">${label}</option>`).join('');
-      budget.innerHTML = market.budgets
-        .map(value => `<option value="${value}">${budgetLabel(value)}</option>`).join('');
 
       if (keepMetal && market.metals.some(([v]) => v === keepMetal)) metal.value = keepMetal;
-      if (keepBudget && market.budgets.includes(keepBudget)) budget.value = keepBudget;
 
       // Only move the unit when the customer switches market. Overriding a
       // unit they picked themselves would silently change the weight's meaning.
@@ -770,20 +753,7 @@
       weight.placeholder = market.weightPlaceholder;
       document.getElementById('metal-weight-hint').textContent = market.weightHint;
       noteText.textContent = market.note;
-    }
-
-    /**
-     * How a budget band is shown, as against how it is stored.
-     *
-     * A band is stored with its ISO code on both ends — "GBP 500 - GBP 1,500" —
-     * so a request read months later is never ambiguous about its currency.
-     * The customer reading the dropdown wants "£500 – £1,500", which means
-     * replacing every code in the string and not just the leading one.
-     */
-    function budgetLabel(value) {
-      const symbol = value.startsWith('GBP') ? '£' : value.startsWith('EUR') ? '€' : '';
-      const shown = symbol ? value.replace(/(GBP|EUR) /g, symbol) : value;
-      return shown.replace(' - ', ' – ');
+      renderEstimate();
     }
 
     /** Solid metal has no stones to weigh, so those fields leave the form. */
@@ -843,6 +813,235 @@
       // of a round brilliant scales with the cube root of its weight.
       const mm = 6.5 * Math.cbrt(ct);
       out.textContent = `≈ ${tidy(ct, 2)} ct · about ${tidy(mm, 1)} mm across as a round brilliant`;
+    }
+
+    /* ---------------------------------------------------------------- *
+     * The live price estimate
+     * ---------------------------------------------------------------- */
+
+    /**
+     * Priced here in the browser, and priced again on the server.
+     *
+     * The arithmetic below mirrors server/utils/pricing.js. That duplication
+     * is deliberate: an estimate fetched over the network would lag every
+     * keystroke, and a cold serverless call can take seconds, so a figure
+     * that only appears after a round trip reads as broken. What the customer
+     * sees here is a preview computed from a rate card the server handed
+     * over; what gets stored on the commission is recomputed server-side from
+     * the same card, so a payload claiming its own price is simply ignored.
+     *
+     * The card is fetched once on load. If it cannot be fetched — the metal
+     * feed is down, the customer is offline — the panel says so and the form
+     * still submits, because a brief without a price is worth far more than
+     * no brief at all.
+     */
+    let rateCard = null;
+    let liveRates = null;
+    const GRAMS_PER_TROY_OZ = 31.1034768;
+
+    async function initEstimate() {
+      ['metal-select', 'gemstone-select', 'stone-quality', 'metal-weight', 'metal-weight-unit',
+        'centre-carat', 'centre-carat-unit', 'total-carat'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) { el.addEventListener('input', renderEstimate); el.addEventListener('change', renderEstimate); }
+        });
+      document.querySelectorAll('input[name="item_type"]').forEach(el =>
+        el.addEventListener('change', renderEstimate));
+
+      try {
+        const res = await fetch('/api/gold-rates/rate-card');
+        const data = await res.json();
+        if (!res.ok || !data.success) throw new Error(data.message || 'rate card unavailable');
+        rateCard = data.card;
+        liveRates = data.rates;
+      } catch (e) {
+        rateCard = null;
+      }
+      renderEstimate();
+    }
+
+    /** Read the metal name the same way the server does. */
+    function readMetal(name) {
+      const s = String(name || '');
+      if (!s) return null;
+      const fineness = () => {
+        const m = s.match(/\b(333|375|417|585|750|833|875|916|917|925|950|990|999)\b/);
+        return m ? Number(m[1]) / 1000 : null;
+      };
+      if (/platinum/i.test(s)) return { kind: 'platinum', fineness: fineness() || 0.95 };
+      if (/palladium/i.test(s)) return { kind: 'palladium', fineness: fineness() || 0.95 };
+      if (/silver/i.test(s)) return { kind: 'silver', fineness: fineness() || 0.925 };
+      const f = fineness();
+      if (f) return { kind: 'gold', fineness: f };
+      const k = s.match(/(\d{1,2})\s*(?:k|ct)\b/i);
+      if (k && Number(k[1]) >= 1 && Number(k[1]) <= 24) return { kind: 'gold', fineness: Number(k[1]) / 24 };
+      return null;
+    }
+
+    function computeEstimate() {
+      if (!rateCard || !liveRates) return { priced: false, reason: 'offline' };
+
+      const region = currentRegion();
+      const currency = { PK: 'PKR', UK: 'GBP', EU: 'EUR' }[region];
+      const grams = gramsEntered();
+      const metal = readMetal(document.getElementById('metal-select').value);
+
+      if (!grams) return { priced: false, reason: 'weight', currency };
+      if (!metal) return { priced: false, reason: 'metal', currency };
+
+      const fx = region === 'PK'
+        ? liveRates.usdPkr * (1 + (liveRates.premiumPercent || 0) / 100)
+        : region === 'UK' ? liveRates.usdGbp : liveRates.usdEur;
+      const spot = { gold: liveRates.xauUsd, silver: liveRates.xagUsd,
+        platinum: liveRates.xptUsd, palladium: liveRates.xpdUsd }[metal.kind];
+      if (!fx || !spot) return { priced: false, reason: 'feed', currency, metalKind: metal.kind };
+
+      const perGramUsd = spot / GRAMS_PER_TROY_OZ;
+      const metalUsd = grams * metal.fineness * perGramUsd;
+
+      const stones = stoneCostUsd(region);
+
+      const rule = rateCard.making[region];
+      const itemFactor = rateCard.itemFactors[selectedItemType()] || 1;
+      const makingUsd = Math.max(
+        (rule.perGram / fx) * grams,
+        metalUsd * rule.percent / 100,
+        (rule.minimum || 0) / fx
+      ) * itemFactor;
+
+      const beforeTax = metalUsd + stones.usd + makingUsd;
+      const taxUsd = beforeTax * (rateCard.dutyTaxPercent[region] || 0) / 100;
+      const local = usd => roundMoney(usd * fx, currency);
+
+      const lines = [{ label: `Metal — ${round1(grams)} g at ${Math.round(metal.fineness * 1000)} fineness`, amount: local(metalUsd) }];
+      if (stones.stonesUsd > 0) lines.push({ label: `Stones — ${stones.label}`, amount: local(stones.stonesUsd) });
+      if (stones.settingUsd > 0) lines.push({ label: 'Stone setting', amount: local(stones.settingUsd) });
+      lines.push({ label: 'Craftsmanship & finishing', amount: local(makingUsd) });
+      if (taxUsd > 0) {
+        lines.push({ label: region === 'UK' ? 'Duty, VAT & hallmarking' : 'Duty & VAT', amount: local(taxUsd) });
+      }
+
+      const mid = (beforeTax + taxUsd) * fx;
+      const spread = rateCard.spreadPercent / 100;
+      return {
+        priced: true, currency, lines,
+        low: roundMoney(mid * (1 - spread), currency),
+        high: roundMoney(mid * (1 + spread), currency),
+        unpriceable: stones.unpriceable
+      };
+    }
+
+    /** Stones, in USD — centre at its own tier, the remainder as melee. */
+    function stoneCostUsd(region) {
+      const gem = document.getElementById('gemstone-select').value;
+      const quality = document.getElementById('stone-quality').value;
+      const grade = rateCard.gradeFactors[quality] ?? rateCard.gradeFactors[''] ?? 1;
+
+      const solid = gem === 'No Gemstone (Solid Metal)';
+      const isDiamond = /diamond/i.test(gem);
+      const isLab = /lab-grown/i.test(gem);
+      const flat = rateCard.gemUsdPerCarat[gem];
+
+      if (gem === 'Custom Combination') {
+        return { usd: 0, stonesUsd: 0, settingUsd: 0, label: '', unpriceable: 'the stone combination you described' };
+      }
+      if (solid || (flat === undefined && !isDiamond)) {
+        return { usd: 0, stonesUsd: 0, settingUsd: 0, label: '', unpriceable: solid ? null : gem };
+      }
+
+      const centre = Number(centreCarats()) || 0;
+      const total = parseFloat(document.getElementById('total-carat').value) || 0;
+      const melee = Math.max(0, total - centre);
+
+      const tier = ct => {
+        for (const t of rateCard.diamondTiersUsd) if (ct <= (t.upTo === null ? Infinity : t.upTo)) return t.perCarat;
+        return rateCard.diamondTiersUsd[rateCard.diamondTiersUsd.length - 1].perCarat;
+      };
+
+      let stonesUsd = 0;
+      const parts = [];
+      if (centre > 0) {
+        const per = isDiamond ? tier(centre) * grade * (isLab ? rateCard.labGrownFactor : 1) : flat;
+        stonesUsd += centre * per;
+        parts.push(round2(centre) + ' ct');
+      }
+      if (melee > 0) {
+        const per = isDiamond
+          ? rateCard.meleeUsdPerCarat * grade * (isLab ? rateCard.labGrownFactor : 1) : flat;
+        stonesUsd += melee * per;
+        parts.push(round2(melee) + ' ct');
+      }
+      const settingUsd = (centre + melee) * rateCard.settingUsdPerCarat;
+      return { usd: stonesUsd + settingUsd, stonesUsd, settingUsd, label: parts.join(' + '), unpriceable: null };
+    }
+
+    function selectedItemType() {
+      const el = document.querySelector('input[name="item_type"]:checked');
+      return el ? el.value : 'Custom Ring';
+    }
+
+    /** The metal weight in grams, whichever unit it was typed in. */
+    function gramsEntered() {
+      const amount = parseFloat(document.getElementById('metal-weight').value);
+      if (!Number.isFinite(amount) || amount <= 0) return 0;
+      return amount * (GRAMS_PER_UNIT[document.getElementById('metal-weight-unit').value] || 1);
+    }
+
+    // Mirrors roundMoney() on the server: a quotation reading "PKR 4,183,617"
+    // claims a precision it does not have, and a figure that twitches every
+    // time gold ticks looks broken rather than live.
+    const roundMoney = (n, currency) => {
+      const step = currency === 'PKR' ? 1000 : 10;
+      return Math.max(0, Math.round((Number(n) || 0) / step) * step);
+    };
+    const round1 = n => Math.round(Number(n) * 10) / 10;
+    const round2 = n => Math.round(Number(n) * 100) / 100;
+    const money = (n, currency) => `${currency} ${Number(n).toLocaleString('en-US')}`;
+
+    let lastEstimate = null;
+
+    function renderEstimate() {
+      const figure = document.getElementById('estimate-figure');
+      const linesEl = document.getElementById('estimate-lines');
+      const caveat = document.getElementById('estimate-caveat');
+      const foot = document.getElementById('estimate-foot');
+      const live = document.getElementById('estimate-live');
+      if (!figure) return;
+
+      const est = computeEstimate();
+      lastEstimate = est;
+
+      if (!est.priced) {
+        figure.classList.add('pending');
+        linesEl.hidden = true;
+        caveat.hidden = true;
+        live.hidden = true;
+        figure.textContent = {
+          offline: 'We cannot reach the live metal market just now, so we will price this by hand and send it with your sketch.',
+          weight: 'Add a metal weight above and we will price this against today\'s market.',
+          metal: 'Choose a metal and we will price this against today\'s market.',
+          feed: `Today's ${est.metalKind || 'metal'} price is unavailable, so we will quote this one by hand.`
+        }[est.reason] || 'We will price this by hand and send it with your sketch.';
+        foot.textContent = '';
+        return;
+      }
+
+      figure.classList.remove('pending');
+      figure.textContent = `${money(est.low, est.currency)} – ${money(est.high, est.currency)}`;
+      live.hidden = false;
+
+      linesEl.hidden = false;
+      linesEl.innerHTML = est.lines
+        .map(l => `<li><span>${l.label}</span><span>${money(l.amount, est.currency)}</span></li>`).join('');
+
+      caveat.hidden = !est.unpriceable;
+      if (est.unpriceable) {
+        caveat.textContent = `This figure does not yet include ${est.unpriceable} — we will price that with you directly.`;
+      }
+
+      foot.textContent = 'An estimate, not a quotation. Metal is priced at ' +
+        (liveRates && liveRates.lastUpdated ? liveRates.lastUpdated.toLowerCase() : 'today\'s market') +
+        ' and moves with the market; stones and craftsmanship are confirmed once our jeweller has seen your design.';
     }
 
     /**
@@ -1005,7 +1204,6 @@
         const metal = document.getElementById('metal-select').value;
         const gemstone = document.getElementById('gemstone-select').value;
         const engraving = document.getElementById('engraving-text').value.trim();
-        const budget = document.getElementById('budget-select').value;
         const desc = document.getElementById('design-desc').value.trim();
         const refUrl = document.getElementById('reference-url').value.trim();
 
@@ -1072,7 +1270,9 @@
               totalCarat,
               stoneQuality,
               customText: engraving,
-              budgetRange: budget,
+              // No budgetRange is sent. The price on the commission is the one
+              // the server works out from today's market, not one this page
+              // asserts — a payload could otherwise name its own figure.
               notes: desc + '\n\nDelivery address: ' + address +
                 (referenceImageName && !referenceImageData
                   ? '\nReference photo "' + referenceImageName + '" was too large to attach.'
@@ -1136,7 +1336,11 @@
           status: 'Submitted',
           date: saved.date || new Date().toISOString().split('T')[0],
           details: {
-            itemType, metal, gemstone, engraving, budget, desc, refUrl, region,
+            itemType, metal, gemstone, engraving, desc, refUrl, region,
+            // Read back from the record, so the receipt shows the figure the
+            // shop actually holds rather than the preview this page drew.
+            budget: saved.budgetRange || 'To be quoted by hand',
+            estimated: !!saved.estimateLow,
             metalWeight: describeWeight(saved),
             centreStoneCarat: saved.centreStoneCarat || 0,
             totalCarat: saved.totalCarat || 0,
@@ -1205,9 +1409,13 @@
               <span style="color:#fff;">${order.details.centreStoneCarat} ct</span>
             </div>` : ''}
             <div style="display:flex;justify-content:space-between;gap:16px;margin-bottom:10px;">
-              <span>Estimated budget</span>
+              <span>${order.details.estimated ? 'Indicative price' : 'Price'}</span>
               <span style="color:#fff;">${order.details.budget}</span>
             </div>
+            ${order.details.estimated ? `
+            <div style="font-size:11px;color:rgba(255,255,255,0.5);margin:-4px 0 10px;line-height:1.5;">
+              Based on the metal market at the moment you submitted. Your firm quotation follows with the sketches.
+            </div>` : ''}
             <div style="display:flex;justify-content:space-between;gap:16px;margin-bottom:10px;">
               <span>Status</span>
               <span class="admin-status-tag lowstock" style="padding:2px 8px;font-size:10px;">Quote pending</span>

@@ -255,7 +255,9 @@ async function sendCustomOrderEmail(order) {
     ['Metal Weight', weightLine],
     ['Gem Preference', order.gemPreference],
     ['Stones', stoneLine],
-    ['Budget Range', order.budgetRange],
+    ['Indicative Price', order.estimateLow
+      ? `${order.budgetRange}<br><span style="color:#888;font-size:11px;">Estimate only — based on the metal market when you submitted. Your firm quotation follows.</span>`
+      : order.budgetRange],
     ['Engraving', order.customText ? `"${order.customText}"` : ''],
     ['Notes', order.notes]
   ]

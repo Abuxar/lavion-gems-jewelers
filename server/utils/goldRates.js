@@ -31,8 +31,11 @@ const KARAT_PURITY = {
 const SANITY = {
   xauUsd: [500, 20000],
   xagUsd: [3, 500],
+  xptUsd: [200, 10000],
+  xpdUsd: [200, 10000],
   usdPkr: [100, 1000],
-  usdGbp: [0.3, 2]
+  usdGbp: [0.3, 2],
+  usdEur: [0.3, 2]
 };
 
 const inRange = (v, [lo, hi]) => Number.isFinite(v) && v >= lo && v <= hi;
@@ -61,13 +64,21 @@ const METAL_SOURCES = [
     name: 'gold-api.com',
     spot: true,
     async fetch() {
-      const [xau, xag] = await Promise.all([
+      // Gold decides whether the fetch succeeded at all; the other three are
+      // allowed to fail on their own. Platinum and palladium are only needed
+      // to price a bespoke commission, and a missing one should not cost the
+      // whole site its gold ticker.
+      const [xau, xag, xpt, xpd] = await Promise.all([
         getJson('https://api.gold-api.com/price/XAU'),
-        getJson('https://api.gold-api.com/price/XAG').catch(() => null)
+        getJson('https://api.gold-api.com/price/XAG').catch(() => null),
+        getJson('https://api.gold-api.com/price/XPT').catch(() => null),
+        getJson('https://api.gold-api.com/price/XPD').catch(() => null)
       ]);
       return {
         xauUsd: parseFloat(xau && xau.price),
-        xagUsd: xag ? parseFloat(xag.price) : NaN
+        xagUsd: xag ? parseFloat(xag.price) : NaN,
+        xptUsd: xpt ? parseFloat(xpt.price) : NaN,
+        xpdUsd: xpd ? parseFloat(xpd.price) : NaN
       };
     }
   },
@@ -83,8 +94,11 @@ const METAL_SOURCES = [
         );
         return parseFloat(j?.chart?.result?.[0]?.meta?.regularMarketPrice);
       };
-      const [xau, xag] = await Promise.all([one('GC=F'), one('SI=F').catch(() => NaN)]);
-      return { xauUsd: xau, xagUsd: xag };
+      const [xau, xag, xpt, xpd] = await Promise.all([
+        one('GC=F'), one('SI=F').catch(() => NaN),
+        one('PL=F').catch(() => NaN), one('PA=F').catch(() => NaN)
+      ]);
+      return { xauUsd: xau, xagUsd: xag, xptUsd: xpt, xpdUsd: xpd };
     }
   }
 ];
@@ -94,14 +108,22 @@ const FX_SOURCES = [
     name: 'open.er-api.com',
     async fetch() {
       const j = await getJson('https://open.er-api.com/v6/latest/USD');
-      return { usdPkr: parseFloat(j?.rates?.PKR), usdGbp: parseFloat(j?.rates?.GBP) };
+      return {
+        usdPkr: parseFloat(j?.rates?.PKR),
+        usdGbp: parseFloat(j?.rates?.GBP),
+        usdEur: parseFloat(j?.rates?.EUR)
+      };
     }
   },
   {
     name: 'exchangerate-api.com',
     async fetch() {
       const j = await getJson('https://api.exchangerate-api.com/v4/latest/USD');
-      return { usdPkr: parseFloat(j?.rates?.PKR), usdGbp: parseFloat(j?.rates?.GBP) };
+      return {
+        usdPkr: parseFloat(j?.rates?.PKR),
+        usdGbp: parseFloat(j?.rates?.GBP),
+        usdEur: parseFloat(j?.rates?.EUR)
+      };
     }
   }
 ];
@@ -169,10 +191,16 @@ function computeRates(m, fx, cal = {}) {
     rate18kPerTolaGBP: perKarat(pureTolaGbp, 18),
 
     // --- provenance, so the UI can be honest about what it is showing ---
+    // These raw inputs are also what the bespoke estimator prices against:
+    // it needs platinum and palladium spot, and euros, none of which the
+    // ticker itself displays.
     xauUsd: Math.round(m.xauUsd * 100) / 100,
     xagUsd: Number.isFinite(m.xagUsd) ? Math.round(m.xagUsd * 100) / 100 : null,
+    xptUsd: Number.isFinite(m.xptUsd) ? Math.round(m.xptUsd * 100) / 100 : null,
+    xpdUsd: Number.isFinite(m.xpdUsd) ? Math.round(m.xpdUsd * 100) / 100 : null,
     usdPkr: Math.round(usdPkr * 100) / 100,
     usdGbp: Math.round(fx.usdGbp * 10000) / 10000,
+    usdEur: Number.isFinite(fx.usdEur) ? Math.round(fx.usdEur * 10000) / 10000 : null,
     premiumPercent: Number(cal.premiumPercent) || 0,
     usdPkrIsOverride: usdPkr !== fx.usdPkr,
     fetchedAt: new Date().toISOString()
@@ -208,6 +236,21 @@ async function fetchRates(cal = {}) {
   if (!inRange(metals.xagUsd, SANITY.xagUsd)) {
     warnings.push('Silver price unavailable; silver rate omitted rather than guessed.');
     metals.xagUsd = NaN;
+  }
+  // Omitted rather than guessed, for the same reason as silver: the estimator
+  // would rather tell a customer it cannot price platinum today than quote
+  // them a number derived from nothing.
+  if (!inRange(metals.xptUsd, SANITY.xptUsd)) {
+    warnings.push('Platinum price unavailable; platinum commissions cannot be estimated automatically.');
+    metals.xptUsd = NaN;
+  }
+  if (!inRange(metals.xpdUsd, SANITY.xpdUsd)) {
+    warnings.push('Palladium price unavailable; palladium commissions cannot be estimated automatically.');
+    metals.xpdUsd = NaN;
+  }
+  if (!inRange(fx.usdEur, SANITY.usdEur)) {
+    warnings.push('EUR rate unavailable; European estimates cannot be shown.');
+    fx.usdEur = NaN;
   }
   if (!metals.isSpot) {
     warnings.push(`Spot feed unavailable — using ${metals.source} futures, which run above spot.`);
@@ -251,8 +294,14 @@ function fromManual24k(rate24kPerTola, previous = {}) {
     rate22kPerTolaGBP: perKarat(baseGbp, 22),
     rate18kPerTolaGBP: perKarat(baseGbp, 18),
 
+    // Carried through, not recomputed: a manual 24k figure says nothing about
+    // platinum or the euro, and dropping them would silently disable the
+    // bespoke estimator for every metal but gold.
     xauUsd: previous.xauUsd ?? null,
     xagUsd: previous.xagUsd ?? null,
+    xptUsd: previous.xptUsd ?? null,
+    xpdUsd: previous.xpdUsd ?? null,
+    usdEur: previous.usdEur ?? null,
     usdPkr,
     usdGbp,
     premiumPercent: previous.premiumPercent ?? 0,

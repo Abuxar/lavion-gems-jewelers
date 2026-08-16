@@ -23,10 +23,25 @@ const GoldRateSchema = new mongoose.Schema({
   rate18kPerTolaGBP: { type: Number, default: null },
 
   // --- inputs, kept for transparency and for manual recomputation ---
+  // Platinum, palladium and the euro appear in no ticker on the site; they
+  // are here because the bespoke estimator prices commissions against them.
   xauUsd: { type: Number, default: null },
   xagUsd: { type: Number, default: null },
+  xptUsd: { type: Number, default: null },
+  xpdUsd: { type: Number, default: null },
   usdPkr: { type: Number, default: null },
   usdGbp: { type: Number, default: null },
+  usdEur: { type: Number, default: null },
+
+  /**
+   * Admin overrides for the bespoke rate card — stone prices per carat,
+   * making charges, duty. Stones have no public live feed the way metal does,
+   * so these are judgement figures that have to be adjustable without a
+   * redeploy or they go stale and quote the shop out of business.
+   * Only the keys the admin has actually changed are stored; the rest fall
+   * back to the defaults in utils/pricing.js.
+   */
+  rateCard: { type: mongoose.Schema.Types.Mixed, default: null },
 
   // --- calibration to the local market ---
   premiumPercent: { type: Number, default: 0 },

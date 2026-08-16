@@ -1164,6 +1164,100 @@
             </div>
           </div>
 
+          <!--
+            The judgement half of the bespoke estimator.
+
+            Metal has a live feed and needs no control. Stones and labour do
+            not — these are the shop's own figures, and without somewhere to
+            change them the studio quietly goes on quoting whatever the
+            diamond market looked like on the day this was written.
+          -->
+          <div style="background:#12100e; border:1px solid rgba(200,169,110,0.45); border-radius:8px; padding:24px; margin-bottom:28px;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px; flex-wrap:wrap; gap:12px;">
+              <div>
+                <h3 style="font-family:var(--font-serif); font-size:22px; color:var(--color-gold-light);">Bespoke Estimator — Stone &amp; Labour Rates</h3>
+                <p style="font-size:12px; color:rgba(255,255,255,0.6); margin-top:4px; max-width:640px; line-height:1.6;">
+                  Gold, silver, platinum and palladium are priced automatically from the live market. The figures below are the ones
+                  that cannot be — review them when the diamond market moves. Last revised <strong id="ratecard-revised" style="color:var(--color-gold-light);">—</strong>.
+                </p>
+              </div>
+              <button type="button" class="admin-primary-btn" id="ratecard-save-btn" style="padding:8px 16px; font-size:11px;">
+                Save Rate Card
+              </button>
+            </div>
+
+            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(190px, 1fr)); gap:14px; margin-top:18px;">
+              <div class="admin-form-group" style="margin:0;">
+                <label style="color:var(--color-gold-light);">1.00 ct diamond — USD / ct</label>
+                <input type="number" id="rc-diamond-1ct" min="0" step="50" style="background:#1c1a17; border:1px solid rgba(200,169,110,0.4); color:#fff; padding:9px; border-radius:6px;" />
+                <small style="color:rgba(255,255,255,0.45); font-size:11px;">G–H / VS baseline. Other sizes scale from the tier table.</small>
+              </div>
+              <div class="admin-form-group" style="margin:0;">
+                <label style="color:var(--color-gold-light);">Melee (pavé) — USD / ct</label>
+                <input type="number" id="rc-melee" min="0" step="20" style="background:#1c1a17; border:1px solid rgba(200,169,110,0.4); color:#fff; padding:9px; border-radius:6px;" />
+              </div>
+              <div class="admin-form-group" style="margin:0;">
+                <label style="color:var(--color-gold-light);">Lab-grown factor</label>
+                <input type="number" id="rc-labgrown" min="0.01" max="1" step="0.01" style="background:#1c1a17; border:1px solid rgba(200,169,110,0.4); color:#fff; padding:9px; border-radius:6px;" />
+                <small style="color:rgba(255,255,255,0.45); font-size:11px;">Share of the natural price. Falling year on year.</small>
+              </div>
+              <div class="admin-form-group" style="margin:0;">
+                <label style="color:var(--color-gold-light);">Stone setting — USD / ct</label>
+                <input type="number" id="rc-setting" min="0" step="5" style="background:#1c1a17; border:1px solid rgba(200,169,110,0.4); color:#fff; padding:9px; border-radius:6px;" />
+              </div>
+              <div class="admin-form-group" style="margin:0;">
+                <label style="color:var(--color-gold-light);">Emerald / Ruby / Sapphire — USD / ct</label>
+                <div style="display:flex; gap:6px;">
+                  <input type="number" id="rc-emerald" min="0" step="50" title="Colombian Emerald" style="background:#1c1a17; border:1px solid rgba(200,169,110,0.4); color:#fff; padding:9px; border-radius:6px; width:100%;" />
+                  <input type="number" id="rc-ruby" min="0" step="50" title="Burmese Ruby" style="background:#1c1a17; border:1px solid rgba(200,169,110,0.4); color:#fff; padding:9px; border-radius:6px; width:100%;" />
+                  <input type="number" id="rc-sapphire" min="0" step="50" title="Ceylon Blue Sapphire" style="background:#1c1a17; border:1px solid rgba(200,169,110,0.4); color:#fff; padding:9px; border-radius:6px; width:100%;" />
+                </div>
+              </div>
+              <div class="admin-form-group" style="margin:0;">
+                <label style="color:var(--color-gold-light);">Estimate spread ±%</label>
+                <input type="number" id="rc-spread" min="0" max="60" step="1" style="background:#1c1a17; border:1px solid rgba(200,169,110,0.4); color:#fff; padding:9px; border-radius:6px;" />
+              </div>
+            </div>
+
+            <div style="border-top:1px solid rgba(255,255,255,0.08); margin-top:20px; padding-top:16px;">
+              <p style="font-size:11px; color:rgba(255,255,255,0.5); letter-spacing:1.5px; text-transform:uppercase; margin-bottom:12px;">Making charges &amp; duty, by market</p>
+              <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(230px, 1fr)); gap:14px;">
+                <div class="admin-form-group" style="margin:0;">
+                  <label style="color:var(--color-gold-light);">Pakistan — PKR/g · % · minimum · duty%</label>
+                  <div style="display:flex; gap:6px;">
+                    <input type="number" id="rc-mk-PK-perGram" min="0" step="50" title="PKR per gram" style="background:#1c1a17; border:1px solid rgba(200,169,110,0.4); color:#fff; padding:9px; border-radius:6px; width:100%;" />
+                    <input type="number" id="rc-mk-PK-percent" min="0" step="0.5" title="% of metal value" style="background:#1c1a17; border:1px solid rgba(200,169,110,0.4); color:#fff; padding:9px; border-radius:6px; width:100%;" />
+                    <input type="number" id="rc-mk-PK-minimum" min="0" step="500" title="Minimum charge" style="background:#1c1a17; border:1px solid rgba(200,169,110,0.4); color:#fff; padding:9px; border-radius:6px; width:100%;" />
+                    <input type="number" id="rc-duty-PK" min="0" max="100" step="0.5" title="Duty & tax %" style="background:#1c1a17; border:1px solid rgba(200,169,110,0.4); color:#fff; padding:9px; border-radius:6px; width:100%;" />
+                  </div>
+                </div>
+                <div class="admin-form-group" style="margin:0;">
+                  <label style="color:var(--color-gold-light);">United Kingdom — GBP/g · % · minimum · duty%</label>
+                  <div style="display:flex; gap:6px;">
+                    <input type="number" id="rc-mk-UK-perGram" min="0" step="1" title="GBP per gram" style="background:#1c1a17; border:1px solid rgba(200,169,110,0.4); color:#fff; padding:9px; border-radius:6px; width:100%;" />
+                    <input type="number" id="rc-mk-UK-percent" min="0" step="0.5" title="% of metal value" style="background:#1c1a17; border:1px solid rgba(200,169,110,0.4); color:#fff; padding:9px; border-radius:6px; width:100%;" />
+                    <input type="number" id="rc-mk-UK-minimum" min="0" step="10" title="Minimum charge" style="background:#1c1a17; border:1px solid rgba(200,169,110,0.4); color:#fff; padding:9px; border-radius:6px; width:100%;" />
+                    <input type="number" id="rc-duty-UK" min="0" max="100" step="0.5" title="Duty, VAT & hallmarking %" style="background:#1c1a17; border:1px solid rgba(200,169,110,0.4); color:#fff; padding:9px; border-radius:6px; width:100%;" />
+                  </div>
+                </div>
+                <div class="admin-form-group" style="margin:0;">
+                  <label style="color:var(--color-gold-light);">Europe — EUR/g · % · minimum · duty%</label>
+                  <div style="display:flex; gap:6px;">
+                    <input type="number" id="rc-mk-EU-perGram" min="0" step="1" title="EUR per gram" style="background:#1c1a17; border:1px solid rgba(200,169,110,0.4); color:#fff; padding:9px; border-radius:6px; width:100%;" />
+                    <input type="number" id="rc-mk-EU-percent" min="0" step="0.5" title="% of metal value" style="background:#1c1a17; border:1px solid rgba(200,169,110,0.4); color:#fff; padding:9px; border-radius:6px; width:100%;" />
+                    <input type="number" id="rc-mk-EU-minimum" min="0" step="10" title="Minimum charge" style="background:#1c1a17; border:1px solid rgba(200,169,110,0.4); color:#fff; padding:9px; border-radius:6px; width:100%;" />
+                    <input type="number" id="rc-duty-EU" min="0" max="100" step="0.5" title="Duty & VAT %" style="background:#1c1a17; border:1px solid rgba(200,169,110,0.4); color:#fff; padding:9px; border-radius:6px; width:100%;" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- A worked example, so a changed number is visibly a changed price. -->
+            <div id="ratecard-preview" style="margin-top:18px; padding:14px 16px; background:#1c1a17; border-radius:6px; border:1px solid rgba(255,255,255,0.08); font-size:12.5px; color:rgba(255,255,255,0.75); line-height:1.7;">
+              Loading worked examples…
+            </div>
+          </div>
+
           <div style="background:#1c1a17; padding:24px; border-radius:8px; border:1px solid rgba(200,169,110,0.2);">
             <h3 style="font-family:var(--font-serif); font-size:22px; color:var(--color-gold-light); margin-bottom:12px;">Quick Management Actions</h3>
             <p style="color:rgba(255,255,255,0.7); font-size:14px; margin-bottom:20px; line-height:1.6;">

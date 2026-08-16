@@ -1,79 +1,12 @@
 const express = require('express');
 const router = express.Router();
-const { readData, writeDataOrThrow, failWith } = require('../utils/db');
+const { failWith } = require('../utils/db');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
-const { isMongoConnected } = require('../config/db');
-const GoldRate = require('../models/GoldRate');
 const engine = require('../utils/goldRates');
-
-// Short enough to feel live, long enough not to hammer free upstreams.
-const CACHE_TTL_MS = 5 * 60 * 1000;
-
-let memo = { rates: null, at: 0 };
-
-/* ------------------------------------------------------------------ *
- * Persistence — Mongo when available, JSON file otherwise
- * ------------------------------------------------------------------ */
-
-async function loadStored() {
-  if (isMongoConnected()) {
-    const doc = await GoldRate.findOne().sort({ updatedAt: -1 }).lean();
-    if (doc) return doc;
-  }
-  const db = readData();
-  return db.goldRates || null;
-}
-
-async function saveStored(rates) {
-  if (isMongoConnected()) {
-    await GoldRate.findOneAndUpdate({}, { $set: rates }, { upsert: true, new: true, sort: { updatedAt: -1 } });
-  }
-  // Mirror to the file DB so local development keeps working without Mongo.
-  try {
-    const db = readData();
-    db.goldRates = { ...(db.goldRates || {}), ...rates };
-    writeDataOrThrow(db);
-  } catch (e) {
-    // Read-only filesystem (Vercel) — Mongo is the source of truth there.
-  }
-}
-
-async function loadCalibration() {
-  const stored = await loadStored();
-  return {
-    premiumPercent: Number(stored?.premiumPercent) || 0,
-    usdPkrOverride: Number(stored?.usdPkrOverride) || null
-  };
-}
-
-/** Refresh from upstream, falling back to the last good stored table. */
-async function refresh(force = false) {
-  const fresh = !force && memo.rates && (Date.now() - memo.at < CACHE_TTL_MS);
-  if (fresh) return { rates: memo.rates, cached: true, warnings: [] };
-
-  const cal = await loadCalibration();
-  const { ok, rates, warnings } = await engine.fetchRates(cal);
-
-  if (!ok) {
-    const stored = await loadStored();
-    if (stored) {
-      return {
-        rates: { ...stored, lastUpdated: (stored.lastUpdated || '') + ' (cached — feed unavailable)' },
-        cached: true,
-        warnings
-      };
-    }
-    return { rates: null, cached: false, warnings };
-  }
-
-  // Carry calibration through so the client can display it.
-  rates.premiumPercent = cal.premiumPercent;
-  rates.usdPkrOverride = cal.usdPkrOverride;
-
-  memo = { rates, at: Date.now() };
-  await saveStored(rates);
-  return { rates, cached: false, warnings };
-}
+const pricing = require('../utils/pricing');
+// The table, its cache and its persistence live in utils/rateStore so the
+// bespoke estimator can read the same rates without importing this route.
+const { loadStored, saveStored, refresh, invalidate, put } = require('../utils/rateStore');
 
 /* ------------------------------------------------------------------ *
  * Routes
@@ -94,6 +27,125 @@ router.get('/', async (req, res) => {
   } catch (error) {
     console.error('[GoldRate] GET error:', error);
     failWith(res, error, 'Could not load gold rates.');
+  }
+});
+
+/**
+ * GET /api/gold-rates/rate-card
+ *
+ * Everything the studio page needs to price a commission in the browser:
+ * today's metal spot, the FX it converts at, and the stone and labour table.
+ *
+ * The estimate is computed client-side from this so it updates as the
+ * customer types rather than after a round trip — a cold serverless call can
+ * take seconds, and an estimate that lags the form reads as broken. The
+ * server recomputes it from the same card when the brief is submitted, so
+ * what gets stored is never whatever the browser happened to say.
+ */
+router.get('/rate-card', async (req, res) => {
+  try {
+    const { rates, warnings } = await refresh(false);
+    if (!rates) {
+      return res.status(503).json({
+        success: false,
+        message: 'Live metal rates are temporarily unavailable, so we cannot estimate right now.',
+        warnings
+      });
+    }
+    const stored = await loadStored();
+    res.json({
+      success: true,
+      card: pricing.mergeCard(stored && stored.rateCard),
+      rates: {
+        xauUsd: rates.xauUsd, xagUsd: rates.xagUsd,
+        xptUsd: rates.xptUsd, xpdUsd: rates.xpdUsd,
+        usdPkr: rates.usdPkr, usdGbp: rates.usdGbp, usdEur: rates.usdEur,
+        premiumPercent: rates.premiumPercent || 0,
+        rate24kPerTola: rates.rate24kPerTola,
+        rate22kPerTola: rates.rate22kPerTola,
+        lastUpdated: rates.lastUpdated,
+        isSpot: rates.isSpot !== false
+      }
+    });
+  } catch (error) {
+    console.error('[GoldRate] rate-card error:', error);
+    failWith(res, error, 'Could not load the bespoke rate card.');
+  }
+});
+
+/**
+ * PATCH /api/gold-rates/rate-card — adjust the judgement half of the card.
+ *
+ * Metal needs no such control: it comes from a live feed. Stone prices,
+ * labour and duty are the shop's own numbers, and they have to be changeable
+ * from the admin panel or they silently rot until someone notices the studio
+ * has been quoting last year's diamond market.
+ */
+router.patch('/rate-card', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const patch = req.body && req.body.card;
+    if (!patch || typeof patch !== 'object' || Array.isArray(patch)) {
+      return res.status(400).json({ success: false, message: 'Send a card object with the values to change.' });
+    }
+
+    // Only keys the card actually defines, so a typo becomes an error the
+    // admin sees rather than a setting that appears to save and does nothing.
+    const unknown = Object.keys(patch).filter(k => !(k in pricing.DEFAULT_CARD));
+    if (unknown.length) {
+      return res.status(400).json({
+        success: false,
+        message: `Not part of the rate card: ${unknown.join(', ')}.`
+      });
+    }
+
+    // Read once: the stored overrides are both what the patch merges onto and
+    // what gets written back, and re-reading between the two invites a second
+    // admin's change to be silently overwritten.
+    const existing = ((await loadStored()) || {}).rateCard || {};
+
+    /**
+     * The shop's clock, not the browser's and not UTC.
+     *
+     * "Last revised" is stamped here rather than accepted from the client:
+     * an admin saving at three in the morning in Lahore is still on UTC
+     * yesterday, and a panel that answers a save by showing yesterday's date
+     * reads as a save that did not take. Asia/Karachi is the same zone the
+     * gold ticker timestamps itself in.
+     */
+    patch.revisedOn = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Karachi' });
+
+    const nextOverrides = { ...existing, ...patch };
+    const merged = pricing.mergeCard(nextOverrides);
+
+    // A negative price or a spread wider than the estimate is meaningless,
+    // and would be discovered by a customer rather than here.
+    const problems = [];
+    if (!(merged.spreadPercent >= 0 && merged.spreadPercent <= 60)) {
+      problems.push('The spread must be between 0% and 60%.');
+    }
+    if (!(merged.labGrownFactor > 0 && merged.labGrownFactor <= 1)) {
+      problems.push('The lab-grown factor must be above 0 and no more than 1.');
+    }
+    for (const [region, rule] of Object.entries(merged.making || {})) {
+      if (!(rule.perGram >= 0) || !(rule.percent >= 0) || !((rule.minimum || 0) >= 0)) {
+        problems.push(`The ${region} making charges must not be negative.`);
+      }
+    }
+    for (const [region, pct] of Object.entries(merged.dutyTaxPercent || {})) {
+      if (!(pct >= 0 && pct <= 100)) problems.push(`${region} duty must be between 0% and 100%.`);
+    }
+    for (const [gem, price] of Object.entries(merged.gemUsdPerCarat || {})) {
+      if (price !== null && !(price >= 0)) problems.push(`The price for ${gem} must not be negative.`);
+    }
+    if (problems.length) {
+      return res.status(400).json({ success: false, message: problems.join(' ') });
+    }
+
+    await saveStored({ rateCard: nextOverrides });
+    res.json({ success: true, message: 'Bespoke rate card updated.', card: merged });
+  } catch (error) {
+    console.error('[GoldRate] rate-card patch error:', error);
+    failWith(res, error, 'Could not save the rate card.');
   }
 });
 
@@ -124,7 +176,7 @@ router.put('/', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const previous = (await loadStored()) || {};
     const rates = engine.fromManual24k(req.body.rate24kPerTola, previous);
-    memo = { rates, at: Date.now() };
+    put(rates);
     await saveStored(rates);
     res.json({ success: true, message: 'Gold rates updated.', goldRates: rates });
   } catch (error) {
@@ -159,7 +211,7 @@ router.patch('/calibration', authenticateToken, requireAdmin, async (req, res) =
     }
 
     await saveStored({ premiumPercent: premium, usdPkrOverride: override });
-    memo = { rates: null, at: 0 }; // force a rebuild on the next read
+    invalidate(); // force a rebuild on the next read
 
     const { rates, warnings } = await refresh(true);
     res.json({
@@ -201,7 +253,7 @@ router.post('/calibrate-to', authenticateToken, requireAdmin, async (req, res) =
     }
 
     await saveStored({ premiumPercent: premium });
-    memo = { rates: null, at: 0 };
+    invalidate();
     const refreshed = await refresh(true);
 
     res.json({

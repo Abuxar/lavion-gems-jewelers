@@ -25,6 +25,17 @@ const CustomOrderSchema = new mongoose.Schema({
   centreStoneCarat: { type: Number, default: 0 },
   totalCarat: { type: Number, default: 0 },
   stoneQuality: { type: String, default: '' },
+  /**
+   * The indicative price the studio quoted at the moment of submission, in
+   * the market's own currency. Stored as a snapshot rather than recomputed on
+   * reading: gold moves daily, and the shop needs to know what the customer
+   * was actually shown when they pressed submit, not what the same brief
+   * would cost today.
+   */
+  estimateLow: { type: Number, default: 0 },
+  estimateHigh: { type: Number, default: 0 },
+  estimateCurrency: { type: String, default: '' },
+  estimateBasis: { type: String, default: '' },
   customText: { type: String, default: '' },
   budgetRange: { type: String, default: 'Flexible' },
   notes: { type: String, default: '' },

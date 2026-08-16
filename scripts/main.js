@@ -2089,6 +2089,198 @@
     });
 
     updateAdminLabels();
+    initRateCardControls();
+  }
+
+  /* ======================================
+     BESPOKE RATE CARD
+     The estimator's metal side is a live feed and needs no admin. Its stone
+     and labour side is the shop's own judgement, and is edited here.
+     ====================================== */
+
+  let rateCardState = null;
+  let rateCardRates = null;
+
+  // Which input maps to which place in the card. Kept as data so reading the
+  // form and writing it back cannot drift apart.
+  const RATE_CARD_FIELDS = [
+    ['rc-melee', c => c.meleeUsdPerCarat, (c, v) => { c.meleeUsdPerCarat = v; }],
+    ['rc-labgrown', c => c.labGrownFactor, (c, v) => { c.labGrownFactor = v; }],
+    ['rc-setting', c => c.settingUsdPerCarat, (c, v) => { c.settingUsdPerCarat = v; }],
+    ['rc-spread', c => c.spreadPercent, (c, v) => { c.spreadPercent = v; }],
+    ['rc-emerald', c => c.gemUsdPerCarat['Colombian Emerald'], (c, v) => { c.gemUsdPerCarat['Colombian Emerald'] = v; }],
+    ['rc-ruby', c => c.gemUsdPerCarat['Burmese Ruby'], (c, v) => { c.gemUsdPerCarat['Burmese Ruby'] = v; }],
+    ['rc-sapphire', c => c.gemUsdPerCarat['Ceylon Royal Blue Sapphire'], (c, v) => { c.gemUsdPerCarat['Ceylon Royal Blue Sapphire'] = v; }]
+  ];
+
+  ['PK', 'UK', 'EU'].forEach(r => {
+    ['perGram', 'percent', 'minimum'].forEach(k =>
+      RATE_CARD_FIELDS.push([`rc-mk-${r}-${k}`, c => c.making[r][k], (c, v) => { c.making[r][k] = v; }]));
+    RATE_CARD_FIELDS.push([`rc-duty-${r}`, c => c.dutyTaxPercent[r], (c, v) => { c.dutyTaxPercent[r] = v; }]);
+  });
+
+  /** The 1.00 ct tier is the one figure an admin actually watches. */
+  const oneCaratTier = card => (card.diamondTiersUsd || []).find(t => t.upTo === 1);
+
+  async function initRateCardControls() {
+    const saveBtn = document.getElementById('ratecard-save-btn');
+    if (!saveBtn) return;
+
+    try {
+      const res = await fetch(`${API_URL}/gold-rates/rate-card`);
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.message || 'unavailable');
+      rateCardState = data.card;
+      rateCardRates = data.rates;
+    } catch (e) {
+      document.getElementById('ratecard-preview').textContent =
+        'The live metal feed is unreachable, so the rate card cannot be loaded or saved right now.';
+      saveBtn.disabled = true;
+      return;
+    }
+
+    const revised = document.getElementById('ratecard-revised');
+    if (revised) revised.textContent = rateCardState.revisedOn || '—';
+
+    RATE_CARD_FIELDS.forEach(([id, read]) => {
+      const el = document.getElementById(id);
+      if (el) { el.value = read(rateCardState); el.addEventListener('input', renderRateCardPreview); }
+    });
+    const oneCt = document.getElementById('rc-diamond-1ct');
+    if (oneCt) {
+      oneCt.value = (oneCaratTier(rateCardState) || {}).perCarat || '';
+      oneCt.addEventListener('input', renderRateCardPreview);
+    }
+
+    saveBtn.addEventListener('click', saveRateCard);
+    renderRateCardPreview();
+  }
+
+  /** The card as the form currently reads, without saving it. */
+  function readRateCardForm() {
+    const card = JSON.parse(JSON.stringify(rateCardState));
+    RATE_CARD_FIELDS.forEach(([id, , write]) => {
+      const el = document.getElementById(id);
+      if (el && el.value !== '') write(card, Number(el.value));
+    });
+
+    // The whole diamond tier table is scaled by whatever the 1 ct figure is
+    // moved to, so the curve keeps its shape instead of developing a step at
+    // exactly one carat.
+    const oneCt = Number(document.getElementById('rc-diamond-1ct')?.value);
+    const current = oneCaratTier(rateCardState);
+    if (oneCt > 0 && current && current.perCarat > 0) {
+      const scale = oneCt / current.perCarat;
+      card.diamondTiersUsd = rateCardState.diamondTiersUsd.map(t => ({
+        upTo: t.upTo,
+        perCarat: Math.round(t.perCarat * scale)
+      }));
+    }
+    return card;
+  }
+
+  /**
+   * Two worked examples, priced by the same arithmetic the studio page uses.
+   * A rate card is abstract; "this moves a 1 ct solitaire to £5,100" is not.
+   */
+  function renderRateCardPreview() {
+    const box = document.getElementById('ratecard-preview');
+    if (!box || !rateCardState || !rateCardRates) return;
+    const card = readRateCardForm();
+
+    const rows = [
+      ['1 tola 22k plain band, Pakistan',
+        { region: 'PK', metal: '22k Yellow Gold', grams: 11.664, itemType: 'Custom Ring', gem: 'No Gemstone (Solid Metal)' }],
+      ['1.00 ct solitaire, 4 g 18ct white gold, UK',
+        { region: 'UK', metal: '18ct White Gold (750)', grams: 4, itemType: 'Custom Ring', gem: 'GIA Certified Diamond', centre: 1, total: 1, quality: 'G–H / VS (Fine)' }]
+    ];
+
+    box.innerHTML = rows.map(([label, spec]) => {
+      const e = estimateWithCard(spec, card);
+      return `<div style="display:flex;justify-content:space-between;gap:16px;">
+        <span>${label}</span>
+        <strong style="color:var(--color-gold-light);white-space:nowrap;">${e || 'not priceable'}</strong>
+      </div>`;
+    }).join('');
+  }
+
+  /**
+   * A trimmed copy of the studio's estimator, enough for the worked examples.
+   * The authority is server/utils/pricing.js; this exists so an admin can see
+   * the effect of a change before saving it.
+   */
+  function estimateWithCard(spec, card) {
+    const r = rateCardRates;
+    const fx = spec.region === 'PK' ? r.usdPkr * (1 + (r.premiumPercent || 0) / 100)
+      : spec.region === 'UK' ? r.usdGbp : r.usdEur;
+    if (!fx || !r.xauUsd) return null;
+
+    const fineness = spec.metal.includes('750') ? 0.75 : 22 / 24;
+    const metalUsd = spec.grams * fineness * (r.xauUsd / 31.1034768);
+
+    let stonesUsd = 0;
+    if (spec.centre) {
+      const tier = card.diamondTiersUsd.find(t => spec.centre <= (t.upTo === null ? Infinity : t.upTo))
+        || card.diamondTiersUsd[card.diamondTiersUsd.length - 1];
+      const grade = card.gradeFactors[spec.quality] ?? 1;
+      stonesUsd += spec.centre * tier.perCarat * grade + spec.centre * card.settingUsdPerCarat;
+    }
+
+    const rule = card.making[spec.region];
+    const making = Math.max((rule.perGram / fx) * spec.grams,
+      metalUsd * rule.percent / 100, (rule.minimum || 0) / fx) * (card.itemFactors[spec.itemType] || 1);
+
+    const before = metalUsd + stonesUsd + making;
+    const mid = (before * (1 + (card.dutyTaxPercent[spec.region] || 0) / 100)) * fx;
+    const s = card.spreadPercent / 100;
+    const cur = { PK: 'PKR', UK: 'GBP', EU: 'EUR' }[spec.region];
+    const step = cur === 'PKR' ? 1000 : 10;
+    const round = n => Math.round(n / step) * step;
+    // Currency on both ends, the way the studio page writes it, so an admin
+    // comparing the two is reading the same format in both places.
+    return `${cur} ${round(mid * (1 - s)).toLocaleString()} – ${cur} ${round(mid * (1 + s)).toLocaleString()}`;
+  }
+
+  async function saveRateCard() {
+    const btn = document.getElementById('ratecard-save-btn');
+    const card = readRateCardForm();
+
+    // Send only the parts this panel owns. Posting the whole merged card back
+    // would freeze every default it does not expose, so a later change to
+    // those defaults would never reach a shop that had once pressed Save.
+    const patch = {
+      diamondTiersUsd: card.diamondTiersUsd,
+      meleeUsdPerCarat: card.meleeUsdPerCarat,
+      labGrownFactor: card.labGrownFactor,
+      settingUsdPerCarat: card.settingUsdPerCarat,
+      spreadPercent: card.spreadPercent,
+      gemUsdPerCarat: card.gemUsdPerCarat,
+      making: card.making,
+      dutyTaxPercent: card.dutyTaxPercent
+      // revisedOn is stamped by the server on the shop's own clock; sending
+      // the browser's would date a 3am save in Lahore to the day before.
+    };
+
+    btn.disabled = true;
+    const label = btn.textContent;
+    btn.textContent = 'Saving…';
+    try {
+      const res = await adminFetch('/gold-rates/rate-card', {
+        method: 'PATCH',
+        body: JSON.stringify({ card: patch })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.success) throw new Error(data.message || `Save failed (${res.status}).`);
+      rateCardState = data.card;
+      const revised = document.getElementById('ratecard-revised');
+      if (revised) revised.textContent = rateCardState.revisedOn || '—';
+      showToast('Rate card saved — the studio is quoting on these figures now.', 'success');
+    } catch (err) {
+      showToast(err.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = label;
+    }
   }
 
   /* ======================================

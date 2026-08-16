@@ -8,6 +8,8 @@ const {
   normaliseRegion, isKnownUnit, toGrams, round,
   MAX_GRAMS, MAX_CARAT, describeMetalWeight, describeStones
 } = require('../utils/measures');
+const pricing = require('../utils/pricing');
+const rateStore = require('../utils/rateStore');
 const CustomOrder = require('../models/CustomOrder');
 const Order = require('../models/Order');
 
@@ -63,7 +65,7 @@ router.post('/', async (req, res) => {
   try {
     const {
       itemType, metal, goldPurity, gemPreference, customText,
-      budgetRange, notes, referenceUrl, referenceImage,
+      notes, referenceUrl, referenceImage,
       customerName, customerPhone, customerCity, customerEmail,
       region, metalWeight, metalWeightUnit, centreStoneCarat, totalCarat, stoneQuality
     } = req.body || {};
@@ -143,7 +145,15 @@ router.post('/', async (req, res) => {
       totalCarat: totalCt,
       stoneQuality: clean(stoneQuality, 80),
       customText: clean(customText, 200),
-      budgetRange: clean(budgetRange, 80) || 'Flexible',
+      // All four are filled in below from the estimate. Declared here so an
+      // unpriceable brief answers with zeros rather than omitting the keys —
+      // a client reading estimateLow should never have to tell "no price" and
+      // "no such field" apart.
+      budgetRange: '',
+      estimateLow: 0,
+      estimateHigh: 0,
+      estimateCurrency: '',
+      estimateBasis: '',
       notes: clean(notes, 2000),
       referenceUrl: clean(referenceUrl, 500),
       // Only ever an inline image. A remote URL here would let a stored value
@@ -154,6 +164,52 @@ router.post('/', async (req, res) => {
       date: today,
       status: 'Submitted'
     };
+
+    /**
+     * The price, worked out here rather than accepted from the browser.
+     *
+     * The studio shows a live estimate as the customer fills the form, but
+     * that figure travels back with the rest of the payload and a submission
+     * could name any price it liked. What gets stored — and what the shop
+     * sees in the confirmation — is recomputed from today's metal spot and
+     * the shop's own rate card. A rate feed that is down is not a reason to
+     * refuse the commission: the brief is still worth having, it simply
+     * arrives without a figure attached.
+     */
+    let priceEstimate = { priced: false, needs: ['a live metal price'] };
+    try {
+      const { rates } = await rateStore.refresh(false);
+      if (rates) {
+        const stored = await rateStore.loadStored();
+        priceEstimate = pricing.estimate({
+          region: request.region,
+          metal: request.metal,
+          grams: request.metalWeightGrams,
+          itemType: request.itemType,
+          gemPreference: request.gemPreference,
+          centreCt: request.centreStoneCarat,
+          totalCt: request.totalCarat,
+          stoneQuality: request.stoneQuality
+        }, rates, stored && stored.rateCard);
+      }
+    } catch (e) {
+      console.error('custom order estimate failed:', e.message);
+    }
+
+    if (priceEstimate.priced) {
+      request.estimateLow = priceEstimate.low;
+      request.estimateHigh = priceEstimate.high;
+      request.estimateCurrency = priceEstimate.currency;
+      request.estimateBasis = priceEstimate.basis && priceEstimate.basis.asOf
+        ? `metal at ${priceEstimate.basis.asOf}` : '';
+      request.budgetRange = pricing.formatRange(priceEstimate).slice(0, 80);
+    } else {
+      // Honest about why, rather than a bare "Flexible" that reads as though
+      // the customer chose not to say.
+      request.budgetRange = request.metalWeightGrams
+        ? 'To be quoted by hand'
+        : 'To be quoted — no weight specified';
+    }
 
     /**
      * The one-line specification.
@@ -179,7 +235,11 @@ router.post('/', async (req, res) => {
       city: request.customerCity,
       address: 'Bespoke consultation request',
       payment: 'Custom Quotation',
-      items: `Bespoke ${request.itemType} (${spec})`,
+      items: `Bespoke ${request.itemType} (${spec}) — est. ${request.budgetRange}`,
+      // Deliberately zero. This is a quotation request, not a sale, and the
+      // admin dashboard sums this field into total revenue: booking an
+      // estimate as income would overstate the shop's takings by whatever
+      // the customer never ended up ordering.
       total: 0,
       status: 'Submitted',
       date: today
