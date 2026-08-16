@@ -4,6 +4,10 @@ const { readData, writeDataOrThrow, failWith } = require('../utils/db');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
 const { isMongoConnected, ensureMongo } = require('../config/db');
 const { sendCustomOrderEmail } = require('../utils/email');
+const {
+  normaliseRegion, isKnownUnit, toGrams, round,
+  MAX_GRAMS, MAX_CARAT, describeMetalWeight, describeStones
+} = require('../utils/measures');
 const CustomOrder = require('../models/CustomOrder');
 const Order = require('../models/Order');
 
@@ -32,13 +36,36 @@ function clean(value, max) {
   return String(value == null ? '' : value).trim().slice(0, max);
 }
 
+/**
+ * A stone weight in carats.
+ *
+ * Blank is the ordinary case — plenty of briefs say "a solitaire, you advise
+ * the size" — so an absent value is 0 and not an error. A value that is
+ * present but unusable is an error, because quoting a ring against a weight
+ * the customer never meant is worse than asking them again.
+ */
+function carats(value, label, problems) {
+  if (value === '' || value === null || value === undefined) return 0;
+  const ct = Number(value);
+  if (!Number.isFinite(ct) || ct < 0) {
+    problems.push(`${label} must be a number in carats.`);
+    return 0;
+  }
+  if (ct > MAX_CARAT) {
+    problems.push(`${label} cannot exceed ${MAX_CARAT} ct — please describe it in the brief instead.`);
+    return 0;
+  }
+  return round(ct, 3);
+}
+
 // POST /api/custom-orders - Submit bespoke custom request
 router.post('/', async (req, res) => {
   try {
     const {
       itemType, metal, goldPurity, gemPreference, customText,
       budgetRange, notes, referenceUrl, referenceImage,
-      customerName, customerPhone, customerCity, customerEmail
+      customerName, customerPhone, customerCity, customerEmail,
+      region, metalWeight, metalWeightUnit, centreStoneCarat, totalCarat, stoneQuality
     } = req.body || {};
 
     if (!customerName || !customerPhone || !itemType) {
@@ -46,6 +73,53 @@ router.post('/', async (req, res) => {
         success: false,
         message: 'Name, phone number and jewellery type are required.'
       });
+    }
+
+    /**
+     * The weights are recomputed here rather than trusted.
+     *
+     * The browser shows a live gram equivalent as the customer types, but that
+     * figure arrives over the wire like any other field. What the bench works
+     * from has to be derived from the amount and the unit on this side, or a
+     * request could name one weight and carry another.
+     */
+    const problems = [];
+    const hasWeight = metalWeight !== '' && metalWeight !== null && metalWeight !== undefined;
+    const knownUnit = isKnownUnit(metalWeightUnit);
+
+    // Grams is the right default for a request that names no unit at all, but
+    // it is the wrong answer for one that names a unit we do not recognise:
+    // reading an unknown unit as grams would quote 10 tola as 10 g.
+    if (hasWeight && metalWeightUnit && !knownUnit) {
+      problems.push('That weight unit is not one we work in — please choose grams, tola, masha or troy ounces.');
+    }
+    const unit = knownUnit ? String(metalWeightUnit) : 'g';
+    let weightEntered = 0;
+    let weightGrams = 0;
+
+    if (hasWeight && (knownUnit || !metalWeightUnit)) {
+      const grams = toGrams(metalWeight, unit);
+      if (grams === null) {
+        problems.push('The metal weight must be a number greater than zero.');
+      } else if (grams > MAX_GRAMS) {
+        problems.push(`That metal weight comes to ${Math.round(grams)} g, which is beyond anything we cast as one piece — please check the figure.`);
+      } else {
+        weightEntered = round(Number(metalWeight), 3);
+        weightGrams = grams;
+      }
+    }
+
+    const centreCt = carats(centreStoneCarat, 'The centre stone weight', problems);
+    const totalCt = carats(totalCarat, 'The total carat weight', problems);
+
+    // A total that is lighter than the centre stone it contains is arithmetic
+    // that cannot be true, and it is far more often a slip than a real brief.
+    if (centreCt && totalCt && totalCt < centreCt) {
+      problems.push('The total carat weight cannot be less than the centre stone on its own.');
+    }
+
+    if (problems.length) {
+      return res.status(400).json({ success: false, message: problems.join(' ') });
     }
 
     const refId = newRefId();
@@ -61,6 +135,13 @@ router.post('/', async (req, res) => {
       metal: clean(metal, 80) || '22k Gold',
       goldPurity: clean(goldPurity, 40) || '22k',
       gemPreference: clean(gemPreference, 80) || 'None',
+      region: normaliseRegion(region),
+      metalWeight: weightEntered,
+      metalWeightUnit: unit,
+      metalWeightGrams: weightGrams,
+      centreStoneCarat: centreCt,
+      totalCarat: totalCt,
+      stoneQuality: clean(stoneQuality, 80),
       customText: clean(customText, 200),
       budgetRange: clean(budgetRange, 80) || 'Flexible',
       notes: clean(notes, 2000),
@@ -74,6 +155,20 @@ router.post('/', async (req, res) => {
       status: 'Submitted'
     };
 
+    /**
+     * The one-line specification.
+     *
+     * This string is the whole of what the admin order list shows for a
+     * bespoke request — nothing in the panel reads the CustomOrder record
+     * itself — so a weight left out of here is a weight the shop never sees.
+     */
+    const spec = [
+      request.metal,
+      describeMetalWeight(request),
+      request.gemPreference,
+      describeStones(request)
+    ].filter(Boolean).join(', ');
+
     // A parallel entry in the order book, so a bespoke request is trackable
     // through the same lookup as a normal purchase.
     const tracking = {
@@ -84,7 +179,7 @@ router.post('/', async (req, res) => {
       city: request.customerCity,
       address: 'Bespoke consultation request',
       payment: 'Custom Quotation',
-      items: `Bespoke ${request.itemType} (${request.metal}, ${request.gemPreference})`,
+      items: `Bespoke ${request.itemType} (${spec})`,
       total: 0,
       status: 'Submitted',
       date: today

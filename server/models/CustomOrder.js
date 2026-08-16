@@ -12,6 +12,19 @@ const CustomOrderSchema = new mongoose.Schema({
   metal: { type: String, default: '22k Gold' },
   goldPurity: { type: String, default: '22k' },
   gemPreference: { type: String, default: 'None' },
+  // Which market the brief was written for. It decides the purities offered,
+  // the unit the weight was typed in and the currency the budget is in, so a
+  // request cannot be read correctly without it.
+  region: { type: String, default: 'PK' },
+  // The weight as the customer entered it, kept alongside the grams it works
+  // out to. Storing only the grams would lose the fact that they asked for
+  // "10 tola" — a round number in their unit that stops being round in ours.
+  metalWeight: { type: Number, default: 0 },
+  metalWeightUnit: { type: String, default: 'g' },
+  metalWeightGrams: { type: Number, default: 0 },
+  centreStoneCarat: { type: Number, default: 0 },
+  totalCarat: { type: Number, default: 0 },
+  stoneQuality: { type: String, default: '' },
   customText: { type: String, default: '' },
   budgetRange: { type: String, default: 'Flexible' },
   notes: { type: String, default: '' },

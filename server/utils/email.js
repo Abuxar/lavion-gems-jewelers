@@ -15,6 +15,7 @@ try {
 // baseUrl() is the same helper the OAuth redirects use, so the site only ever
 // has one idea of its own address.
 const { baseUrl } = require('./oauth');
+const { describeMetalWeight, describeStones } = require('./measures');
 
 // Lazy-initialize so dotenv has loaded before Resend is constructed
 let _resend;
@@ -229,6 +230,43 @@ async function sendOrderConfirmationEmail(order) {
 
 // ─── Custom Order Confirmation Email ─────────────────────────────────────────
 async function sendCustomOrderEmail(order) {
+  // The customer reads this back to check we understood them. A weight they
+  // specified and cannot see here is one they have no way to catch us getting
+  // wrong before the metal is bought.
+  const weightLine = describeMetalWeight(order);
+  const stoneLine = describeStones(order);
+
+  /**
+   * Built from a list rather than written out row by row.
+   *
+   * Half of these rows are optional, so the alternating background can only
+   * stay in step if it is counted after the empty ones have been dropped —
+   * spelled out in the markup it produced two shaded rows side by side
+   * whenever a customer skipped a field.
+   */
+  const detailRows = [
+    ['Reference ID', `<span style="color:#c9a84c;font-weight:700;">${order.id}</span>`],
+    ['Item Type', order.itemType],
+    // The studio form sends the purity as part of the metal name, so the two
+    // are usually the same string. Printing both regardless gave every UK
+    // brief "9ct Yellow Gold (375) (9ct Yellow Gold (375))".
+    ['Metal', order.goldPurity && order.goldPurity !== order.metal
+      ? `${order.metal} (${order.goldPurity})` : order.metal],
+    ['Metal Weight', weightLine],
+    ['Gem Preference', order.gemPreference],
+    ['Stones', stoneLine],
+    ['Budget Range', order.budgetRange],
+    ['Engraving', order.customText ? `"${order.customText}"` : ''],
+    ['Notes', order.notes]
+  ]
+    .filter(([, value]) => value)
+    .map(([label, value], i) => `
+                <tr${i % 2 ? ' style="background:#0d0d0d;"' : ''}>
+                  <td style="padding:12px 16px;color:#888;font-size:12px;letter-spacing:1px;text-transform:uppercase;width:45%;">${label}</td>
+                  <td style="padding:12px 16px;color:#d4c5a9;font-size:14px;">${value}</td>
+                </tr>`)
+    .join('');
+
   const emailBody = `
     <!DOCTYPE html>
     <html>
@@ -250,36 +288,7 @@ async function sendCustomOrderEmail(order) {
               </p>
               <!-- Order Details -->
               <table width="100%" cellpadding="0" cellspacing="0" style="background:#1a1208;border:1px solid #2a2010;border-radius:8px;margin-bottom:24px;">
-                <tr>
-                  <td style="padding:12px 16px;color:#888;font-size:12px;letter-spacing:1px;text-transform:uppercase;width:45%;">Reference ID</td>
-                  <td style="padding:12px 16px;color:#c9a84c;font-size:14px;font-weight:700;">${order.id}</td>
-                </tr>
-                <tr style="background:#0d0d0d;">
-                  <td style="padding:12px 16px;color:#888;font-size:12px;letter-spacing:1px;text-transform:uppercase;">Item Type</td>
-                  <td style="padding:12px 16px;color:#d4c5a9;font-size:14px;">${order.itemType}</td>
-                </tr>
-                <tr>
-                  <td style="padding:12px 16px;color:#888;font-size:12px;letter-spacing:1px;text-transform:uppercase;">Metal</td>
-                  <td style="padding:12px 16px;color:#d4c5a9;font-size:14px;">${order.metal} (${order.goldPurity})</td>
-                </tr>
-                <tr style="background:#0d0d0d;">
-                  <td style="padding:12px 16px;color:#888;font-size:12px;letter-spacing:1px;text-transform:uppercase;">Gem Preference</td>
-                  <td style="padding:12px 16px;color:#d4c5a9;font-size:14px;">${order.gemPreference}</td>
-                </tr>
-                <tr>
-                  <td style="padding:12px 16px;color:#888;font-size:12px;letter-spacing:1px;text-transform:uppercase;">Budget Range</td>
-                  <td style="padding:12px 16px;color:#d4c5a9;font-size:14px;">${order.budgetRange}</td>
-                </tr>
-                ${order.customText ? `
-                <tr style="background:#0d0d0d;">
-                  <td style="padding:12px 16px;color:#888;font-size:12px;letter-spacing:1px;text-transform:uppercase;">Engraving</td>
-                  <td style="padding:12px 16px;color:#d4c5a9;font-size:14px;">"${order.customText}"</td>
-                </tr>` : ''}
-                ${order.notes ? `
-                <tr>
-                  <td style="padding:12px 16px;color:#888;font-size:12px;letter-spacing:1px;text-transform:uppercase;">Notes</td>
-                  <td style="padding:12px 16px;color:#d4c5a9;font-size:14px;">${order.notes}</td>
-                </tr>` : ''}
+                ${detailRows}
               </table>
               <p style="color:#d4c5a9;font-size:14px;line-height:1.7;margin:0 0 24px;">
                 Save your Reference ID <strong style="color:#c9a84c;">${order.id}</strong> to track your bespoke order status at any time.

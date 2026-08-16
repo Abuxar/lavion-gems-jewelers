@@ -311,20 +311,58 @@
               </div>
             </fieldset>
 
-            <!-- 2. Materials -->
+            <!-- 2. Market -->
             <fieldset class="studio-section">
               <legend class="studio-legend">
                 <span class="studio-legend-num">2</span>
-                <span class="studio-legend-text">Metal &amp; Stones</span>
+                <span class="studio-legend-text">Where You Are Ordering From</span>
+                <span class="studio-legend-rule"></span>
+              </legend>
+
+              <div class="option-chips-grid region-chips">
+                <div class="chip-radio">
+                  <input type="radio" id="region-pk" name="market_region" value="PK" checked />
+                  <label for="region-pk">
+                    Pakistan &amp; Middle East
+                    <small>Tola · 22k · PKR</small>
+                  </label>
+                </div>
+                <div class="chip-radio">
+                  <input type="radio" id="region-uk" name="market_region" value="UK" />
+                  <label for="region-uk">
+                    United Kingdom
+                    <small>Grams · 9–18ct · GBP</small>
+                  </label>
+                </div>
+                <div class="chip-radio">
+                  <input type="radio" id="region-eu" name="market_region" value="EU" />
+                  <label for="region-eu">
+                    Europe
+                    <small>Grams · 585/750 · EUR</small>
+                  </label>
+                </div>
+              </div>
+              <p class="studio-field-hint">This sets the purities, weight units and currency your quotation uses. We
+                ship worldwide either way.</p>
+            </fieldset>
+
+            <!-- 3. Materials -->
+            <fieldset class="studio-section">
+              <legend class="studio-legend">
+                <span class="studio-legend-num">3</span>
+                <span class="studio-legend-text">Metal, Weight &amp; Stones</span>
                 <span class="studio-legend-rule"></span>
               </legend>
 
               <div class="custom-form-grid">
                 <div class="custom-form-group">
                   <label for="metal-select">Precious metal &amp; purity <span class="studio-required">*</span></label>
+                  <!-- Rebuilt by applyRegion() the moment the page loads; this
+                       set is the Pakistan default it starts from. -->
                   <select id="metal-select" required>
                     <option value="22k Yellow Gold">22k Yellow Gold (Standard Pakistan Heritage)</option>
                     <option value="24k Pure Gold">24k Pure Gold</option>
+                    <option value="21k Yellow Gold">21k Yellow Gold (Gulf Standard)</option>
                     <option value="18k Yellow Gold">18k Yellow Gold</option>
                     <option value="18k White Gold">18k White Gold</option>
                     <option value="18k Rose Gold">18k Rose Gold</option>
@@ -334,9 +372,27 @@
                 </div>
 
                 <div class="custom-form-group">
+                  <label for="metal-weight">Metal weight required</label>
+                  <div class="studio-measure">
+                    <input type="number" id="metal-weight" min="0" step="0.01" inputmode="decimal"
+                      placeholder="e.g. 10" aria-describedby="metal-weight-convert" />
+                    <select id="metal-weight-unit" aria-label="Weight unit">
+                      <option value="tola">Tola</option>
+                      <option value="g">Grams (g)</option>
+                      <option value="masha">Masha</option>
+                      <option value="ozt">Troy oz</option>
+                    </select>
+                  </div>
+                  <p class="studio-convert" id="metal-weight-convert" role="status" aria-live="polite"></p>
+                  <p class="studio-field-hint" id="metal-weight-hint">Optional — enter any weight you need, from a
+                    1 tola band to a 15 tola bridal set. Leave it blank and we will advise a weight for your design.</p>
+                </div>
+
+                <div class="custom-form-group">
                   <label for="gemstone-select">Preferred gemstones / diamonds</label>
                   <select id="gemstone-select">
                     <option value="GIA Certified Diamond">GIA Certified Natural Diamond</option>
+                    <option value="Lab-Grown Diamond (IGI Certified)">Lab-Grown Diamond (IGI Certified)</option>
                     <option value="Colombian Emerald">Colombian Emerald</option>
                     <option value="Burmese Ruby">Burmese Ruby</option>
                     <option value="Ceylon Royal Blue Sapphire">Ceylon Blue Sapphire</option>
@@ -344,6 +400,37 @@
                     <option value="Kundan / Polki Glass Stone">Traditional Kundan / Polki</option>
                     <option value="No Gemstone (Solid Metal)">No Gemstone (Solid Metal)</option>
                     <option value="Custom Combination">Custom Combination (specify below)</option>
+                  </select>
+                </div>
+
+                <div class="custom-form-group stone-field" id="centre-carat-group">
+                  <label for="centre-carat">Centre stone weight</label>
+                  <div class="studio-measure">
+                    <input type="number" id="centre-carat" min="0" max="100" step="0.01" inputmode="decimal"
+                      placeholder="e.g. 1.00" aria-describedby="centre-carat-convert" />
+                    <select id="centre-carat-unit" aria-label="Centre stone unit">
+                      <option value="ct">Carat (ct)</option>
+                      <option value="pt">Points (pt)</option>
+                    </select>
+                  </div>
+                  <p class="studio-convert" id="centre-carat-convert" role="status" aria-live="polite"></p>
+                </div>
+
+                <div class="custom-form-group stone-field" id="total-carat-group">
+                  <label for="total-carat">Total carat weight (all stones)</label>
+                  <input type="number" id="total-carat" min="0" max="100" step="0.01" inputmode="decimal"
+                    placeholder="e.g. 2.50" />
+                  <p class="studio-field-hint">Optional. Includes pavé, halo and shoulder stones.</p>
+                </div>
+
+                <div class="custom-form-group stone-field" id="stone-quality-group">
+                  <label for="stone-quality">Diamond colour &amp; clarity</label>
+                  <select id="stone-quality">
+                    <option value="">No preference — recommend for my budget</option>
+                    <option value="D–F / VVS (Exceptional)">D–F / VVS — Exceptional</option>
+                    <option value="G–H / VS (Fine)">G–H / VS — Fine (most requested)</option>
+                    <option value="I–J / SI (Value)">I–J / SI — Excellent value</option>
+                    <option value="Certified stone required">Any grade, but certificate required</option>
                   </select>
                 </div>
 
@@ -356,6 +443,7 @@
 
                 <div class="custom-form-group">
                   <label for="budget-select">Estimated budget range <span class="studio-required">*</span></label>
+                  <!-- Also rebuilt by applyRegion(), in the currency of the market chosen above. -->
                   <select id="budget-select" required>
                     <option value="PKR 50,000 - PKR 150,000">PKR 50,000 – PKR 150,000</option>
                     <option value="PKR 150,000 - PKR 350,000">PKR 150,000 – PKR 350,000</option>
@@ -364,13 +452,21 @@
                     <option value="PKR 1,500,000+ (High Jewellery)">PKR 1,500,000+ (Bespoke High Jewellery)</option>
                   </select>
                 </div>
+
+                <p class="studio-market-note" id="market-note">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <circle cx="12" cy="12" r="9" />
+                    <path d="M12 11v5.5M12 7.6v.9" stroke-linecap="round" />
+                  </svg>
+                  <span id="market-note-text"></span>
+                </p>
               </div>
             </fieldset>
 
-            <!-- 3. The brief -->
+            <!-- 4. The brief -->
             <fieldset class="studio-section">
               <legend class="studio-legend">
-                <span class="studio-legend-num">3</span>
+                <span class="studio-legend-num">4</span>
                 <span class="studio-legend-text">Your Design Brief <span class="studio-required">*</span></span>
                 <span class="studio-legend-rule"></span>
               </legend>
@@ -380,7 +476,7 @@
                   <label for="design-desc">Design specifications &amp; special instructions <span
                       class="studio-required">*</span></label>
                   <textarea id="design-desc" rows="6"
-                    placeholder="Describe your vision in detail. For example: solitaire ring with a pavé diamond band, ring size 7, floral engraving inside the shank, gold weight approximately 8 grams."
+                    placeholder="Describe your vision in detail. For example: solitaire ring with a pavé diamond band, ring size N (UK) or 54 (EU), floral engraving inside the shank, cushion-cut centre stone."
                     required></textarea>
                   <p class="studio-field-hint">The more detail you give, the closer the first sketch will be.</p>
                 </div>
@@ -418,10 +514,10 @@
 
             <hr class="studio-divider" />
 
-            <!-- 4. Contact -->
+            <!-- 5. Contact -->
             <fieldset class="studio-section">
               <legend class="studio-legend">
-                <span class="studio-legend-num">4</span>
+                <span class="studio-legend-num">5</span>
                 <span class="studio-legend-text">Where to Reach You <span class="studio-required">*</span></span>
                 <span class="studio-legend-rule"></span>
               </legend>
@@ -520,9 +616,253 @@
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       renderCustomGrid();
+      initMarket();
+      initWeights();
       initReferenceImage();
       initCustomForm();
     });
+
+    /**
+     * What each market actually buys.
+     *
+     * One combined dropdown would have offered a customer in Manchester 22k
+     * priced by the tola and a customer in Lahore 9ct, and neither list is
+     * what either of them shops for. The purities below are the ones each
+     * market's assay conventions and buying habits are built around: 22k and
+     * 21k for South Asia and the Gulf, 9ct and 18ct for the UK where 375 is
+     * the volume seller and platinum is the bridal default, 585 and 750 for
+     * Europe where 14K carries the middle of the market.
+     */
+    const MARKETS = {
+      PK: {
+        unit: 'tola',
+        metals: [
+          ['22k Yellow Gold', '22k Yellow Gold (916 — Pakistan heritage standard)'],
+          ['24k Pure Gold', '24k Pure Gold (999)'],
+          ['21k Yellow Gold', '21k Yellow Gold (875 — Gulf standard)'],
+          ['18k Yellow Gold', '18k Yellow Gold (750)'],
+          ['18k White Gold', '18k White Gold (750)'],
+          ['18k Rose Gold', '18k Rose Gold (750)'],
+          ['Platinum 950', 'Platinum (950)'],
+          ['925 Sterling Silver', '925 Sterling Silver']
+        ],
+        budgets: [
+          'PKR 50,000 - PKR 150,000',
+          'PKR 150,000 - PKR 350,000',
+          'PKR 350,000 - PKR 750,000',
+          'PKR 750,000 - PKR 1,500,000',
+          'PKR 1,500,000+ (High Jewellery)'
+        ],
+        note: 'Weights are quoted in tola at the day\'s Sarafa rate. Making charges are confirmed with your sketch.',
+        weightPlaceholder: 'e.g. 10',
+        weightHint: 'Optional — enter any weight you need, from a 1 tola band to a 15 tola bridal set. ' +
+          'Leave it blank and we will advise a weight for your design.'
+      },
+      UK: {
+        unit: 'g',
+        metals: [
+          ['9ct Yellow Gold (375)', '9ct Yellow Gold (375) — UK everyday standard'],
+          ['9ct White Gold (375)', '9ct White Gold (375)'],
+          ['9ct Rose Gold (375)', '9ct Rose Gold (375)'],
+          ['14ct Yellow Gold (585)', '14ct Yellow Gold (585)'],
+          ['18ct Yellow Gold (750)', '18ct Yellow Gold (750) — fine jewellery standard'],
+          ['18ct White Gold (750)', '18ct White Gold (750)'],
+          ['18ct Rose Gold (750)', '18ct Rose Gold (750)'],
+          ['22ct Yellow Gold (916)', '22ct Yellow Gold (916) — Asian bridal'],
+          ['Platinum 950', 'Platinum (950) — bridal favourite'],
+          ['Palladium 950', 'Palladium (950)'],
+          ['925 Sterling Silver', '925 Sterling Silver']
+        ],
+        budgets: [
+          'GBP 500 - GBP 1,500',
+          'GBP 1,500 - GBP 3,500',
+          'GBP 3,500 - GBP 7,500',
+          'GBP 7,500 - GBP 15,000',
+          'GBP 15,000+ (High Jewellery)'
+        ],
+        note: 'UK law requires an Assay Office hallmark on gold above 1 g, platinum above 0.5 g and silver above 7.78 g. Every piece we ship to the UK is hallmarked and duty-paid.',
+        weightPlaceholder: 'e.g. 12.5',
+        weightHint: 'Optional — enter any weight you need, from a 2 g band to a 60 g statement piece. ' +
+          'Leave it blank and we will advise a weight for your design.'
+      },
+      EU: {
+        unit: 'g',
+        metals: [
+          ['585 / 14K Yellow Gold', '585 / 14K Yellow Gold — European standard'],
+          ['585 / 14K White Gold', '585 / 14K White Gold'],
+          ['585 / 14K Rose Gold', '585 / 14K Rose Gold'],
+          ['750 / 18K Yellow Gold', '750 / 18K Yellow Gold — fine jewellery standard'],
+          ['750 / 18K White Gold', '750 / 18K White Gold'],
+          ['750 / 18K Rose Gold', '750 / 18K Rose Gold'],
+          ['333 / 8K Yellow Gold', '333 / 8K Yellow Gold (Germany & Austria)'],
+          ['950 Platinum', 'Platinum (950)'],
+          ['950 Palladium', 'Palladium (950)'],
+          ['925 Sterling Silver', '925 Sterling Silver']
+        ],
+        budgets: [
+          'EUR 600 - EUR 1,750',
+          'EUR 1,750 - EUR 4,000',
+          'EUR 4,000 - EUR 8,500',
+          'EUR 8,500 - EUR 17,500',
+          'EUR 17,500+ (High Jewellery)'
+        ],
+        note: 'Pieces are struck with their fineness mark (585 / 750) to the CEN standard, with a responsible-sourcing certificate for every stone.',
+        weightPlaceholder: 'e.g. 12.5',
+        weightHint: 'Optional — enter any weight you need, from a 2 g band to a 60 g statement piece. ' +
+          'Leave it blank and we will advise a weight for your design.'
+      }
+    };
+
+    function currentRegion() {
+      const picked = document.querySelector('input[name="market_region"]:checked');
+      const code = picked ? picked.value : 'PK';
+      return MARKETS[code] ? code : 'PK';
+    }
+
+    function initMarket() {
+      document.querySelectorAll('input[name="market_region"]').forEach(input =>
+        input.addEventListener('change', () => applyRegion(true)));
+
+      const gems = document.getElementById('gemstone-select');
+      if (gems) gems.addEventListener('change', applyStoneVisibility);
+
+      applyRegion(false);
+      applyStoneVisibility();
+    }
+
+    /**
+     * Rebuild the metal and budget lists for the chosen market.
+     *
+     * @param {boolean} userChanged  True when a person clicked a market, false
+     *   on first load. A change of market moves the selection to that market's
+     *   default; on load it must not, or a browser restoring the form after a
+     *   back-navigation would quietly overwrite what was already chosen.
+     */
+    function applyRegion(userChanged) {
+      const market = MARKETS[currentRegion()];
+      const metal = document.getElementById('metal-select');
+      const budget = document.getElementById('budget-select');
+      const unit = document.getElementById('metal-weight-unit');
+      const noteText = document.getElementById('market-note-text');
+      const weight = document.getElementById('metal-weight');
+
+      const keepMetal = userChanged ? '' : metal.value;
+      const keepBudget = userChanged ? '' : budget.value;
+
+      metal.innerHTML = market.metals
+        .map(([value, label]) => `<option value="${value}">${label}</option>`).join('');
+      budget.innerHTML = market.budgets
+        .map(value => `<option value="${value}">${budgetLabel(value)}</option>`).join('');
+
+      if (keepMetal && market.metals.some(([v]) => v === keepMetal)) metal.value = keepMetal;
+      if (keepBudget && market.budgets.includes(keepBudget)) budget.value = keepBudget;
+
+      // Only move the unit when the customer switches market. Overriding a
+      // unit they picked themselves would silently change the weight's meaning.
+      if (userChanged) {
+        unit.value = market.unit;
+        showMetalConversion();
+      }
+
+      // The example weights have to move with the unit. Offering "a 1 tola
+      // band to a 15 tola bridal set" under a box measured in grams tells a
+      // customer in Birmingham to enter a number fourteen times too large.
+      weight.placeholder = market.weightPlaceholder;
+      document.getElementById('metal-weight-hint').textContent = market.weightHint;
+      noteText.textContent = market.note;
+    }
+
+    /**
+     * How a budget band is shown, as against how it is stored.
+     *
+     * A band is stored with its ISO code on both ends — "GBP 500 - GBP 1,500" —
+     * so a request read months later is never ambiguous about its currency.
+     * The customer reading the dropdown wants "£500 – £1,500", which means
+     * replacing every code in the string and not just the leading one.
+     */
+    function budgetLabel(value) {
+      const symbol = value.startsWith('GBP') ? '£' : value.startsWith('EUR') ? '€' : '';
+      const shown = symbol ? value.replace(/(GBP|EUR) /g, symbol) : value;
+      return shown.replace(' - ', ' – ');
+    }
+
+    /** Solid metal has no stones to weigh, so those fields leave the form. */
+    function applyStoneVisibility() {
+      const gems = document.getElementById('gemstone-select');
+      const solid = gems && gems.value === 'No Gemstone (Solid Metal)';
+      document.querySelectorAll('.stone-field').forEach(el => { el.hidden = solid; });
+      if (solid) {
+        ['centre-carat', 'total-carat'].forEach(id => { document.getElementById(id).value = ''; });
+        document.getElementById('stone-quality').value = '';
+        showCentreConversion();
+      }
+    }
+
+    /**
+     * Conversions, mirrored from server/utils/measures.js.
+     *
+     * These are fixed definitions rather than logic, and the server recomputes
+     * every figure it stores — what is shown here is a preview, so the customer
+     * can see that "10 tola" is 116.64 g before they commit to it and not after
+     * the gold has been bought.
+     */
+    const GRAMS_PER_UNIT = { g: 1, tola: 11.6638038, masha: 11.6638038 / 12, ozt: 31.1034768 };
+    const GRAMS_PER_CARAT = 0.2;
+
+    function initWeights() {
+      ['metal-weight', 'metal-weight-unit'].forEach(id =>
+        document.getElementById(id).addEventListener('input', showMetalConversion));
+      ['centre-carat', 'centre-carat-unit'].forEach(id =>
+        document.getElementById(id).addEventListener('input', showCentreConversion));
+    }
+
+    const tidy = (n, places) => String(Math.round(n * Math.pow(10, places)) / Math.pow(10, places));
+
+    function showMetalConversion() {
+      const out = document.getElementById('metal-weight-convert');
+      const amount = parseFloat(document.getElementById('metal-weight').value);
+      const unit = document.getElementById('metal-weight-unit').value;
+      if (!Number.isFinite(amount) || amount <= 0) return void (out.textContent = '');
+
+      const grams = amount * (GRAMS_PER_UNIT[unit] || 1);
+      // Saying "10 g ≈ 10 g" helps nobody; a gram figure is only worth showing
+      // beside a unit that is not already grams.
+      out.textContent = unit === 'g'
+        ? `≈ ${tidy(grams / GRAMS_PER_UNIT.tola, 2)} tola`
+        : `≈ ${tidy(grams, 2)} g`;
+    }
+
+    function showCentreConversion() {
+      const out = document.getElementById('centre-carat-convert');
+      const amount = parseFloat(document.getElementById('centre-carat').value);
+      const unit = document.getElementById('centre-carat-unit').value;
+      if (!Number.isFinite(amount) || amount <= 0) return void (out.textContent = '');
+
+      const ct = unit === 'pt' ? amount / 100 : amount;
+      // A carat figure means little until you can picture it, and the spread
+      // of a round brilliant scales with the cube root of its weight.
+      const mm = 6.5 * Math.cbrt(ct);
+      out.textContent = `≈ ${tidy(ct, 2)} ct · about ${tidy(mm, 1)} mm across as a round brilliant`;
+    }
+
+    /**
+     * "10 tola (116.64 g)" — the customer's unit with the bench's beside it.
+     * Mirrors describeMetalWeight() in server/utils/measures.js so the receipt
+     * and the confirmation email word the same weight the same way.
+     */
+    function describeWeight(saved) {
+      if (!saved || !saved.metalWeight || !saved.metalWeightGrams) return '';
+      const unit = { g: 'g', tola: 'tola', masha: 'masha', ozt: 'ozt' }[saved.metalWeightUnit] || 'g';
+      if (saved.metalWeightUnit === 'g') return `${tidy(saved.metalWeight, 2)} g`;
+      return `${tidy(saved.metalWeight, 2)} ${unit} (${tidy(saved.metalWeightGrams, 2)} g)`;
+    }
+
+    /** The carat value to send, whichever unit the customer typed it in. */
+    function centreCarats() {
+      const amount = parseFloat(document.getElementById('centre-carat').value);
+      if (!Number.isFinite(amount) || amount <= 0) return '';
+      return document.getElementById('centre-carat-unit').value === 'pt' ? amount / 100 : amount;
+    }
 
     function renderCustomGrid() {
       const grid = document.getElementById('custom-products-grid');
@@ -669,6 +1009,13 @@
         const desc = document.getElementById('design-desc').value.trim();
         const refUrl = document.getElementById('reference-url').value.trim();
 
+        const region = currentRegion();
+        const metalWeight = document.getElementById('metal-weight').value.trim();
+        const metalWeightUnit = document.getElementById('metal-weight-unit').value;
+        const centreStoneCarat = centreCarats();
+        const totalCarat = document.getElementById('total-carat').value.trim();
+        const stoneQuality = document.getElementById('stone-quality').value;
+
         const name = document.getElementById('cust-name').value.trim();
         const email = document.getElementById('cust-email').value.trim();
         const phone = document.getElementById('cust-phone').value.trim();
@@ -688,6 +1035,22 @@
           return showError('Please add ' + missing.join(', ') + ' before submitting.');
         }
 
+        // The weights are optional, but a nonsensical one is worth catching
+        // here rather than letting the customer wait for a round trip to be
+        // told the same thing. The server checks these again regardless.
+        const grams = metalWeight ? parseFloat(metalWeight) * (GRAMS_PER_UNIT[metalWeightUnit] || 1) : 0;
+        if (metalWeight && !(grams > 0)) {
+          return showError('Please enter the metal weight as a number greater than zero, or leave it blank.');
+        }
+        if (grams > 5000) {
+          return showError('That weight comes to ' + Math.round(grams) +
+            ' g. Please check the figure, or describe the set in your brief below.');
+        }
+        const totalCt = totalCarat ? parseFloat(totalCarat) : 0;
+        if (centreStoneCarat && totalCt && totalCt < centreStoneCarat) {
+          return showError('The total carat weight cannot be less than the centre stone on its own.');
+        }
+
         submitBtn.disabled = true;
         const originalLabel = submitBtn.innerHTML;
         submitBtn.textContent = 'Submitting…';
@@ -702,6 +1065,12 @@
               metal,
               goldPurity: metal,
               gemPreference: gemstone,
+              region,
+              metalWeight,
+              metalWeightUnit,
+              centreStoneCarat,
+              totalCarat,
+              stoneQuality,
               customText: engraving,
               budgetRange: budget,
               notes: desc + '\n\nDelivery address: ' + address +
@@ -741,6 +1110,19 @@
         submitBtn.innerHTML = originalLabel;
 
         const saved = payload.customOrder || {};
+
+        // Read back from what the server stored, not from what was typed. The
+        // weights it holds are the ones it recomputed, so the receipt shows
+        // the customer the figures the bench will actually work to.
+        const spec = [
+          metal,
+          describeWeight(saved),
+          gemstone,
+          [saved.centreStoneCarat ? tidy(saved.centreStoneCarat, 2) + ' ct centre stone' : '',
+           saved.totalCarat ? tidy(saved.totalCarat, 2) + ' ct total' : '',
+           saved.stoneQuality || ''].filter(Boolean).join(' · ')
+        ].filter(Boolean).join(', ');
+
         const customOrder = {
           id: saved.id,
           customer: name,
@@ -749,11 +1131,17 @@
           city: city,
           address: address,
           payment: 'Custom Quote Request',
-          items: `Custom: ${itemType} (${metal}, ${gemstone})${engraving ? ' - Engraving: ' + engraving : ''}`,
+          items: `Custom: ${itemType} (${spec})${engraving ? ' - Engraving: ' + engraving : ''}`,
           total: 0,
           status: 'Submitted',
           date: saved.date || new Date().toISOString().split('T')[0],
-          details: { itemType, metal, gemstone, engraving, budget, desc, refUrl }
+          details: {
+            itemType, metal, gemstone, engraving, budget, desc, refUrl, region,
+            metalWeight: describeWeight(saved),
+            centreStoneCarat: saved.centreStoneCarat || 0,
+            totalCarat: saved.totalCarat || 0,
+            stoneQuality: saved.stoneQuality || ''
+          }
         };
 
         // Mirror it locally so the admin panel lists it without a round trip.
@@ -765,6 +1153,13 @@
 
         showCustomReceiptModal(customOrder);
         form.reset();
+        // reset() restores the checked market but not the option lists that
+        // were built for it, so a form left on UK would come back showing
+        // Pakistan selected over 9ct and 18ct.
+        applyRegion(true);
+        applyStoneVisibility();
+        showMetalConversion();
+        showCentreConversion();
         if (window.clearReferenceImage) window.clearReferenceImage();
       });
     }
@@ -799,6 +1194,16 @@
               <span>Specification</span>
               <span style="color:#fff;max-width:320px;text-align:right;">${order.items}</span>
             </div>
+            ${order.details.metalWeight ? `
+            <div style="display:flex;justify-content:space-between;gap:16px;margin-bottom:10px;">
+              <span>Metal weight</span>
+              <span style="color:#fff;">${order.details.metalWeight}</span>
+            </div>` : ''}
+            ${order.details.centreStoneCarat ? `
+            <div style="display:flex;justify-content:space-between;gap:16px;margin-bottom:10px;">
+              <span>Centre stone</span>
+              <span style="color:#fff;">${order.details.centreStoneCarat} ct</span>
+            </div>` : ''}
             <div style="display:flex;justify-content:space-between;gap:16px;margin-bottom:10px;">
               <span>Estimated budget</span>
               <span style="color:#fff;">${order.details.budget}</span>

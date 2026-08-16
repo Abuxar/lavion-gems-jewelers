@@ -5803,6 +5803,101 @@ footer::before {
   color: var(--color-text-muted);
 }
 
+/* Fields that belong to a choice the customer has not made — the stone weights
+   when the piece is solid metal — are taken out of the grid entirely rather
+   than dimmed, so the form never asks a question it has already ruled out. */
+.custom-form-group[hidden] {
+  display: none;
+}
+
+/* ---- Market ---- */
+
+/* The same selectable cards as the jewellery type, at the height of a line of
+   text: this picks a market, it is not one of the six things being ordered. */
+.region-chips {
+  grid-template-columns: repeat(auto-fit, minmax(178px, 1fr));
+}
+
+.region-chips .chip-radio label {
+  min-height: 0;
+  flex-direction: column;
+  gap: 3px;
+  padding: 13px 12px;
+  font-size: 12px;
+}
+
+.region-chips .chip-radio label small {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 1.1px;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.region-chips .chip-radio input:checked + label small {
+  color: var(--gold-700);
+}
+
+/* ---- Amount + unit ---- */
+
+/* A weight is one value in two parts. Kept on one row so it reads as a single
+   answer, and so the unit cannot drift out of sight of the number it governs. */
+.studio-measure {
+  display: flex;
+  gap: 10px;
+  align-items: stretch;
+}
+
+.studio-measure input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.studio-measure select {
+  flex: 0 0 128px;
+  width: 128px;
+}
+
+/* The equivalent in grams, updating as they type. Reserved height, or the
+   fields below jump the moment the first digit is entered. */
+.studio-convert {
+  min-height: 16px;
+  margin-top: 7px;
+  font-family: var(--font-sans);
+  font-size: 11.5px;
+  font-weight: 500;
+  letter-spacing: 0.7px;
+  color: var(--gold-700);
+}
+
+/* A standing note about the chosen market — UK hallmarking, EU fineness —
+   rather than a hint on any one field. */
+.studio-market-note {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 13px 16px;
+  background: var(--color-bg-soft);
+  border-left: 2px solid var(--gold-400);
+  border-radius: 2px;
+  font-family: var(--font-serif);
+  font-size: 13.5px;
+  font-style: italic;
+  line-height: 1.55;
+  color: var(--color-text-muted);
+}
+
+.studio-market-note svg {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+  stroke: var(--gold-600);
+  fill: none;
+  stroke-width: 1.4;
+}
+
 /* ---- Reference image ---- */
 
 .studio-upload-grid {
@@ -6055,6 +6150,13 @@ footer::before {
 
   .studio-or {
     text-align: center;
+  }
+
+  /* One column now, so the unit can have room to name itself in full rather
+     than being squeezed against the number. */
+  .studio-measure select {
+    flex: 0 0 150px;
+    width: 150px;
   }
 }
 
