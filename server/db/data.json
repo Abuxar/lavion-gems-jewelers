@@ -196,16 +196,19 @@
     "xauUsd": 4377.6,
     "usdPkr": 277.78,
     "usdGbp": 0.739,
-    "lastUpdated": "02:11 am PKT (Live Market)",
+    "lastUpdated": "02:56 am PKT (Live Market)",
     "rate22kPer10g": 358377,
     "rate21kPerTola": 399004,
     "xagUsd": 64.83,
     "premiumPercent": 0,
     "usdPkrIsOverride": false,
-    "fetchedAt": "2026-08-16T21:11:47.768Z",
+    "fetchedAt": "2026-08-16T21:56:05.650Z",
     "source": "gold-api.com + open.er-api.com",
     "isSpot": true,
-    "usdPkrOverride": null
+    "usdPkrOverride": null,
+    "xptUsd": 1755,
+    "xpdUsd": 1338,
+    "usdEur": 0.8647
   },
   "customers": [
     {
