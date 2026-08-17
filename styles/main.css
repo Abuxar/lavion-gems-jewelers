@@ -5066,6 +5066,29 @@ footer::before {
   box-shadow: 0 0 0 3px rgba(201, 169, 97, 0.16);
 }
 
+/**
+ * The confirmation code field.
+ *
+ * Wide letter-spacing pushes the text off-centre, because the trailing gap
+ * after the sixth digit is still counted in the width — the matching text-indent
+ * puts it back. Monospace so six digits occupy six equal columns and the field
+ * does not shuffle as it fills.
+ */
+.auth-otp {
+  font-family: var(--font-mono, 'Courier New', Courier, monospace);
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: 14px;
+  text-indent: 14px;
+  text-align: center;
+  padding: 16px 14px;
+}
+
+.auth-otp::placeholder {
+  color: rgba(255, 255, 255, 0.16);
+  font-weight: 400;
+}
+
 .auth-row {
   display: grid;
   grid-template-columns: 1fr 1fr;

@@ -30,6 +30,15 @@ const CustomerSchema = new mongoose.Schema({
   resetTokenHash: { type: String, default: null },
   resetTokenExpires: { type: Date, default: null },
 
+  // The six-digit code that confirms a new email account. Stored as a keyed
+  // hash (see hashOtp in utils/tokens) because six digits is a small enough
+  // space to reverse from a plain digest. `otpSentAt` backs the resend
+  // cooldown, `otpAttempts` caps guessing before the code is thrown away.
+  otpHash: { type: String, default: null },
+  otpExpires: { type: Date, default: null },
+  otpSentAt: { type: Date, default: null },
+  otpAttempts: { type: Number, default: 0 },
+
   // Throttling state for password attempts against this specific account.
   failedAttempts: { type: Number, default: 0 },
   lockedUntil: { type: Date, default: null },

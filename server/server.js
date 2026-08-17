@@ -4,6 +4,20 @@ const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const path = require('path');
+
+/**
+ * Load the server's own .env before requiring anything else.
+ *
+ * A bare config() resolves against the working directory, which for `npm start`
+ * is the repo root — and the root has no .env, only .env.example. The file was
+ * therefore picked up much later, by utils/email.js, long after
+ * middleware/auth.js had already read process.env.JWT_SECRET at module scope,
+ * found nothing and fallen back to an ephemeral development secret. The
+ * symptom was every local session dying on restart while server/.env sat there
+ * apparently configured. The bare call stays second so a root .env or a real
+ * platform environment (Vercel sets these directly) still wins where present.
+ */
+require('dotenv').config({ path: path.resolve(__dirname, '.env') });
 require('dotenv').config();
 
 const authRoutes = require('./routes/auth');

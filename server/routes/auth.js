@@ -11,18 +11,75 @@ const { JWT_SECRET, authenticateToken } = require('../middleware/auth');
 const {
   signAccessToken, issueRefreshToken, rotateRefreshToken, revokeAllForUser,
   setRefreshCookie, clearRefreshCookie, REFRESH_COOKIE,
-  randomToken, hashToken, clientIp, ACCESS_TTL
+  randomToken, hashToken, randomOtp, hashOtp, clientIp, ACCESS_TTL
 } = require('../utils/tokens');
 const { limiter, hit, reset: resetLimit, lockoutFor } = require('../utils/rateLimit');
 const oauth = require('../utils/oauth');
 const {
-  sendVerificationEmail, sendPasswordResetEmail,
-  sendProviderOnlyNotice, sendPasswordChangedEmail
+  sendVerificationEmail, sendOtpEmail, sendExistingAccountNotice,
+  sendPasswordResetEmail, sendProviderOnlyNotice, sendPasswordChangedEmail
 } = require('../utils/authEmails');
 const { sendWelcomeEmail, sendNewRegistrationAlert, sendLoginAlert } = require('../utils/email');
 
 const BCRYPT_ROUNDS = 12;
 const OAUTH_STATE_COOKIE = 'lav_oauth';
+
+/**
+ * Email confirmation for accounts that sign up with a password.
+ *
+ * Ten minutes is long enough to fetch a phone and short enough that a code
+ * read over someone's shoulder is worthless by the time it is used. Five
+ * guesses out of a million leaves an attacker a 1-in-200,000 chance per code,
+ * and the code is discarded — not merely rate-limited — once they are spent.
+ *
+ * Federated sign-ins never come through here: Google has already proved the
+ * address, and asking again would cost sign-ups for no gain.
+ */
+const OTP_TTL_MS = 10 * 60 * 1000;
+const OTP_MAX_ATTEMPTS = 5;
+const OTP_RESEND_COOLDOWN_MS = 60 * 1000;
+
+/**
+ * Put a fresh code on an account and mail it.
+ *
+ * Every path that issues one goes through here — signing up, signing in to an
+ * unconfirmed account, asking for another — so no combination of them can be
+ * used to flood someone's inbox. Returns what actually happened rather than a
+ * bare boolean, because the caller's response differs for each: 'sent',
+ * 'cooldown' (asked again too soon), or 'undeliverable' (our mail is broken).
+ */
+async function issueOtp(user, { respectCooldown = true } = {}) {
+  if (respectCooldown && user.otpSentAt &&
+      Date.now() - user.otpSentAt.getTime() < OTP_RESEND_COOLDOWN_MS) {
+    return 'cooldown';
+  }
+
+  const code = randomOtp();
+  user.otpHash = hashOtp(code);
+  user.otpExpires = new Date(Date.now() + OTP_TTL_MS);
+  user.otpSentAt = new Date();
+  // A new code earns a fresh allowance; the old one is gone either way.
+  user.otpAttempts = 0;
+  await user.save();
+
+  const delivered = await sendOtpEmail({ name: user.name, email: user.email, code });
+  return delivered ? 'sent' : 'undeliverable';
+}
+
+/**
+ * Discard the outstanding code — spent, exhausted, or made moot.
+ *
+ * `otpSentAt` deliberately survives. It records when we last put a message in
+ * someone's inbox, which is not the same question as whether the code in it is
+ * still good, and the cooldown is read from it. Clearing it here would have
+ * meant that burning through the five guesses reset the cooldown, turning a
+ * wrong-code loop into a way to send mail faster than the limit allows.
+ */
+function clearOtp(user) {
+  user.otpHash = null;
+  user.otpExpires = null;
+  user.otpAttempts = 0;
+}
 
 /* ------------------------------------------------------------------ *
  * Helpers
@@ -88,20 +145,29 @@ router.post('/register', requireDb, limiter('register', 10, 60 * 60 * 1000), asy
     const existing = await Customer.findOne({ email: normalised });
 
     /**
-     * A taken address has to be reported plainly while verification is off.
-     * The generic "check your inbox" reply worked only because a confirmation
-     * mail reached the real owner and told them the truth; with no mail to
-     * send, that same reply leaves the person staring at a form that appears
-     * to succeed and an account they cannot sign into. The cost is that this
-     * endpoint can now be used to test whether an address is registered — the
-     * rate limiter above bounds how fast, and the non-committal response comes
-     * back when verification is reinstated.
+     * A taken address gets the same reply a fresh one does.
+     *
+     * Answering "that email is already registered" turns this endpoint into a
+     * membership oracle — anyone could walk a list of addresses and learn who
+     * shops here. The non-committal reply is only honest because the person
+     * entitled to know is told directly: the owner gets a notice explaining
+     * what happened, while whoever filled in the form gets a code screen they
+     * have no way to satisfy.
      */
     if (existing) {
-      return res.status(409).json({
-        success: false,
-        message: 'An account already exists for that email address. Sign in instead.',
-        code: 'EMAIL_TAKEN'
+      sendExistingAccountNotice({
+        name: existing.name,
+        email: existing.email,
+        providers: existing.identities.map(i => i.provider),
+        hasPassword: !!existing.passwordHash
+      }).catch(() => {});
+
+      return res.status(201).json({
+        success: true,
+        code: 'VERIFY_REQUIRED',
+        needsVerification: true,
+        email: normalised,
+        message: 'Check your inbox for a six-digit confirmation code.'
       });
     }
 
@@ -114,23 +180,54 @@ router.post('/register', requireDb, limiter('register', 10, 60 * 60 * 1000), asy
       phone: (phone || '').trim(),
       city: (city || 'Pakistan').trim(),
       passwordHash,
-      // Confirmation is not part of the flow yet, so an address cannot be
-      // proven either way — accounts start usable rather than half-created.
-      // Reinstating verification means setting this back to false and
-      // restoring the EMAIL_UNVERIFIED gate in /login below.
-      emailVerified: true,
-      lastLoginAt: new Date()
+      // Unproven until a code sent to that inbox comes back. This is the whole
+      // point of the flow: an address nobody can receive mail at cannot open
+      // an account, which is what stops signups being scripted in bulk.
+      emailVerified: false,
+      lastLoginAt: null
     });
 
-    sendWelcomeEmail({ name: user.name, email: user.email });
-    sendNewRegistrationAlert({ name: user.name, email: user.email, phone: user.phone, city: user.city });
+    const outcome = await issueOtp(user);
 
-    // Signed in on the spot: there is no confirmation step left to wait for.
-    const session = await issueSession(user, req, res);
+    /**
+     * If the code cannot be delivered, let them in rather than stranding them.
+     *
+     * A failed send is always a fault on our side — an unverified sending
+     * domain, a dead API key, Resend having a bad day. It is never something
+     * the person signing up chose, and never something an automated signup can
+     * bring about, so nothing is conceded to the bots this gate exists to
+     * stop. Locking real customers out of the shop because our mail provider
+     * is unhappy would cost far more than it protects.
+     */
+    if (outcome === 'undeliverable') {
+      console.error(
+        `[auth] Confirmation code undeliverable for ${user.email} — opening the ` +
+        'account without it. Check the Resend sending domain.'
+      );
+      user.emailVerified = true;
+      user.lastLoginAt = new Date();
+      clearOtp(user);
+      await user.save();
+
+      sendWelcomeEmail({ name: user.name, email: user.email });
+      sendNewRegistrationAlert({ name: user.name, email: user.email, phone: user.phone, city: user.city });
+
+      const session = await issueSession(user, req, res);
+      return res.status(201).json({
+        success: true,
+        message: `Welcome to Lavion, ${user.name}.`,
+        ...session
+      });
+    }
+
+    // No session yet — the account is not usable until the code comes back.
+    sendNewRegistrationAlert({ name: user.name, email: user.email, phone: user.phone, city: user.city });
     res.status(201).json({
       success: true,
-      message: `Welcome to Lavion, ${user.name}.`,
-      ...session
+      code: 'VERIFY_REQUIRED',
+      needsVerification: true,
+      email: user.email,
+      message: 'Check your inbox for a six-digit confirmation code.'
     });
   } catch (error) {
     console.error('register error:', error);
@@ -139,13 +236,127 @@ router.post('/register', requireDb, limiter('register', 10, 60 * 60 * 1000), asy
 });
 
 /* ------------------------------------------------------------------ *
- * Email verification — dormant
+ * Email confirmation — six-digit code
+ * ------------------------------------------------------------------ */
+
+router.post('/verify-otp', requireDb, limiter('otp', 30, 60 * 60 * 1000), async (req, res) => {
+  try {
+    const { email, code } = req.body || {};
+    if (!email || !code) {
+      return res.status(400).json({ success: false, message: 'Email and code are required.' });
+    }
+
+    const user = await Customer.findOne({ email: String(email).toLowerCase().trim() });
+
+    /**
+     * One reply for "no such account", "already confirmed" and "no code
+     * outstanding". Telling them apart would let this endpoint answer the
+     * question /register refuses to.
+     */
+    if (!user || user.emailVerified || !user.otpHash) {
+      return res.status(400).json({
+        success: false,
+        code: 'OTP_INVALID',
+        message: 'That code is not right, or it has already been used.'
+      });
+    }
+
+    if (!user.otpExpires || user.otpExpires <= new Date()) {
+      return res.status(400).json({
+        success: false,
+        code: 'OTP_EXPIRED',
+        message: 'That code has expired. Send yourself a new one.'
+      });
+    }
+
+    if ((user.otpAttempts || 0) >= OTP_MAX_ATTEMPTS) {
+      return res.status(429).json({
+        success: false,
+        code: 'OTP_LOCKED',
+        message: 'Too many incorrect attempts. Request a new code.'
+      });
+    }
+
+    // Compare digests, not codes, and in constant time — a comparison that
+    // returns early leaks how much of the guess was right.
+    const supplied = Buffer.from(hashOtp(String(code).replace(/\D/g, '')));
+    const stored = Buffer.from(user.otpHash);
+    const match = supplied.length === stored.length && crypto.timingSafeEqual(supplied, stored);
+
+    if (!match) {
+      user.otpAttempts = (user.otpAttempts || 0) + 1;
+      const remaining = OTP_MAX_ATTEMPTS - user.otpAttempts;
+      // Spent codes are thrown away rather than left sitting behind a counter.
+      if (remaining <= 0) clearOtp(user);
+      await user.save();
+
+      return res.status(400).json({
+        success: false,
+        code: remaining > 0 ? 'OTP_INVALID' : 'OTP_LOCKED',
+        message: remaining > 0
+          ? `That code is not right. ${remaining} attempt${remaining === 1 ? '' : 's'} left.`
+          : 'Too many incorrect attempts. Request a new code.'
+      });
+    }
+
+    user.emailVerified = true;
+    user.lastLoginAt = new Date();
+    clearOtp(user);
+    await user.save();
+
+    sendWelcomeEmail({ name: user.name, email: user.email });
+
+    const session = await issueSession(user, req, res);
+    res.json({ success: true, message: `Welcome to Lavion, ${user.name}.`, ...session });
+  } catch (error) {
+    console.error('verify-otp error:', error);
+    res.status(500).json({ success: false, message: 'Confirmation failed. Please try again.' });
+  }
+});
+
+router.post('/resend-otp', requireDb, limiter('resendOtp', 8, 60 * 60 * 1000), async (req, res) => {
+  // Same reply whether or not the address is waiting on a code.
+  const generic = {
+    success: true,
+    message: 'If that address still needs confirming, a new code is on its way.'
+  };
+  try {
+    const email = String((req.body || {}).email || '').toLowerCase().trim();
+    if (!email) return res.json(generic);
+
+    const user = await Customer.findOne({ email });
+    if (!user || user.emailVerified) return res.json(generic);
+
+    const outcome = await issueOtp(user);
+
+    // The cooldown is the one thing worth saying out loud: the button's timer
+    // is a courtesy, and someone who works around it deserves a real answer
+    // rather than a lie that a code is coming.
+    if (outcome === 'cooldown') {
+      const waited = Date.now() - user.otpSentAt.getTime();
+      const wait = Math.ceil((OTP_RESEND_COOLDOWN_MS - waited) / 1000);
+      return res.status(429).json({
+        success: false,
+        code: 'OTP_COOLDOWN',
+        retryAfter: wait,
+        message: `Please wait ${wait} second${wait === 1 ? '' : 's'} before asking for another code.`
+      });
+    }
+
+    res.json(generic);
+  } catch (error) {
+    console.error('resend-otp error:', error);
+    res.json(generic);
+  }
+});
+
+/* ------------------------------------------------------------------ *
+ * Email verification by link — legacy
  *
- * Nothing in the sign-up or sign-in flow issues a verification token any more,
- * so these two endpoints are unreachable from the storefront. They are kept
- * working so that any link already sitting in someone's inbox still confirms
- * their address, and so reinstating the flow is a matter of sending the mail
- * again rather than rebuilding the exchange.
+ * Sign-up now confirms with a six-digit code, so nothing issues these tokens
+ * any more. The pair is kept working because links sent before the change are
+ * still sitting in inboxes, and a customer clicking one should be confirmed
+ * rather than shown an error about a flow they never chose.
  * ------------------------------------------------------------------ */
 
 router.post('/verify-email', requireDb, limiter('verify', 20, 60 * 60 * 1000), async (req, res) => {
@@ -164,6 +375,8 @@ router.post('/verify-email', requireDb, limiter('verify', 20, 60 * 60 * 1000), a
     user.emailVerified = true;
     user.verifyTokenHash = null;
     user.verifyTokenExpires = null;
+    // The address is settled, so any code still outstanding is moot.
+    clearOtp(user);
     await user.save();
 
     sendWelcomeEmail({ name: user.name, email: user.email });
@@ -253,10 +466,41 @@ router.post('/login', requireDb, limiter('login', 20, 15 * 60 * 1000), async (re
       return res.status(401).json(invalid);
     }
 
-    // Email confirmation is not required to sign in yet. Restoring it means
-    // rejecting !user.emailVerified here with code EMAIL_UNVERIFIED — the
-    // browser already knows how to route that back to the "check your inbox"
-    // view once that view is wired up again.
+    /**
+     * An unconfirmed address cannot sign in.
+     *
+     * This sits after the password check on purpose. Sending a fresh code to
+     * anyone who merely types an email address would hand out a way to mail
+     * someone repeatedly without knowing anything about them; reaching this
+     * line means the password was right, so the request came from the account
+     * holder. The code is reissued rather than waited for, because whatever
+     * was sent at sign-up has almost certainly expired and making them hunt
+     * for a resend button first is a step that serves nobody.
+     */
+    if (!user.emailVerified) {
+      const outcome = await issueOtp(user);
+
+      // Same safety valve as sign-up: if we cannot deliver the code, the
+      // person holding the right password is not left permanently outside an
+      // account they own because our mail provider is misconfigured.
+      if (outcome !== 'undeliverable') {
+        return res.status(403).json({
+          success: false,
+          code: 'EMAIL_UNVERIFIED',
+          email: user.email,
+          message: outcome === 'sent'
+            ? 'Please confirm your email address — we have just sent you a new six-digit code.'
+            : 'Please confirm your email address. Enter the code we already sent you, or request another shortly.'
+        });
+      }
+
+      console.error(
+        `[auth] Confirmation code undeliverable for ${user.email} — admitting a ` +
+        'correct password rather than locking the account. Check the Resend sending domain.'
+      );
+      user.emailVerified = true;
+      clearOtp(user);
+    }
 
     user.failedAttempts = 0;
     user.lockedUntil = null;

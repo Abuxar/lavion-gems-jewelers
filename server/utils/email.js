@@ -30,7 +30,16 @@ function getResend() {
 const FROM_EMAIL = () => process.env.RESEND_FROM_EMAIL || 'Lavion Gems & Jewellers <onboarding@resend.dev>';
 const ADMIN_EMAIL = () => process.env.ADMIN_EMAIL || 'laviongems.jewellers@gmail.com';
 
-async function sendEmailMessage({ to, subject, html }) {
+/**
+ * `redirectOnFailure` controls the admin-inbox fallback below.
+ *
+ * It must be false for anything that only its recipient may act on — a
+ * confirmation code above all. Rerouting one to the shop's inbox would report
+ * success, gate the customer behind a code they can never receive, and hand
+ * their credential to a different mailbox. For a receipt or an alert the
+ * fallback is a courtesy; for a secret it is a lockout.
+ */
+async function sendEmailMessage({ to, subject, html, redirectOnFailure = true }) {
   const resend = getResend();
   if (!resend) {
     console.error('[Email] Resend SDK client missing or failed to initialize.');
@@ -50,7 +59,7 @@ async function sendEmailMessage({ to, subject, html }) {
       console.error('[Email] Resend API response error:', msg);
 
       // Automatic Redirect Fallback for testing mode (onboarding@resend.dev)
-      if (to !== ADMIN_EMAIL()) {
+      if (redirectOnFailure && to !== ADMIN_EMAIL()) {
         console.warn(` 🔄 [Resend Redirect] Redirecting test email intended for ${to} to verified admin address (${ADMIN_EMAIL()})...`);
         const fallbackHtml = `
           <div style="background:#2a1b00;border:1px solid #c9a84c;padding:12px;margin-bottom:20px;color:#f0d080;font-family:sans-serif;font-size:12px;border-radius:6px;">

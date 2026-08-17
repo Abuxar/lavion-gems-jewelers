@@ -2612,6 +2612,12 @@
       if (data.code === 'PROVIDER_ONLY') {
         return showFormError(form, data.message || 'Use your connected provider to sign in.');
       }
+      // The password was right, but the address was never confirmed. The
+      // server has already sent a fresh code, so go straight to the code
+      // screen rather than making them ask for one.
+      if (data.code === 'EMAIL_UNVERIFIED') {
+        return renderVerifyView(data.email || email, data.message);
+      }
       showFormError(form, data.message || 'Sign in failed.');
     });
   }
@@ -2671,19 +2677,124 @@
       const { ok, data } = await api('/api/auth/register', { method: 'POST', body: payload });
       setBusy(form, false);
 
-      // Registering signs you straight in — there is no confirmation step.
+      // The normal path: the account exists but is not usable until the code
+      // sent to that inbox comes back.
+      if (ok && data.needsVerification) {
+        renderVerifyView(data.email || payload.email);
+        return;
+      }
+      // Only reached when the code could not be delivered, in which case the
+      // server opens the account rather than stranding the customer.
       if (ok && data.accessToken) {
         applySession(data.accessToken, data.user);
         showToast(data.message || 'Account created.', 'success');
         closeAuthModal();
         return;
       }
-      if (data.code === 'EMAIL_TAKEN') {
-        showFormError(form, data.message || 'That email already has an account.');
-        document.getElementById('reg-email').focus();
+      showFormError(form, data.message || 'Could not create the account.');
+    });
+  }
+
+  /**
+   * The confirmation code screen.
+   *
+   * One field rather than six boxes: a single input pastes cleanly, works with
+   * the browser's one-time-code autofill, and cannot lose a digit to a stray
+   * focus jump between boxes. The spacing is done in CSS, so it still reads as
+   * six characters.
+   */
+  function renderVerifyView(email, note) {
+    openModalShell(`
+      ${authHeaderHtml('Confirm your email', `We sent a six-digit code to ${email}.`)}
+      ${note ? `<p class="auth-body-text">${escapeHtml(note)}</p>` : ''}
+      <form id="auth-verify-form" class="auth-form" novalidate>
+        <label class="auth-label" for="otp-code">Confirmation code</label>
+        <input class="auth-input auth-otp" type="text" id="otp-code" inputmode="numeric"
+               autocomplete="one-time-code" maxlength="6" placeholder="000000"
+               aria-describedby="otp-hint" required />
+        <p class="auth-hint" id="otp-hint">The code expires in 10 minutes. Check your spam folder if it has not arrived.</p>
+        <button type="submit" class="btn-gold auth-submit">Confirm &amp; Sign In</button>
+      </form>
+      <p class="auth-foot">Nothing arrived?
+        <button type="button" class="auth-link-btn" id="otp-resend">Send a new code</button>
+      </p>
+      <p class="auth-foot">Already have an account?
+        <button type="button" class="auth-link-btn" id="otp-to-signin">Sign in instead</button>
+      </p>
+    `);
+
+    const form = document.getElementById('auth-verify-form');
+    const input = document.getElementById('otp-code');
+    const resendBtn = document.getElementById('otp-resend');
+
+    document.getElementById('otp-to-signin').addEventListener('click', renderSignInView);
+    input.focus();
+
+    let submitting = false;
+
+    async function submitCode() {
+      const code = input.value.replace(/\D/g, '');
+      if (code.length !== 6) return showFormError(form, 'Enter the six-digit code from your email.');
+      if (submitting) return;
+
+      submitting = true;
+      showFormError(form, '');
+      setBusy(form, true, 'Confirming…');
+      const { ok, data } = await api('/api/auth/verify-otp', {
+        method: 'POST',
+        body: { email, code }
+      });
+      setBusy(form, false);
+      submitting = false;
+
+      if (ok && data.accessToken) {
+        applySession(data.accessToken, data.user);
+        showToast(data.message || 'Email confirmed.', 'success');
+        closeAuthModal();
         return;
       }
-      showFormError(form, data.message || 'Could not create the account.');
+
+      showFormError(form, data.message || 'That code could not be confirmed.');
+      // A rejected code is never worth resubmitting, so clear it rather than
+      // leaving digits behind for them to edit around.
+      input.value = '';
+      input.focus();
+    }
+
+    input.addEventListener('input', () => {
+      const digits = input.value.replace(/\D/g, '').slice(0, 6);
+      if (digits !== input.value) input.value = digits;
+      // Submit on the sixth digit — with a fixed-length code, asking for a
+      // button press afterwards is a step that tells us nothing new.
+      if (digits.length === 6) submitCode();
+    });
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      submitCode();
+    });
+
+    resendBtn.addEventListener('click', async () => {
+      resendBtn.disabled = true;
+      const { ok, data } = await api('/api/auth/resend-otp', { method: 'POST', body: { email } });
+      showToast(data.message || (ok ? 'A new code is on its way.' : 'Could not send a new code.'),
+        ok ? 'success' : 'error');
+
+      // Match the server's cooldown so the button does not invite a request it
+      // already knows will be refused. `retryAfter` is authoritative when the
+      // server sends one back.
+      let left = (!ok && data.retryAfter) ? data.retryAfter : 60;
+      const label = resendBtn.textContent;
+      const tick = () => {
+        resendBtn.textContent = left > 0 ? `Send a new code (${left}s)` : label;
+        if (left <= 0) {
+          resendBtn.disabled = false;
+          clearInterval(timer);
+        }
+        left--;
+      };
+      tick();
+      const timer = setInterval(tick, 1000);
     });
   }
 
@@ -2724,8 +2835,9 @@
 
   function renderProfileView() {
     const u = Auth.user;
-    // No verified / not-verified badge while confirmation is switched off: it
-    // would flag older accounts for something they have no way to resolve.
+    // No verified / not-verified badge: an unconfirmed account cannot hold a
+    // session at all now, so everyone who reaches this view is verified and
+    // the badge would only ever state the obvious.
     const providerTags = (u.providers || []).map(p =>
       `<span class="auth-tag">${escapeHtml(p)}</span>`).join('');
 

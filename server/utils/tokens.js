@@ -21,6 +21,28 @@ function hashToken(token) {
   return crypto.createHash('sha256').update(token).digest('hex');
 }
 
+/**
+ * A six-digit confirmation code.
+ *
+ * randomInt is uniform; `Math.random() * 900000` is not, and a generator that
+ * favours part of its range narrows what a guesser has to cover.
+ */
+function randomOtp() {
+  return String(crypto.randomInt(0, 1000000)).padStart(6, '0');
+}
+
+/**
+ * Keyed hash — deliberately not the plain SHA-256 used for the tokens above.
+ *
+ * Those are 256 random bits, so there is nothing to brute-force. A six-digit
+ * code is a million possibilities, which a laptop exhausts against an unkeyed
+ * digest in under a second. Keying it with the server secret means a leaked
+ * database row cannot be turned back into a working code without the secret.
+ */
+function hashOtp(code) {
+  return crypto.createHmac('sha256', JWT_SECRET).update(String(code)).digest('hex');
+}
+
 function signAccessToken(user) {
   return jwt.sign(
     {
@@ -119,6 +141,8 @@ module.exports = {
   REFRESH_COOKIE,
   randomToken,
   hashToken,
+  randomOtp,
+  hashOtp,
   signAccessToken,
   issueRefreshToken,
   rotateRefreshToken,
