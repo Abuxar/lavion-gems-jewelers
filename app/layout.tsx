@@ -1,5 +1,9 @@
 import type { Metadata } from 'next';
 import { Cormorant_Garamond, Montserrat } from 'next/font/google';
+import { SiteHeader } from '@/components/site-header';
+import { SiteFooter } from '@/components/site-footer';
+import { JsonLd } from '@/components/json-ld';
+import { jewelleryStoreJsonLd } from '@/lib/seo';
 import './globals.css';
 
 /**
@@ -56,7 +60,13 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en-GB" className={`${cormorant.variable} ${montserrat.variable}`}>
-      <body>{children}</body>
+      <body className="flex min-h-screen flex-col">
+        {/* Described once, for every page, rather than not at all. */}
+        <JsonLd data={jewelleryStoreJsonLd()} />
+        <SiteHeader />
+        <div className="flex-1">{children}</div>
+        <SiteFooter />
+      </body>
     </html>
   );
 }

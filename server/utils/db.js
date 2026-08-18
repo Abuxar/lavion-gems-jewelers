@@ -1,7 +1,23 @@
 const fs = require('fs');
 const path = require('path');
 
-const DB_PATH = path.join(__dirname, '../db/data.json');
+/**
+ * Where the fallback store actually is.
+ *
+ * __dirname alone was enough while this ran as plain Node, but a bundler
+ * rewrites it to the location of the generated chunk rather than of this
+ * source file, so the path pointed nowhere and readData() reported "Database
+ * file does not exist" and quietly returned an empty catalogue. That is the
+ * worst possible failure for a fallback: it only runs when Mongo is already
+ * down, so the one time it matters it would have served an empty shop instead
+ * of a stale one.
+ *
+ * The working-directory candidate is what resolves correctly when bundled.
+ */
+const DB_PATH = [
+  path.join(__dirname, '../db/data.json'),
+  path.join(process.cwd(), 'server/db/data.json')
+].find(candidate => fs.existsSync(candidate)) || path.join(__dirname, '../db/data.json');
 
 // Ensure DB file exists
 function readData() {

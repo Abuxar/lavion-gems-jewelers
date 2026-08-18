@@ -11,4 +11,16 @@ const ProductSchema = new mongoose.Schema({
   desc: { type: String, default: '' }
 }, { timestamps: true });
 
-module.exports = mongoose.model('Product', ProductSchema);
+/**
+ * Registered once, however many times this file is evaluated.
+ *
+ * The API bundle and the page bundle are compiled separately, so each has its
+ * own copy of this module while sharing one mongoose instance. The second copy
+ * to load was calling model() on a name already taken:
+ *
+ *   OverwriteModelError: Cannot overwrite `Product` model once compiled.
+ *
+ * Under plain Node the require cache made this impossible, which is why it
+ * appeared only once pages started reading the catalogue directly.
+ */
+module.exports = mongoose.models.Product || mongoose.model('Product', ProductSchema);
