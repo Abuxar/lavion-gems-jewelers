@@ -24,8 +24,21 @@ function escapeRegex(s) {
   return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-// GET /api/orders - Get all orders (Admin or Customer Filter)
-router.get('/', async (req, res) => {
+/**
+ * GET /api/orders — the whole order book. Admin only.
+ *
+ * This was open. Anyone who asked got every order ever placed, with the
+ * customer's name, phone number, email address, city, full street address,
+ * payment method and total. Worse than reachable: main.js called it on every
+ * page load and wrote the results into localStorage, so the shop's entire
+ * customer list was handed to every visitor and left sitting in their browser.
+ *
+ * Nothing customer-facing needs this. Someone tracking their own order uses
+ * /track/:query, which returns one order and only to a person who already
+ * knows its number. The sibling route in customOrders.js was already guarded
+ * this way; this one was simply missed.
+ */
+router.get('/', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const { phone, customer } = req.query;
     let orders;

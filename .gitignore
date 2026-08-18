@@ -14,6 +14,6 @@ yarn-error.log*
 # The template carries no secrets and must stay in version control.
 !.env.example
 
-# Next.js build output and generated types
+# Next.js build output and generated types — never commit it
 .next/
 next-env.d.ts

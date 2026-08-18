@@ -347,11 +347,27 @@
         }
       }
 
-      const orderRes = await fetch(`${API_URL}/orders`);
-      if (orderRes.ok) {
-        const data = await orderRes.json();
-        if (data.orders) {
-          localStorage.setItem('lavion_orders_v1', JSON.stringify(data.orders));
+      /**
+       * Orders are only fetched for a signed-in admin, and only with the token.
+       *
+       * This used to run for everyone, unauthenticated, on every page load —
+       * so every visitor's browser ended up holding the shop's whole customer
+       * list: names, phone numbers, email addresses and home addresses. A
+       * shopper has no use for other people's orders, and the admin table is
+       * the only thing that reads this key.
+       */
+      if (!sessionStorage.getItem('lavion_admin_token')) {
+        // Anyone who visited before this fix still has the leaked list sitting
+        // in their browser. Stopping the copying is only half the job; the
+        // copies already made have to go too.
+        localStorage.removeItem('lavion_orders_v1');
+      } else {
+        const orderRes = await adminFetch('/orders');
+        if (orderRes.ok) {
+          const data = await orderRes.json();
+          if (data.orders) {
+            localStorage.setItem('lavion_orders_v1', JSON.stringify(data.orders));
+          }
         }
       }
     } catch (e) {
@@ -3133,10 +3149,14 @@
     // moment ago will not be there yet. Ask the API before giving up.
     if (!order) {
       try {
-        const res = await fetch('/api/orders');
+        // Ask for the one order by its number rather than downloading the book
+        // and searching it. /track answers with a single order to someone who
+        // already knows its id, which is exactly what this needs — and it is
+        // the reason listing every order could be closed off entirely.
+        const res = await fetch(`/api/orders/track/${encodeURIComponent(orderId)}`);
         if (res.ok) {
           const data = await res.json();
-          const remote = (data.orders || []).find(matches);
+          const remote = data.order && matches(data.order) ? data.order : null;
           if (remote) {
             order = remote;
             const cached = window.getOrders();
