@@ -4,9 +4,11 @@
   "description": "Lavion Gems & Jewellers Luxury E-Commerce Platform with Node.js Express Backend",
   "main": "server/server.js",
   "scripts": {
-    "start": "node server/server.js",
-    "dev": "node scripts/dev-server.js",
-    "server": "node server/server.js"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "api:only": "node server/server.js",
+    "lint": "next lint"
   },
   "keywords": [
     "jewellery",
@@ -25,7 +27,19 @@
     "express": "^4.19.2",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^9.9.1",
+    "next": "^16.3.1",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
     "resend": "^6.18.1",
     "twilio": "^4.11.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/node": "^26.2.0",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "postcss": "^8.5.26",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^7.0.2"
   }
 }

@@ -1,0 +1,81 @@
+@import 'tailwindcss';
+
+/**
+ * The brand, as Tailwind design tokens.
+ *
+ * This is a faithful port of the `:root` block in styles/main.css, not a new
+ * palette — every value is the one already shipping. It lives here first and on
+ * purpose: once the tokens exist, every component built afterwards inherits
+ * them, so the coming redesign is a change to this block rather than a sweep
+ * through hundreds of hard-coded hex values.
+ *
+ * Names follow Tailwind's scale convention, so `--color-gold-400` gives
+ * `bg-gold-400`, `text-gold-400`, `border-gold-400` and so on for free.
+ */
+@theme {
+  /* ---- Metallic gold ramp (highlight -> deep) ---- */
+  --color-gold-100: #f9efd6;
+  --color-gold-200: #efdcb2;
+  --color-gold-300: #dcc188;
+  --color-gold-400: #c9a961;
+  --color-gold-500: #b08d4a;
+  --color-gold-600: #8c6b33;
+  --color-gold-700: #6b5024;
+
+  /* ---- Diamond / platinum accents ---- */
+  --color-diamond-100: #f4f9fc;
+  --color-diamond-200: #e2eef5;
+  --color-diamond-300: #c3dae7;
+
+  /* ---- Canvas: warm ivory ---- */
+  --color-canvas: #fbf8f3;
+  --color-canvas-pure: #ffffff;
+  --color-canvas-soft: #f6f1e8;
+  --color-canvas-muted: #ede5d7;
+
+  /* ---- Onyx: feature bands ---- */
+  --color-onyx: #0b0a09;
+  --color-onyx-soft: #141210;
+  --color-charcoal: #1f1b17;
+
+  /* ---- Ink ---- */
+  --color-ink: #23201c;
+  --color-ink-muted: #6e675c;
+  --color-ink-faint: #9c9285;
+
+  /* ---- Lines ---- */
+  --color-hairline: #e4dccf;
+
+  /* ---- Type ---- */
+  --font-serif: var(--font-cormorant), 'Times New Roman', serif;
+  --font-sans: var(--font-montserrat), 'Helvetica Neue', Arial, sans-serif;
+}
+
+/**
+ * Gradients cannot be expressed as @theme tokens, so the foils stay as custom
+ * properties and are reached through arbitrary values, e.g.
+ * `bg-[image:var(--gold-foil)]`.
+ */
+:root {
+  --gold-foil: linear-gradient(
+    135deg,
+    #8c6b33 0%, #c9a961 16%, #f9efd6 34%,
+    #dcc188 50%, #b08d4a 66%, #efdcb2 84%, #8c6b33 100%
+  );
+  --gold-foil-soft: linear-gradient(
+    135deg,
+    #b08d4a 0%, #dcc188 30%, #f9efd6 50%, #dcc188 70%, #b08d4a 100%
+  );
+  /* On ivory the highlight must stop short of near-white, or foil-clipped
+     glyphs dissolve into the background behind them. */
+  --gold-foil-ink: linear-gradient(
+    135deg,
+    #6b5024 0%, #a5813f 26%, #cbaa66 50%, #8c6b33 76%, #6b5024 100%
+  );
+}
+
+body {
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+}

@@ -1,25 +1,8 @@
 {
-  "version": 2,
-  "cleanUrls": true,
   "functions": {
-    "api/index.js": {
+    "pages/api/[[...path]].js": {
       "memory": 1024,
-      "maxDuration": 30,
-      "includeFiles": "server/db/**"
+      "maxDuration": 30
     }
-  },
-  "rewrites": [
-    {
-      "source": "/api/(.*)",
-      "destination": "/api"
-    },
-    {
-      "source": "/admin",
-      "destination": "/"
-    },
-    {
-      "source": "/admin-panel",
-      "destination": "/"
-    }
-  ]
+  }
 }
