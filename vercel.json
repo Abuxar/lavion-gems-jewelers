@@ -1,10 +1,4 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "regions": ["bom1"],
-  "functions": {
-    "pages/api/[[...path]].js": {
-      "memory": 1024,
-      "maxDuration": 30
-    }
-  }
+  "regions": ["bom1"]
 }
