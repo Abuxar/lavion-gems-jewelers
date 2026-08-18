@@ -2774,8 +2774,16 @@
       submitCode();
     });
 
+    // Captured before anything mutates it, so the countdown has something
+    // truthful to restore.
+    const resendLabel = resendBtn.textContent;
+
     resendBtn.addEventListener('click', async () => {
+      // Say what is happening straight away. Disabling alone leaves a dead
+      // button for the length of the round trip, which reads as a broken one.
       resendBtn.disabled = true;
+      resendBtn.textContent = 'Sending…';
+
       const { ok, data } = await api('/api/auth/resend-otp', { method: 'POST', body: { email } });
       showToast(data.message || (ok ? 'A new code is on its way.' : 'Could not send a new code.'),
         ok ? 'success' : 'error');
@@ -2784,9 +2792,8 @@
       // already knows will be refused. `retryAfter` is authoritative when the
       // server sends one back.
       let left = (!ok && data.retryAfter) ? data.retryAfter : 60;
-      const label = resendBtn.textContent;
       const tick = () => {
-        resendBtn.textContent = left > 0 ? `Send a new code (${left}s)` : label;
+        resendBtn.textContent = left > 0 ? `${resendLabel} (${left}s)` : resendLabel;
         if (left <= 0) {
           resendBtn.disabled = false;
           clearInterval(timer);
