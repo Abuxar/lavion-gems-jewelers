@@ -3,6 +3,7 @@ import { Cormorant_Garamond, Montserrat } from 'next/font/google';
 import { SiteHeader } from '@/components/site-header';
 import { SiteFooter } from '@/components/site-footer';
 import { JsonLd } from '@/components/json-ld';
+import { AuthProvider } from '@/lib/auth';
 import { jewelleryStoreJsonLd } from '@/lib/seo';
 import './globals.css';
 
@@ -63,9 +64,11 @@ export default function RootLayout({
       <body className="flex min-h-screen flex-col">
         {/* Described once, for every page, rather than not at all. */}
         <JsonLd data={jewelleryStoreJsonLd()} />
-        <SiteHeader />
-        <div className="flex-1">{children}</div>
-        <SiteFooter />
+        <AuthProvider>
+          <SiteHeader />
+          <div className="flex-1">{children}</div>
+          <SiteFooter />
+        </AuthProvider>
       </body>
     </html>
   );

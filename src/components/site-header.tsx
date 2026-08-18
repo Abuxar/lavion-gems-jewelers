@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { CATEGORIES } from '@/lib/categories';
+import { AccountLink } from '@/components/account-link';
 
 /**
  * One header, rendered by the root layout.
@@ -17,6 +18,7 @@ export function SiteHeader() {
         <Link href="/" className="font-serif text-xl tracking-[0.28em] text-white uppercase">
           Lavion <span className="text-gold-300">Gems</span>
         </Link>
+        <AccountLink />
       </div>
       <nav aria-label="Collections" className="border-t border-white/10">
         <ul className="mx-auto flex max-w-6xl flex-wrap gap-x-7 gap-y-2 px-6 py-3">

@@ -14,6 +14,8 @@ export type Category = {
   name: string;
   title: string;
   description: string;
+  /** Root-relative, out of public/. Used for the collection tiles on the home page. */
+  image: string;
 };
 
 /**
@@ -25,6 +27,7 @@ export type Category = {
 export const CATEGORIES: Category[] = [
   {
     slug: 'rings',
+    image: '/images/featured_rings.png',
     key: 'rings',
     name: 'Rings',
     title: 'Fine Rings Collection',
@@ -33,6 +36,7 @@ export const CATEGORIES: Category[] = [
   },
   {
     slug: 'necklaces',
+    image: '/images/hero_necklace.png',
     key: 'necklaces',
     name: 'Necklaces',
     title: 'Necklaces & Pendants',
@@ -41,6 +45,7 @@ export const CATEGORIES: Category[] = [
   },
   {
     slug: 'earrings',
+    image: '/images/featured_earrings.png',
     key: 'earrings',
     name: 'Earrings',
     title: 'Earrings',
@@ -49,6 +54,7 @@ export const CATEGORIES: Category[] = [
   },
   {
     slug: 'bracelets',
+    image: '/images/featured_bracelets.png',
     key: 'bracelets',
     name: 'Bracelets',
     title: 'Bracelets & Bangles',
@@ -57,6 +63,7 @@ export const CATEGORIES: Category[] = [
   },
   {
     slug: 'asian-jewellery',
+    image: '/images/asian_jewellery.png',
     key: 'asian',
     name: 'Asian Jewellery',
     title: 'Asian & Bridal Jewellery',
@@ -65,6 +72,7 @@ export const CATEGORIES: Category[] = [
   },
   {
     slug: 'western-jewellery',
+    image: '/images/western_jewellery.png',
     key: 'western',
     name: 'Western Jewellery',
     title: 'Western Jewellery',
@@ -73,6 +81,7 @@ export const CATEGORIES: Category[] = [
   },
   {
     slug: 'high-jewellery',
+    image: '/images/hero_campaign.png',
     key: 'high',
     name: 'High Jewellery',
     title: 'High Jewellery & Bespoke Creations',
@@ -81,6 +90,7 @@ export const CATEGORIES: Category[] = [
   },
   {
     slug: 'gems',
+    image: '/images/gems.png',
     key: 'gems',
     name: 'Gems',
     title: 'Certified Gemstones',
@@ -89,6 +99,7 @@ export const CATEGORIES: Category[] = [
   },
   {
     slug: 'diamonds',
+    image: '/images/diamonds.png',
     key: 'diamonds',
     name: 'Diamonds',
     title: 'Certified Diamonds',
