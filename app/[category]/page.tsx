@@ -1,8 +1,10 @@
 import type { Metadata } from 'next';
 import Image from 'next/image';
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { CATEGORIES, findCategory } from '@/lib/categories';
 import { getProductsByCategory, isEmbeddedImage } from '@/lib/catalogue';
+import { productHandle } from '@/lib/handles';
 import { breadcrumbJsonLd, categoryJsonLd } from '@/lib/seo';
 import { JsonLd } from '@/components/json-ld';
 
@@ -96,7 +98,8 @@ export default async function CategoryPage({ params }: Props) {
           <ul className="mt-6 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
             {products.map((p, i) => (
               <li key={p.id} className="border border-hairline bg-canvas-pure">
-                <div className="relative aspect-square overflow-hidden bg-canvas-soft">
+                <Link href={`/product/${productHandle(p)}`} className="block">
+                  <div className="relative aspect-square overflow-hidden bg-canvas-soft">
                   <Image
                     src={p.img}
                     alt={p.name}
@@ -131,7 +134,8 @@ export default async function CategoryPage({ params }: Props) {
                   <p className="mt-4 font-sans text-[11px] font-semibold uppercase tracking-[0.15em] text-gold-600">
                     Daily rate — enquire
                   </p>
-                </div>
+                  </div>
+                </Link>
               </li>
             ))}
           </ul>

@@ -1,5 +1,6 @@
 import type { Category } from './categories';
 import type { Product } from './catalogue';
+import { productHandle } from './handles';
 
 export const SITE = {
   name: 'Lavion Gems & Jewellers',
@@ -57,10 +58,15 @@ export function jewelleryStoreJsonLd(): JsonLd {
 }
 
 export function productJsonLd(product: Product): JsonLd {
+  // The identifier is the product's own page, which now exists. It pointed at
+  // /product/{id} before there was anything there to point at.
+  const url = `${SITE.url}/product/${productHandle(product)}`;
+
   const node: JsonLd = {
     '@context': 'https://schema.org',
     '@type': 'Product',
-    '@id': `${SITE.url}/product/${product.id}`,
+    '@id': url,
+    url,
     name: product.name,
     sku: product.id,
     brand: { '@type': 'Brand', name: SITE.name }

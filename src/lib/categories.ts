@@ -100,3 +100,8 @@ export const CATEGORIES: Category[] = [
 export function findCategory(slug: string): Category | undefined {
   return CATEGORIES.find(c => c.slug === slug);
 }
+
+/** The reverse lookup: a product stores `key`, a breadcrumb needs the rest. */
+export function findCategoryByKey(key: string): Category | undefined {
+  return CATEGORIES.find(c => c.key.toLowerCase() === key.toLowerCase());
+}

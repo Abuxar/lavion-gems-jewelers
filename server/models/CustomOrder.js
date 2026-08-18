@@ -47,4 +47,5 @@ const CustomOrderSchema = new mongoose.Schema({
   status: { type: String, default: 'Submitted' }
 }, { timestamps: true });
 
-module.exports = mongoose.model('CustomOrder', CustomOrderSchema);
+// Guarded like every other model here — see Order.js.
+module.exports = mongoose.models.CustomOrder || mongoose.model('CustomOrder', CustomOrderSchema);

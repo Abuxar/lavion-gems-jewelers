@@ -17,4 +17,7 @@ const OrderSchema = new mongoose.Schema({
   date: { type: String, default: () => new Date().toISOString().split('T')[0] }
 }, { timestamps: true });
 
-module.exports = mongoose.model('Order', OrderSchema);
+// Guarded like every other model here: the API bundle and the page bundle are
+// compiled separately but share one mongoose instance, so the second to load
+// would otherwise hit "Cannot overwrite `Order` model once compiled".
+module.exports = mongoose.models.Order || mongoose.model('Order', OrderSchema);

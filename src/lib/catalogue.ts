@@ -12,6 +12,7 @@
  * machine with no database configured.
  */
 import type { Category } from './categories';
+import { idFromHandle } from './handles';
 
 // The server is CommonJS and lives outside the TypeScript project, so it comes
 // in through require rather than import.
@@ -90,4 +91,10 @@ export async function getAllProducts(): Promise<Product[]> {
 export async function getProductsByCategory(category: Category): Promise<Product[]> {
   const all = await getAllProducts();
   return all.filter(p => p.category.toLowerCase() === category.key.toLowerCase());
+}
+
+export async function getProductByHandle(handle: string): Promise<Product | undefined> {
+  const id = idFromHandle(handle);
+  const all = await getAllProducts();
+  return all.find(p => p.id === id);
 }
