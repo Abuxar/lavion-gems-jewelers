@@ -1,8 +1,9 @@
 import Link from 'next/link';
 import { CATEGORIES } from '@/lib/categories';
+import { href, type LocaleCode } from '@/lib/locales';
 import { SITE } from '@/lib/seo';
 
-export function SiteFooter() {
+export function SiteFooter({ locale }: { locale: LocaleCode }) {
   return (
     <footer className="mt-24 border-t border-hairline bg-onyx text-canvas">
       <div className="mx-auto grid max-w-6xl gap-10 px-6 py-14 sm:grid-cols-2">
@@ -25,7 +26,7 @@ export function SiteFooter() {
             {CATEGORIES.map(c => (
               <li key={c.slug}>
                 <Link
-                  href={`/${c.slug}`}
+                  href={href(locale, `/${c.slug}`)}
                   className="font-sans text-sm text-canvas/80 hover:text-gold-300"
                 >
                   {c.name}
@@ -36,7 +37,7 @@ export function SiteFooter() {
         </div>
       </div>
       <div className="border-t border-white/10 px-6 py-5 text-center font-sans text-xs text-ink-faint">
-        <Link href="/track-order" className="hover:text-gold-300">
+        <Link href={href(locale, "/track-order")} className="hover:text-gold-300">
           Track your order
         </Link>
       </div>

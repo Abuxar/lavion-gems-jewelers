@@ -3,7 +3,9 @@
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '@/lib/auth';
-import { formatPKR } from '@/lib/cart';
+import { useHref } from '@/lib/locale-context';
+import { priceIn, type Fx } from '@/lib/currency';
+import type { Locale } from '@/lib/locales';
 import { Field, FormError, SubmitButton } from '@/components/form';
 
 type Order = {
@@ -44,9 +46,10 @@ function isCancelled(status: string): boolean {
   return status.trim().toLowerCase().startsWith('cancel');
 }
 
-export function TrackView() {
+export function TrackView({ currency, fx }: { currency: Locale['currency']; fx: Fx }) {
   const { api } = useAuth();
   const router = useRouter();
+  const link = useHref();
   const params = useSearchParams();
   const initial = params?.get('ref') || '';
 
@@ -86,7 +89,7 @@ export function TrackView() {
     const value = String(q || '').trim();
     setQuery(value);
     // Put it in the URL so the result can be shared or reloaded.
-    router.replace(`/track-order?ref=${encodeURIComponent(value)}`);
+    router.replace(link(`/track-order?ref=${encodeURIComponent(value)}`));
     void lookup(value);
   }
 
@@ -186,7 +189,7 @@ export function TrackView() {
                   {order.priceConfirmed ? 'Total' : 'Indicative total'}
                 </dt>
                 <dd className="text-ink">
-                  {formatPKR(order.total)}
+                  {priceIn(order.total, currency, fx)}
                   {!order.priceConfirmed && (
                     <span className="ml-2 text-xs text-ink-faint">
                       — not yet confirmed against the day&rsquo;s gold rate

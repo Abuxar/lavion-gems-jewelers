@@ -4,7 +4,10 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useState } from 'react';
 import { useAuth } from '@/lib/auth';
-import { FREE_SHIPPING_OVER, formatPKR, useCart } from '@/lib/cart';
+import { FREE_SHIPPING_OVER, useCart } from '@/lib/cart';
+import { priceIn, type Fx } from '@/lib/currency';
+import type { Locale } from '@/lib/locales';
+import { useHref } from '@/lib/locale-context';
 import { isEmbeddedImage } from '@/lib/images';
 import { productHandle } from '@/lib/handles';
 import { Field, FormError, SubmitButton } from '@/components/form';
@@ -17,9 +20,13 @@ const PAYMENT_METHODS = [
 
 type Placed = { id: string; total: number };
 
-export function CartView() {
+export function CartView({ currency, fx }: { currency: Locale['currency']; fx: Fx }) {
   const { items, subtotal, shipping, total, ready, setQty, remove, clear } = useCart();
   const { user, api } = useAuth();
+  const link = useHref();
+  // Displayed in the reader's currency; the order is still posted in rupees,
+  // which is the only currency the server stores or the shop quotes in.
+  const money = (pkr: number) => priceIn(pkr, currency, fx);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [placed, setPlaced] = useState<Placed | null>(null);
@@ -77,7 +84,7 @@ export function CartView() {
           before anything is charged.
         </p>
         <Link
-          href="/"
+          href={link("/")}
           className="mt-10 inline-block bg-onyx px-8 py-4 font-sans text-[11px] font-bold uppercase tracking-[0.2em] text-gold-200"
         >
           Continue browsing
@@ -104,7 +111,7 @@ export function CartView() {
           Nothing has been added yet.
         </p>
         <Link
-          href="/"
+          href={link("/")}
           className="mt-10 inline-block bg-onyx px-8 py-4 font-sans text-[11px] font-bold uppercase tracking-[0.2em] text-gold-200"
         >
           Browse the collections
@@ -122,7 +129,7 @@ export function CartView() {
           {items.map(item => (
             <li key={item.id} className="flex gap-5 py-6">
               <Link
-                href={`/product/${productHandle(item)}`}
+                href={link(`/product/${productHandle(item)}`)}
                 className="relative h-24 w-24 shrink-0 overflow-hidden bg-canvas-soft"
               >
                 <Image
@@ -136,7 +143,7 @@ export function CartView() {
               </Link>
 
               <div className="flex-1">
-                <Link href={`/product/${productHandle(item)}`}>
+                <Link href={link(`/product/${productHandle(item)}`)}>
                   <h2 className="font-serif text-lg text-ink hover:text-gold-600">
                     {item.name}
                   </h2>
@@ -165,7 +172,7 @@ export function CartView() {
                 </div>
               </div>
 
-              <p className="font-sans text-sm text-ink">{formatPKR(item.price * item.qty)}</p>
+              <p className="font-sans text-sm text-ink">{money(item.price * item.qty)}</p>
             </li>
           ))}
         </ul>
@@ -175,17 +182,17 @@ export function CartView() {
             <dl className="space-y-2 font-sans text-sm">
               <div className="flex justify-between">
                 <dt className="text-ink-muted">Subtotal</dt>
-                <dd className="text-ink">{formatPKR(subtotal)}</dd>
+                <dd className="text-ink">{money(subtotal)}</dd>
               </div>
               <div className="flex justify-between">
                 <dt className="text-ink-muted">Delivery</dt>
                 <dd className="text-ink">
-                  {shipping === 0 ? 'Free' : formatPKR(shipping)}
+                  {shipping === 0 ? 'Free' : money(shipping)}
                 </dd>
               </div>
               <div className="flex justify-between border-t border-hairline pt-3 font-semibold">
                 <dt className="text-ink">Indicative total</dt>
-                <dd className="text-ink">{formatPKR(total)}</dd>
+                <dd className="text-ink">{money(total)}</dd>
               </div>
             </dl>
 
@@ -202,7 +209,7 @@ export function CartView() {
 
             {subtotal < FREE_SHIPPING_OVER && (
               <p className="mt-3 font-sans text-xs text-gold-600">
-                Spend {formatPKR(FREE_SHIPPING_OVER - subtotal)} more for free delivery.
+                Spend {money(FREE_SHIPPING_OVER - subtotal)} more for free delivery.
               </p>
             )}
           </div>

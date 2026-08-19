@@ -3,6 +3,7 @@
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth, type User } from '@/lib/auth';
+import { useHref } from '@/lib/locale-context';
 import { AuthCard, FormError, FormNote, TextLink } from '@/components/form';
 
 const RESEND_LABEL = 'Send a new code';
@@ -10,6 +11,7 @@ const RESEND_LABEL = 'Send a new code';
 export function VerifyForm() {
   const { api, applySession } = useAuth();
   const router = useRouter();
+  const link = useHref();
   const params = useSearchParams();
   const email = params?.get('email') || '';
 
@@ -45,7 +47,7 @@ export function VerifyForm() {
 
       if (ok && data.accessToken && data.user) {
         applySession(data.accessToken, data.user);
-        router.push('/account');
+        router.push(link('/account'));
         return;
       }
 
@@ -56,7 +58,7 @@ export function VerifyForm() {
       setBusy(false);
       inputRef.current?.focus();
     },
-    [api, applySession, busy, email, router]
+    [api, applySession, busy, email, router, link]
   );
 
   function onChange(raw: string) {
@@ -90,7 +92,7 @@ export function VerifyForm() {
         intro="We need to know which address to confirm."
         footer={
           <p>
-            <TextLink href="/account/sign-in">Go to sign in</TextLink>
+            <TextLink href={link("/account/sign-in")}>Go to sign in</TextLink>
           </p>
         }
       >
@@ -105,7 +107,7 @@ export function VerifyForm() {
       intro={`Enter the six-digit code we sent to ${email}.`}
       footer={
         <p>
-          Wrong address? <TextLink href="/account/register">Start again</TextLink>
+          Wrong address? <TextLink href={link("/account/register")}>Start again</TextLink>
         </p>
       }
     >

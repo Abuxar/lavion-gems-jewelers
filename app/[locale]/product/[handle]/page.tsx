@@ -6,6 +6,7 @@ import { findCategoryByKey } from '@/lib/categories';
 import { getAllProducts, getProductByHandle } from '@/lib/catalogue';
 import { isEmbeddedImage } from '@/lib/images';
 import { productHandle } from '@/lib/handles';
+import { alternatesFor, getLocale, href, isLocaleCode, LOCALE_CODES } from '@/lib/locales';
 import { breadcrumbJsonLd, productJsonLd } from '@/lib/seo';
 import { JsonLd } from '@/components/json-ld';
 import { AddToBag } from '@/components/add-to-bag';
@@ -23,7 +24,9 @@ import { SaveButton } from '@/components/wishlist/save-button';
 
 export async function generateStaticParams() {
   const products = await getAllProducts();
-  return products.map(p => ({ handle: productHandle(p) }));
+  return LOCALE_CODES.flatMap(locale =>
+    products.map(p => ({ locale, handle: productHandle(p) }))
+  );
 }
 
 /**
@@ -34,25 +37,28 @@ export async function generateStaticParams() {
 export const dynamicParams = true;
 export const revalidate = 3600;
 
-type Props = { params: Promise<{ handle: string }> };
+type Props = { params: Promise<{ locale: string; handle: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { handle } = await params;
+  const { locale, handle } = await params;
   const product = await getProductByHandle(handle);
-  if (!product) return {};
+  if (!product || !isLocaleCode(locale)) return {};
 
-  const canonical = `/product/${productHandle(product)}`;
+  const path = `/product/${productHandle(product)}`;
   const description =
     product.desc || `${product.name} from ${'Lavion Gems & Jewellers'}.`;
 
   return {
     title: product.name,
     description,
-    alternates: { canonical },
+    alternates: {
+      canonical: href(locale, path),
+      languages: alternatesFor(path, 'https://jewels.lavion.co.uk')
+    },
     openGraph: {
       title: product.name,
       description,
-      url: canonical,
+      url: href(locale, path),
       type: 'website',
       // An embedded image has no address to share, so the card falls back to
       // the site default rather than advertising a broken one.
@@ -62,9 +68,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function ProductPage({ params }: Props) {
-  const { handle } = await params;
+  const { locale, handle } = await params;
   const product = await getProductByHandle(handle);
-  if (!product) notFound();
+  if (!product || !isLocaleCode(locale)) notFound();
+
+  const active = getLocale(locale);
 
   /**
    * The id is what resolves, so /anything-7 would serve the same piece and
@@ -73,7 +81,7 @@ export default async function ProductPage({ params }: Props) {
    */
   const canonicalHandle = productHandle(product);
   if (handle !== canonicalHandle) {
-    permanentRedirect(`/product/${canonicalHandle}`);
+    permanentRedirect(href(active.code, `/product/${canonicalHandle}`));
   }
 
   const category = findCategoryByKey(product.category);
@@ -83,21 +91,23 @@ export default async function ProductPage({ params }: Props) {
       <JsonLd data={productJsonLd(product)} />
       <JsonLd
         data={breadcrumbJsonLd([
-          { name: 'Home', url: '/' },
-          ...(category ? [{ name: category.name, url: `/${category.slug}` }] : []),
-          { name: product.name, url: `/product/${canonicalHandle}` }
+          { name: 'Home', url: href(active.code, '/') },
+          ...(category
+            ? [{ name: category.name, url: href(active.code, `/${category.slug}`) }]
+            : []),
+          { name: product.name, url: href(active.code, `/product/${canonicalHandle}`) }
         ])}
       />
 
       <main className="mx-auto max-w-6xl px-6 py-14">
         <nav aria-label="Breadcrumb" className="font-sans text-xs text-ink-faint">
-          <Link href="/" className="hover:text-gold-600">
+          <Link href={href(active.code, '/')} className="hover:text-gold-600">
             Home
           </Link>
           {category && (
             <>
               <span className="px-2">/</span>
-              <Link href={`/${category.slug}`} className="hover:text-gold-600">
+              <Link href={href(active.code, `/${category.slug}`)} className="hover:text-gold-600">
                 {category.name}
               </Link>
             </>

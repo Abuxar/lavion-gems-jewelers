@@ -3,11 +3,13 @@
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useAuth, type User } from '@/lib/auth';
+import { useHref } from '@/lib/locale-context';
 import { AuthCard, Field, FormError, SubmitButton, TextLink } from '@/components/form';
 
 export function RegisterForm() {
   const { api, applySession } = useAuth();
   const router = useRouter();
+  const link = useHref();
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -41,14 +43,14 @@ export function RegisterForm() {
      * on purpose, so this form must not try to distinguish the two either.
      */
     if (ok && data.needsVerification) {
-      router.push(`/account/verify?email=${encodeURIComponent(data.email || email)}&sent=1`);
+      router.push(link(`/account/verify?email=${encodeURIComponent(data.email || email)}&sent=1`));
       return;
     }
 
     /** Only reached when the code could not be sent and the account was opened anyway. */
     if (ok && data.accessToken && data.user) {
       applySession(data.accessToken, data.user);
-      router.push('/account');
+      router.push(link('/account'));
       return;
     }
 
@@ -62,7 +64,7 @@ export function RegisterForm() {
       intro="We will email you a six-digit code to confirm your address."
       footer={
         <p>
-          Already registered? <TextLink href="/account/sign-in">Sign in</TextLink>
+          Already registered? <TextLink href={link("/account/sign-in")}>Sign in</TextLink>
         </p>
       }
     >

@@ -3,6 +3,7 @@
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 import { useAuth } from '@/lib/auth';
+import { useHref } from '@/lib/locale-context';
 import {
   AuthCard,
   Field,
@@ -14,6 +15,7 @@ import {
 
 export function ForgotPasswordForm() {
   const { api } = useAuth();
+  const link = useHref();
   const [note, setNote] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -49,7 +51,7 @@ export function ForgotPasswordForm() {
       intro="Tell us your email address and we will send you a link."
       footer={
         <p>
-          Remembered it? <TextLink href="/account/sign-in">Sign in</TextLink>
+          Remembered it? <TextLink href={link("/account/sign-in")}>Sign in</TextLink>
         </p>
       }
     >
@@ -66,6 +68,7 @@ export function ForgotPasswordForm() {
 export function ResetPasswordForm() {
   const { api } = useAuth();
   const router = useRouter();
+  const link = useHref();
   const token = useSearchParams()?.get('token') || '';
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -92,7 +95,7 @@ export function ResetPasswordForm() {
     if (ok) {
       // The server signs every other session out on a reset, so there is no
       // session to carry forward — they sign in again with the new password.
-      router.push('/account/sign-in?reset=1');
+      router.push(link('/account/sign-in?reset=1'));
       return;
     }
 
@@ -106,7 +109,7 @@ export function ResetPasswordForm() {
         title="Choose a new password"
         footer={
           <p>
-            <TextLink href="/account/forgot-password">Request a new link</TextLink>
+            <TextLink href={link("/account/forgot-password")}>Request a new link</TextLink>
           </p>
         }
       >

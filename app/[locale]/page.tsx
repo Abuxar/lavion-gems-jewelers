@@ -1,10 +1,12 @@
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
+import { notFound } from 'next/navigation';
 import { CATEGORIES } from '@/lib/categories';
 import { getAllProducts } from '@/lib/catalogue';
 import { isEmbeddedImage } from '@/lib/images';
 import { productHandle } from '@/lib/handles';
+import { alternatesFor, getLocale, href, isLocaleCode, LOCALE_CODES } from '@/lib/locales';
 import { SITE } from '@/lib/seo';
 import { JsonLd } from '@/components/json-ld';
 
@@ -20,16 +22,33 @@ import { JsonLd } from '@/components/json-ld';
 
 export const revalidate = 3600;
 
-export const metadata: Metadata = {
-  // The one page whose title should not be suffixed with the shop name, since
-  // it is the shop name.
-  title: { absolute: 'Lavion Gems & Jewellers — Fine Gold, Diamond & Gemstone Jewellery' },
-  description:
-    'Fine gold, diamond and gemstone jewellery. Bridal sets, bespoke commissions and certified stones, shipped to the UK, Europe, the UAE and Pakistan.',
-  alternates: { canonical: '/' }
-};
+export function generateStaticParams() {
+  return LOCALE_CODES.map(locale => ({ locale }));
+}
 
-export default async function HomePage() {
+type Props = { params: Promise<{ locale: string }> };
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { locale } = await params;
+  if (!isLocaleCode(locale)) return {};
+
+  return {
+    // The one page whose title should not be suffixed with the shop name,
+    // since it is the shop name.
+    title: { absolute: 'Lavion Gems & Jewellers — Fine Gold, Diamond & Gemstone Jewellery' },
+    description:
+      'Fine gold, diamond and gemstone jewellery. Bridal sets, bespoke commissions and certified stones, shipped to the UK, Europe, the UAE and Pakistan.',
+    alternates: {
+      canonical: href(locale, '/'),
+      languages: alternatesFor('/', SITE.url)
+    }
+  };
+}
+
+export default async function HomePage({ params }: Props) {
+  const { locale } = await params;
+  if (!isLocaleCode(locale)) notFound();
+  const active = getLocale(locale);
   const products = await getAllProducts();
   const featured = products.filter(p => p.badge).slice(0, 6);
 
@@ -66,7 +85,7 @@ export default async function HomePage() {
             master goldsmiths and shipped worldwide.
           </p>
           <Link
-            href="/rings"
+            href={href(active.code, "/rings")}
             className="mt-9 inline-block bg-gold-400 px-8 py-4 font-sans text-[11px] font-bold uppercase tracking-[0.2em] text-onyx hover:bg-gold-300"
           >
             Explore the collections
@@ -79,7 +98,7 @@ export default async function HomePage() {
         <ul className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {CATEGORIES.map(c => (
             <li key={c.slug}>
-              <Link href={`/${c.slug}`} className="group block">
+              <Link href={href(active.code, `/${c.slug}`)} className="group block">
                 <div className="relative aspect-[4/3] overflow-hidden bg-canvas-soft">
                   <Image
                     src={c.image}
@@ -108,7 +127,7 @@ export default async function HomePage() {
             <ul className="mt-8 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
               {featured.map(p => (
                 <li key={p.id} className="border border-hairline bg-canvas-pure">
-                  <Link href={`/product/${productHandle(p)}`} className="block">
+                  <Link href={href(active.code, `/product/${productHandle(p)}`)} className="block">
                     <div className="relative aspect-square overflow-hidden bg-canvas-soft">
                       <Image
                         src={p.img}

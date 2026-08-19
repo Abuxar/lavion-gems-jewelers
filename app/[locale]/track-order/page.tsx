@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
 import { TrackView } from '@/components/track/track-view';
+import { getLocale, href, isLocaleCode } from '@/lib/locales';
+import { getFx } from '@/lib/money';
 
 /**
  * Kept at /track-order, the path the old page used, so links already shared
@@ -17,10 +19,15 @@ export const metadata: Metadata = {
   alternates: { canonical: '/track-order' }
 };
 
-export default function Page() {
+type Props = { params: Promise<{ locale: string }> };
+
+export default async function Page({ params }: Props) {
+  const { locale } = await params;
+  const active = getLocale(isLocaleCode(locale) ? locale : undefined);
+  const fx = await getFx();
   return (
     <Suspense fallback={null}>
-      <TrackView />
+      <TrackView currency={active.currency} fx={fx} />
     </Suspense>
   );
 }

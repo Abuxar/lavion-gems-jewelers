@@ -3,11 +3,13 @@
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useAuth, type User } from '@/lib/auth';
+import { useHref } from '@/lib/locale-context';
 import { AuthCard, Field, FormError, SubmitButton, TextLink } from '@/components/form';
 
 export function SignInForm() {
   const { api, applySession } = useAuth();
   const router = useRouter();
+  const link = useHref();
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -31,13 +33,13 @@ export function SignInForm() {
      */
     if (data.code === 'EMAIL_UNVERIFIED') {
       const target = data.email || email;
-      router.push(`/account/verify?email=${encodeURIComponent(target)}&sent=1`);
+      router.push(link(`/account/verify?email=${encodeURIComponent(target)}&sent=1`));
       return;
     }
 
     if (ok && data.accessToken && data.user) {
       applySession(data.accessToken, data.user);
-      router.push('/account');
+      router.push(link('/account'));
       return;
     }
 
@@ -52,10 +54,10 @@ export function SignInForm() {
       footer={
         <>
           <p>
-            New here? <TextLink href="/account/register">Create an account</TextLink>
+            New here? <TextLink href={link("/account/register")}>Create an account</TextLink>
           </p>
           <p className="mt-2">
-            <TextLink href="/account/forgot-password">Forgotten your password?</TextLink>
+            <TextLink href={link("/account/forgot-password")}>Forgotten your password?</TextLink>
           </p>
         </>
       }

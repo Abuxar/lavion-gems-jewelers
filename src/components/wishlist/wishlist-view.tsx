@@ -6,6 +6,7 @@ import type { Product } from '@/lib/catalogue';
 import { isEmbeddedImage } from '@/lib/images';
 import { productHandle } from '@/lib/handles';
 import { useWishlist } from '@/lib/wishlist';
+import { useHref } from '@/lib/locale-context';
 import { AddToBag } from '@/components/add-to-bag';
 
 /**
@@ -18,6 +19,7 @@ import { AddToBag } from '@/components/add-to-bag';
  */
 export function WishlistView({ products }: { products: Product[] }) {
   const { ids, ready, remove } = useWishlist();
+  const link = useHref();
 
   if (!ready) {
     return (
@@ -47,7 +49,7 @@ export function WishlistView({ products }: { products: Product[] }) {
             : 'Tap “Save” on a piece to keep it here.'}
         </p>
         <Link
-          href="/"
+          href={link("/")}
           className="mt-10 inline-block bg-onyx px-8 py-4 font-sans text-[11px] font-bold uppercase tracking-[0.2em] text-gold-200"
         >
           Browse the collections
@@ -66,7 +68,7 @@ export function WishlistView({ products }: { products: Product[] }) {
       <ul className="mt-8 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
         {saved.map(p => (
           <li key={p.id} className="flex flex-col border border-hairline bg-canvas-pure">
-            <Link href={`/product/${productHandle(p)}`} className="block">
+            <Link href={link(`/product/${productHandle(p)}`)} className="block">
               <div className="relative aspect-square overflow-hidden bg-canvas-soft">
                 <Image
                   src={p.img}
@@ -79,7 +81,7 @@ export function WishlistView({ products }: { products: Product[] }) {
               </div>
             </Link>
             <div className="flex flex-1 flex-col p-5">
-              <Link href={`/product/${productHandle(p)}`}>
+              <Link href={link(`/product/${productHandle(p)}`)}>
                 <h2 className="font-serif text-lg text-ink hover:text-gold-600">{p.name}</h2>
               </Link>
               {p.desc && (

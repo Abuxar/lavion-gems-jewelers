@@ -3,18 +3,20 @@
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { useAuth } from '@/lib/auth';
+import { useHref } from '@/lib/locale-context';
 import { AuthCard, SubmitButton, TextLink } from '@/components/form';
 
 export function AccountView() {
   const { user, status, signOut } = useAuth();
   const router = useRouter();
+  const link = useHref();
 
   useEffect(() => {
     // Only once the refresh cookie has had its turn. Redirecting while the
     // status is still 'loading' would bounce a signed-in visitor to the sign-in
     // page on every reload, because a reload always starts with no token.
-    if (status === 'anonymous') router.replace('/account/sign-in');
-  }, [status, router]);
+    if (status === 'anonymous') router.replace(link('/account/sign-in'));
+  }, [status, router, link]);
 
   if (status !== 'authenticated' || !user) {
     return (
@@ -33,7 +35,7 @@ export function AccountView() {
       footer={
         <p>
           Need to change your password?{' '}
-          <TextLink href="/account/forgot-password">Reset it here</TextLink>
+          <TextLink href={link("/account/forgot-password")}>Reset it here</TextLink>
         </p>
       }
     >
@@ -63,7 +65,7 @@ export function AccountView() {
         onSubmit={async e => {
           e.preventDefault();
           await signOut();
-          router.push('/');
+          router.push(link('/'));
         }}
       >
         <SubmitButton>Sign out</SubmitButton>
