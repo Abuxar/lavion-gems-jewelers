@@ -35,6 +35,11 @@ export function SiteFooter() {
           </ul>
         </div>
       </div>
+      <div className="border-t border-white/10 px-6 py-5 text-center font-sans text-xs text-ink-faint">
+        <Link href="/track-order" className="hover:text-gold-300">
+          Track your order
+        </Link>
+      </div>
       <div className="border-t border-white/10 py-5 text-center font-sans text-xs text-ink-faint">
         © {new Date().getFullYear()} {SITE.name}. All rights reserved.
       </div>
