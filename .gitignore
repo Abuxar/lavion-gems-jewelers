@@ -17,3 +17,6 @@ yarn-error.log*
 # Next.js build output and generated types — never commit it
 .next/
 next-env.d.ts
+
+# TypeScript's incremental build cache, written by any `tsc` run
+tsconfig.tsbuildinfo

@@ -64,7 +64,32 @@ router.get('/', authenticateToken, requireAdmin, async (req, res) => {
   }
 });
 
-// GET /api/orders/track/:query - Live Order Tracking timeline lookup
+/**
+ * GET /api/orders/track/:query — the public tracking lookup.
+ *
+ * This is the one order route with no login behind it, because a customer
+ * tracking their delivery has nothing to sign in with. That makes the fields it
+ * returns the fields anyone who knows — or guesses — a mobile number can read,
+ * so it answers with the progress of the order and nothing else. It used to
+ * hand back the full record: home address, email address and payment method
+ * included.
+ *
+ * Enough is kept to recognise your own order (name, city, what was ordered,
+ * what it costs) and to draw the timeline. A customer's own device still holds
+ * the complete record from checkout, which is what the invoice prints from.
+ */
+const PUBLIC_TRACK_FIELDS = [
+  'id', 'customer', 'city', 'items', 'total', 'status', 'priceConfirmed', 'date'
+];
+
+function publicView(order) {
+  const out = {};
+  for (const key of PUBLIC_TRACK_FIELDS) {
+    if (order[key] !== undefined) out[key] = order[key];
+  }
+  return out;
+}
+
 // Express 4 does not catch a rejected async handler, so the try/catch is what
 // keeps a database hiccup from hanging the request instead of answering it.
 router.get('/track/:query', async (req, res) => {
@@ -73,15 +98,19 @@ router.get('/track/:query', async (req, res) => {
     let order;
 
     if (usingMongo()) {
+      // Projected in the query rather than trimmed afterwards, so the sensitive
+      // fields are never read out of the database to begin with.
       order = await Order.findOne({
         $or: [
           { id: new RegExp('^' + escapeRegex(q) + '$', 'i') },
           { phone: new RegExp(escapeRegex(q)) }
         ]
-      }).select(FIELDS).lean();
+      }).select(PUBLIC_TRACK_FIELDS.join(' ') + ' -_id').lean();
     } else {
       const db = readData();
       order = db.orders.find(o => o.id.toLowerCase() === q || o.phone.includes(q));
+      // The file store has no projection; the record is whole, so trim it here.
+      if (order) order = publicView(order);
     }
 
     if (!order) {

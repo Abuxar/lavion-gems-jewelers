@@ -13,8 +13,12 @@ import { DEFAULT_LOCALE, isLocaleCode } from '@/lib/locales';
  * same page at both /rings and /gb/rings would be two URLs for one page, which
  * is the duplicate-content problem the whole hreflang arrangement exists to
  * avoid. There is one address for the UK page and it is the short one.
+ *
+ * Named proxy() in proxy.ts rather than middleware() in middleware.ts: Next 16
+ * renamed the convention and warns on every boot under the old one. Nothing
+ * about the behaviour changes — it runs in the same place for the same reason.
  */
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const [, first, ...rest] = pathname.split('/');
 
