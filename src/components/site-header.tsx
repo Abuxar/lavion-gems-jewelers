@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { CATEGORIES } from '@/lib/categories';
 import { AccountLink } from '@/components/account-link';
 import { BagLink } from '@/components/cart/bag-link';
+import { SavedLink } from '@/components/wishlist/saved-link';
 
 /**
  * One header, rendered by the root layout.
@@ -21,6 +22,7 @@ export function SiteHeader() {
         </Link>
         <div className="flex items-center gap-6">
           <AccountLink />
+          <SavedLink />
           <BagLink />
         </div>
       </div>

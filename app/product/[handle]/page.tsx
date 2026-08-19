@@ -9,6 +9,7 @@ import { productHandle } from '@/lib/handles';
 import { breadcrumbJsonLd, productJsonLd } from '@/lib/seo';
 import { JsonLd } from '@/components/json-ld';
 import { AddToBag } from '@/components/add-to-bag';
+import { SaveButton } from '@/components/wishlist/save-button';
 
 /**
  * A page per piece.
@@ -144,6 +145,10 @@ export default async function ProductPage({ params }: Props) {
             </div>
 
             <AddToBag product={product} full />
+
+            <div className="mt-4">
+              <SaveButton id={product.id} />
+            </div>
 
             {product.stock > 0 && product.stock <= 3 && (
               <p className="mt-3 font-sans text-xs text-gold-600">
