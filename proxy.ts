@@ -44,5 +44,9 @@ export const config = {
    * locale tree — there is one of each for the whole site, and rewriting them
    * into a locale would make them 404.
    */
-  matcher: ['/((?!api|_next|images|favicon\\.ico|robots\\.txt|sitemap\\.xml).*)']
+  /**
+   * /admin is excluded because it is not a market-facing page: it lives outside
+   * the locale tree, in one language, and rewriting it to /gb/admin would 404.
+   */
+  matcher: ['/((?!api|_next|images|admin|favicon\\.ico|robots\\.txt|sitemap\\.xml).*)']
 };
