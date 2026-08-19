@@ -3,10 +3,12 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { notFound, permanentRedirect } from 'next/navigation';
 import { findCategoryByKey } from '@/lib/categories';
-import { getAllProducts, getProductByHandle, isEmbeddedImage } from '@/lib/catalogue';
+import { getAllProducts, getProductByHandle } from '@/lib/catalogue';
+import { isEmbeddedImage } from '@/lib/images';
 import { productHandle } from '@/lib/handles';
 import { breadcrumbJsonLd, productJsonLd } from '@/lib/seo';
 import { JsonLd } from '@/components/json-ld';
+import { AddToBag } from '@/components/add-to-bag';
 
 /**
  * A page per piece.
@@ -140,6 +142,14 @@ export default async function ProductPage({ params }: Props) {
                 Priced against today&rsquo;s gold rate. Contact us for a quotation.
               </p>
             </div>
+
+            <AddToBag product={product} full />
+
+            {product.stock > 0 && product.stock <= 3 && (
+              <p className="mt-3 font-sans text-xs text-gold-600">
+                Only {product.stock} left.
+              </p>
+            )}
 
             <dl className="mt-8 grid grid-cols-[auto_1fr] gap-x-8 gap-y-3 font-sans text-sm">
               <dt className="text-ink-faint">Reference</dt>

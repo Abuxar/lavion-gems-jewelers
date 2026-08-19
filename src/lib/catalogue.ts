@@ -48,11 +48,6 @@ function normaliseImage(img: unknown): string {
   return path.startsWith('/') ? path : `/${path}`;
 }
 
-/** Embedded images cannot be fetched and resized by the image optimiser. */
-export function isEmbeddedImage(src: string): boolean {
-  return src.startsWith('data:');
-}
-
 function toProduct(raw: Record<string, unknown>): Product {
   return {
     id: String(raw.id ?? ''),

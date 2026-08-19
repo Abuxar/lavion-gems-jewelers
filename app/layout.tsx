@@ -4,6 +4,7 @@ import { SiteHeader } from '@/components/site-header';
 import { SiteFooter } from '@/components/site-footer';
 import { JsonLd } from '@/components/json-ld';
 import { AuthProvider } from '@/lib/auth';
+import { CartProvider } from '@/lib/cart';
 import { jewelleryStoreJsonLd } from '@/lib/seo';
 import './globals.css';
 
@@ -65,9 +66,11 @@ export default function RootLayout({
         {/* Described once, for every page, rather than not at all. */}
         <JsonLd data={jewelleryStoreJsonLd()} />
         <AuthProvider>
-          <SiteHeader />
-          <div className="flex-1">{children}</div>
-          <SiteFooter />
+          <CartProvider>
+            <SiteHeader />
+            <div className="flex-1">{children}</div>
+            <SiteFooter />
+          </CartProvider>
         </AuthProvider>
       </body>
     </html>
