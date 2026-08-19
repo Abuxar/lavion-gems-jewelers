@@ -1,4 +1,4 @@
-import type { Category } from './categories';
+import { CATEGORIES, type Category } from './categories';
 import type { Product } from './catalogue';
 import { productHandle } from './handles';
 
@@ -6,6 +6,8 @@ export const SITE = {
   name: 'Lavion Gems & Jewellers',
   url: 'https://jewels.lavion.co.uk',
   tagline: 'Fine gold, diamond and gemstone jewellery.',
+  /** Digits only, country code first — the form wa.me expects. */
+  whatsapp: '923241769500',
   address: {
     street: '282 Y Block, Phase 3, DHA',
     city: 'Lahore',
@@ -125,6 +127,34 @@ export function categoryJsonLd(category: Category, products: Product[]): JsonLd 
         '@type': 'ListItem',
         position: i + 1,
         item: productJsonLd(p)
+      }))
+    }
+  };
+}
+
+/**
+ * The collections hub: a list of the nine collection pages, not of products.
+ *
+ * Listing the categories rather than every piece is the point — it tells Google
+ * this page's job is to route to the nine, so they are understood as its
+ * children instead of as rivals to it.
+ */
+export function collectionsIndexJsonLd(name: string, description: string): JsonLd {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'CollectionPage',
+    name,
+    description,
+    url: `${SITE.url}/collections`,
+    isPartOf: { '@id': `${SITE.url}/#store` },
+    mainEntity: {
+      '@type': 'ItemList',
+      numberOfItems: CATEGORIES.length,
+      itemListElement: CATEGORIES.map((c, i) => ({
+        '@type': 'ListItem',
+        position: i + 1,
+        name: c.title,
+        url: `${SITE.url}/${c.slug}`
       }))
     }
   };

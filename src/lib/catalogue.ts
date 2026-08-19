@@ -93,3 +93,19 @@ export async function getProductByHandle(handle: string): Promise<Product | unde
   const all = await getAllProducts();
   return all.find(p => p.id === id);
 }
+
+/**
+ * How many pieces sit in each collection, keyed by the category's stored key.
+ *
+ * One pass over the catalogue rather than nine calls to getProductsByCategory,
+ * each of which would read the whole thing again.
+ */
+export async function countByCategory(): Promise<Record<string, number>> {
+  const all = await getAllProducts();
+  const counts: Record<string, number> = {};
+  for (const p of all) {
+    const key = p.category.toLowerCase();
+    counts[key] = (counts[key] ?? 0) + 1;
+  }
+  return counts;
+}

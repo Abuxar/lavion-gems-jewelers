@@ -3,6 +3,7 @@ import { Cormorant_Garamond, Montserrat } from 'next/font/google';
 import { notFound } from 'next/navigation';
 import { SiteHeader } from '@/components/site-header';
 import { SiteFooter } from '@/components/site-footer';
+import { GoldRateBar } from '@/components/gold-rate-bar';
 import { JsonLd } from '@/components/json-ld';
 import { AuthProvider } from '@/lib/auth';
 import { CartProvider } from '@/lib/cart';
@@ -34,6 +35,17 @@ const montserrat = Montserrat({
 export function generateStaticParams() {
   return LOCALE_CODES.map(locale => ({ locale }));
 }
+
+/**
+ * The default for every page in this segment, not only the ones that set it.
+ *
+ * The layout renders the rate ticker and the pages read today's exchange rates,
+ * so a page with no window of its own would bake both in at build time and keep
+ * showing them until the next deploy — under a label that says "Live rate".
+ * The bag, the tracking page and the six account pages were all in that state.
+ * A page may still choose a shorter window; the lowest in the tree wins.
+ */
+export const revalidate = 3600;
 
 type Props = {
   children: React.ReactNode;
@@ -87,6 +99,10 @@ export default async function LocaleLayout({ children, params }: Props) {
           <AuthProvider>
             <CartProvider>
               <WishlistProvider>
+                {/* Above the header, as it was on the old site: the catalogue
+                    quotes the day's rate rather than a price, so the rate is
+                    the first thing worth showing. */}
+                <GoldRateBar locale={active.code} />
                 <SiteHeader locale={active.code} />
                 <div className="flex-1">{children}</div>
                 <SiteFooter locale={active.code} />

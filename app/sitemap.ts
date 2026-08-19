@@ -21,6 +21,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const paths: { path: string; priority: number }[] = [
     { path: '/', priority: 1 },
+    // The hub sits alongside the collections it routes to, not above them: it
+    // is the way in, but a specific collection is what people search for.
+    { path: '/collections', priority: 0.8 },
     ...CATEGORIES.map(c => ({ path: `/${c.slug}`, priority: 0.8 })),
     // Below the collections they sit in, but present — an unlisted page is one
     // a crawler has to stumble upon rather than be told about.

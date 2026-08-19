@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { CATEGORIES } from '@/lib/categories';
 import { href, type LocaleCode } from '@/lib/locales';
 import { SITE } from '@/lib/seo';
+import { NewsletterForm } from '@/components/newsletter-form';
 
 export function SiteFooter({ locale }: { locale: LocaleCode }) {
   return (
@@ -17,10 +18,17 @@ export function SiteFooter({ locale }: { locale: LocaleCode }) {
           <p className="mt-3 font-sans text-xs text-gold-300">
             {SITE.address.street}, {SITE.address.city}
           </p>
+
+          <h2 className="mt-8 font-sans text-[11px] font-bold uppercase tracking-[0.2em] text-ink-faint">
+            New pieces and the day&rsquo;s rate
+          </h2>
+          <NewsletterForm />
         </div>
         <div>
           <h2 className="font-sans text-[11px] font-bold uppercase tracking-[0.2em] text-ink-faint">
-            Collections
+            <Link href={href(locale, '/collections')} className="hover:text-gold-300">
+              Collections
+            </Link>
           </h2>
           <ul className="mt-4 grid grid-cols-2 gap-y-2">
             {CATEGORIES.map(c => (

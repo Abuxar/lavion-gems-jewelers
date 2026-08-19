@@ -10,6 +10,7 @@ import { alternatesFor, getLocale, href, isLocaleCode, LOCALE_CODES } from '@/li
 import { breadcrumbJsonLd, productJsonLd } from '@/lib/seo';
 import { JsonLd } from '@/components/json-ld';
 import { AddToBag } from '@/components/add-to-bag';
+import { PriceEnquiry } from '@/components/price-enquiry';
 import { SaveButton } from '@/components/wishlist/save-button';
 
 /**
@@ -155,6 +156,7 @@ export default async function ProductPage({ params }: Props) {
             </div>
 
             <AddToBag product={product} full />
+            <PriceEnquiry product={product} locale={active.code} />
 
             <div className="mt-4">
               <SaveButton id={product.id} />

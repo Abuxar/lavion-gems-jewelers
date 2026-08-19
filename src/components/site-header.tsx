@@ -38,6 +38,14 @@ export function SiteHeader({ locale }: { locale: LocaleCode }) {
       </div>
       <nav aria-label="Collections" className="border-t border-white/10">
         <ul className="mx-auto flex max-w-6xl flex-wrap gap-x-7 gap-y-2 px-6 py-3">
+          <li>
+            <Link
+              href={href(locale, '/collections')}
+              className="font-sans text-[11px] font-semibold uppercase tracking-[0.18em] text-white hover:text-gold-300"
+            >
+              All
+            </Link>
+          </li>
           {CATEGORIES.map(c => (
             <li key={c.slug}>
               <Link
