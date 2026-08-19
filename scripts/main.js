@@ -3153,6 +3153,11 @@
         // and searching it. /track answers with a single order to someone who
         // already knows its id, which is exactly what this needs — and it is
         // the reason listing every order could be closed off entirely.
+        //
+        // It answers with the tracking view only, so the billing block below
+        // falls back where a field is missing. That is the intended trade: the
+        // full record reaches the invoice from this device's own checkout, and
+        // a stranger who guesses an order number gets a delivery status.
         const res = await fetch(`/api/orders/track/${encodeURIComponent(orderId)}`);
         if (res.ok) {
           const data = await res.json();
@@ -3189,7 +3194,7 @@
         <!-- Sticky Non-Print Control Header Bar -->
         <div class="invoice-no-print" style="position:sticky; top:0; z-index:100; background:#1c1a18; padding:14px 20px; display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid var(--color-gold); box-shadow:0 4px 12px rgba(0,0,0,0.5);">
           <span style="color:var(--color-gold-light); font-size:13px; font-weight:700; display:flex; align-items:center; gap:6px;">
-            🧾 Sales Invoice #${String(order.id).replace('ORD-', 'INV-')}
+            🧾 Sales Invoice #${escapeHtml(String(order.id).replace('ORD-', 'INV-'))}
           </span>
           <div style="display:flex; gap:10px; align-items:center;">
             <button class="admin-primary-btn" id="inv-download-pdf-btn" style="padding:8px 16px; font-size:12px; font-weight:700; background:var(--color-gold); color:#1c1a18; border:none; border-radius:4px; cursor:pointer; display:flex; align-items:center; gap:6px;">
@@ -3212,7 +3217,7 @@
             </div>
             <div style="text-align:right;">
               <h2 style="font-family:var(--font-serif); font-size:24px; color:var(--color-gold-dark); margin:0;">INVOICE</h2>
-              <div style="font-size:14px; font-weight:700; color:#333;"># ${String(order.id).replace('ORD-', 'INV-')}</div>
+              <div style="font-size:14px; font-weight:700; color:#333;"># ${escapeHtml(String(order.id).replace('ORD-', 'INV-'))}</div>
               <div style="font-size:11px; color:#777;">Date: ${dateStr}</div>
             </div>
           </div>
@@ -3221,16 +3226,16 @@
           <div class="invoice-details-grid">
             <div>
               <strong style="color:var(--color-gold-dark); text-transform:uppercase; font-size:10px; letter-spacing:1px; display:block; margin-bottom:4px;">Billed To (Customer):</strong>
-              <div style="font-weight:700; font-size:15px; color:#111;">${order.customer}</div>
-              <div>Phone: <strong>${order.phone}</strong></div>
-              <div>City: <strong>${order.city}</strong></div>
-              <div>Address: ${order.address || 'Pakistan Delivery'}</div>
+              <div style="font-weight:700; font-size:15px; color:#111;">${escapeHtml(order.customer)}</div>
+              ${order.phone ? `<div>Phone: <strong>${escapeHtml(order.phone)}</strong></div>` : ''}
+              <div>City: <strong>${escapeHtml(order.city)}</strong></div>
+              ${order.address ? `<div>Address: ${escapeHtml(order.address)}</div>` : ''}
             </div>
             <div>
               <strong style="color:var(--color-gold-dark); text-transform:uppercase; font-size:10px; letter-spacing:1px; display:block; margin-bottom:4px;">Order Details & Gold Rate:</strong>
-              <div>Order Reference: <strong>${order.id}</strong></div>
-              <div>Payment Mode: <strong>${order.payment || 'Cash on Delivery'}</strong></div>
-              <div>Delivery Status: <strong style="color:#27ae60;">${order.status}</strong></div>
+              <div>Order Reference: <strong>${escapeHtml(order.id)}</strong></div>
+              ${order.payment ? `<div>Payment Mode: <strong>${escapeHtml(order.payment)}</strong></div>` : ''}
+              <div>Delivery Status: <strong style="color:#27ae60;">${escapeHtml(order.status)}</strong></div>
               <div>24K Gold Rate at Confirmation: <strong>PKR ${rates.rate24kPerTola.toLocaleString()} / Tola</strong></div>
             </div>
           </div>
@@ -3248,7 +3253,7 @@
             <tbody>
               <tr>
                 <td>
-                  <strong>${order.items}</strong><br>
+                  <strong>${escapeHtml(order.items)}</strong><br>
                   <span style="font-size:11px; color:#666; font-style:italic;">Certified Hallmark Gold & Insured Courier Dispatch</span>
                 </td>
                 <td>22K Gold / Gem</td>
