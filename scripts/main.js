@@ -929,46 +929,74 @@
      own indexed URLs. Anything the shop invents is stored and fetched.
   ====================================== */
 
+  /**
+   * A fallback only.
+   *
+   * The API is the source of truth now — it returns the built-ins with any
+   * wording the shop has changed, plus whatever the shop invented. This list
+   * is what the form falls back to when that call cannot be made, so a piece
+   * can still be filed while the network is down.
+   *
+   * `key` is what a product record stores and is not always the slug: the page
+   * at /asian-jewellery holds pieces filed under "asian".
+   */
   const BUILT_IN_CATEGORIES = [
-    { slug: 'rings', name: 'Rings' },
-    { slug: 'necklaces', name: 'Necklaces' },
-    { slug: 'earrings', name: 'Earrings' },
-    { slug: 'bracelets', name: 'Bracelets' },
-    { slug: 'asian', name: 'Asian Jewellery' },
-    { slug: 'western', name: 'Western Jewellery' },
-    { slug: 'gems', name: 'Precious Gems' },
-    { slug: 'diamonds', name: 'Diamonds' },
-    { slug: 'customized', name: 'Customized' }
+    { slug: 'rings', key: 'rings', name: 'Rings', builtIn: true },
+    { slug: 'necklaces', key: 'necklaces', name: 'Necklaces', builtIn: true },
+    { slug: 'earrings', key: 'earrings', name: 'Earrings', builtIn: true },
+    { slug: 'bracelets', key: 'bracelets', name: 'Bracelets', builtIn: true },
+    { slug: 'asian-jewellery', key: 'asian', name: 'Asian Jewellery', builtIn: true },
+    { slug: 'western-jewellery', key: 'western', name: 'Western Jewellery', builtIn: true },
+    { slug: 'high-jewellery', key: 'high', name: 'High Jewellery', builtIn: true },
+    { slug: 'gems', key: 'gems', name: 'Gems', builtIn: true },
+    { slug: 'diamonds', key: 'diamonds', name: 'Diamonds', builtIn: true },
+    { slug: 'customized', key: 'customized', name: 'Customized', builtIn: true }
   ];
 
-  let customCategories = [];
+  /** Everything the API returned: built-ins with overrides applied, then the rest. */
+  let allCollections = [];
 
   window.loadCategories = async function () {
     try {
       const res = await fetch(`${API_URL}/categories`);
-      if (!res.ok) return customCategories;
+      if (!res.ok) return allCollections;
       const data = await res.json();
       if (data.success && Array.isArray(data.categories)) {
-        customCategories = data.categories;
+        allCollections = data.categories;
+        applyCategoryOverrides();
         // The manager is only on screen for an admin, and repainting it when
         // the list lands is what keeps it from showing an empty table for as
         // long as the fetch takes.
         renderCollectionsManager();
       }
     } catch (e) {
-      // The eight built-ins still work without the network; a shop-made
-      // collection simply will not be offered until it can be read.
+      // The built-ins still work without the network; a shop-made collection
+      // simply will not be offered until the list can be read.
     }
-    return customCategories;
+    return allCollections;
   };
 
   /** Built-ins first, in their long-standing order, then whatever was added. */
   function allCategories() {
-    return [...BUILT_IN_CATEGORIES, ...customCategories.map(c => ({ slug: c.slug, name: c.name }))];
+    return allCollections.length ? allCollections : BUILT_IN_CATEGORIES;
   }
 
+  /**
+   * What a product record files against.
+   *
+   * The key, not the slug: /asian-jewellery holds pieces stored as "asian",
+   * and filing one under the slug would drop it out of its own listing.
+   */
+  const filingKey = c => c.key || c.slug;
+
+  /** Where a collection's page lives. Built-ins have their own; the rest share one. */
+  window.collectionHref = function (c) {
+    return c.builtIn ? `/${c.slug}` : `/collection/${c.slug}`;
+  };
+
   window.categoryLabel = function (slug) {
-    const found = allCategories().find(c => c.slug === String(slug || '').toLowerCase());
+    const want = String(slug || '').toLowerCase();
+    const found = allCategories().find(c => filingKey(c) === want || c.slug === want);
     if (found) return found.name;
     const s = String(slug || '');
     return s ? s.charAt(0).toUpperCase() + s.slice(1).replace(/-/g, ' ') : '';
@@ -992,7 +1020,7 @@
      * again when they land costs nothing and closes the gap; the ticks made in
      * the meantime are carried over rather than reset.
      */
-    if (!customCategories.length) {
+    if (!allCollections.length) {
       window.loadCategories().then(list => {
         if (list && list.length && document.getElementById('form-product-category')) {
           paintCategoryControls(product, new Set(readExtraCategories()));
@@ -1013,11 +1041,14 @@
 
     if (select) {
       select.innerHTML = allCategories()
-        .map(c => `<option value="${escapeHtml(c.slug)}"${c.slug === home ? ' selected' : ''}>${escapeHtml(c.name)}</option>`)
+        .map(c => {
+          const value = filingKey(c);
+          return `<option value="${escapeHtml(value)}"${value === home ? ' selected' : ''}>${escapeHtml(c.name)}</option>`;
+        })
         .join('');
       // A piece filed under something since deleted keeps its value rather
       // than being silently re-filed under whatever happens to be first.
-      if (!allCategories().some(c => c.slug === home)) {
+      if (!allCategories().some(c => filingKey(c) === home)) {
         select.insertAdjacentHTML('afterbegin',
           `<option value="${escapeHtml(home)}" selected>${escapeHtml(window.categoryLabel(home))} (no longer listed)</option>`);
       }
@@ -1035,13 +1066,16 @@
     const chosen = preset || new Set(readExtraCategories());
     const home = (document.getElementById('form-product-category') || {}).value;
 
-    const options = allCategories().filter(c => c.slug !== home);
+    const options = allCategories().filter(c => filingKey(c) !== home);
     box.innerHTML = options.length
-      ? options.map(c => `
+      ? options.map(c => {
+          const value = filingKey(c);
+          return `
           <label style="display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border:1px solid rgba(200,169,110,0.3); border-radius:6px; font-size:12px; color:rgba(255,255,255,0.8); cursor:pointer;">
-            <input type="checkbox" class="extra-category" value="${escapeHtml(c.slug)}"${chosen.has(c.slug) ? ' checked' : ''} />
+            <input type="checkbox" class="extra-category" value="${escapeHtml(value)}"${chosen.has(value) ? ' checked' : ''} />
             ${escapeHtml(c.name)}
-          </label>`).join('')
+          </label>`;
+        }).join('')
       : '<p style="font-size:12px; color:rgba(255,255,255,0.4); margin:0;">No other collections yet.</p>';
   }
 
@@ -1739,46 +1773,104 @@
      or remove it. This is that place.
   ====================================== */
 
+  /**
+   * A renamed collection has to show on its own page, or renaming is theatre.
+   *
+   * The built-in category pages carry their heading and blurb in the HTML,
+   * which is right — it is what a crawler and a reader with no JavaScript see.
+   * When the shop has changed the wording, this replaces it once the list has
+   * loaded. Untouched collections are left exactly as the page shipped.
+   */
+  function applyCategoryOverrides() {
+    const hero = document.querySelector('.category-hero-title');
+    if (!hero) return;
+
+    // Which page this is, from its address. The eight built-ins each have one.
+    const path = String(location.pathname || '').toLowerCase()
+      .replace(/\.html$/, '').replace(/\/+$/, '');
+    const slug = path.split('/').filter(Boolean).pop() || '';
+    if (!slug) return;
+
+    const found = allCategories().find(c => c.slug === slug);
+    if (!found || !found.customised) return;
+
+    if (found.name) hero.textContent = found.name;
+    const desc = document.querySelector('.category-hero-desc');
+    if (desc && found.description) desc.textContent = found.description;
+
+    // The last breadcrumb names the same collection.
+    const crumbs = document.querySelectorAll('.breadcrumbs span');
+    const last = crumbs[crumbs.length - 1];
+    if (last && !last.querySelector('a') && found.name) last.textContent = found.name;
+
+    document.title = `${found.name} — Lavion Gems & Jewellers`;
+  }
+
   function renderCollectionsManager() {
     const box = document.getElementById('admin-collections');
     if (!box) return;
 
-    const rows = customCategories.length
-      ? customCategories.map(c => {
+    const list = allCategories();
+    const rows = list.length
+      ? list.map(c => {
+          const key = c.key || c.slug;
           const count = (window.getProducts() || [])
-            .filter(p => window.productInCategory(p, c.slug)).length;
+            .filter(p => window.productInCategory(p, key)).length;
+          const address = window.collectionHref(c);
+
+          /**
+           * A built-in cannot be removed and its address cannot move. Its page
+           * is part of the build and its URL has been indexed for years — a
+           * rename that changed either would break every link at once. Its
+           * wording is the shop's to change, and putting that back is what
+           * "Reset" does.
+           */
+          const action = c.builtIn
+            ? `<button type="button" class="admin-action-btn coll-reset" ${c.customised ? '' : 'disabled style="opacity:.35; cursor:default;"'}
+                 title="${c.customised ? 'Put back the wording the site ships with' : 'Already the wording the site ships with'}"
+                 style="padding:6px 12px; font-size:11px;">Reset</button>`
+            : `<button type="button" class="admin-action-btn delete coll-delete" style="padding:6px 12px; font-size:11px;">Remove</button>`;
+
           return `
-            <tr data-slug="${escapeHtml(c.slug)}">
+            <tr data-slug="${escapeHtml(c.slug)}" data-builtin="${c.builtIn ? '1' : '0'}">
               <td style="padding:10px 12px;">
                 <input type="text" class="coll-name" value="${escapeHtml(c.name)}"
                   style="width:100%; padding:7px 9px; background:#12100e; border:1px solid rgba(200,169,110,0.3); color:#fff; border-radius:5px;" />
+                ${c.builtIn
+                  ? '<div style="font-size:10px; letter-spacing:1.2px; text-transform:uppercase; color:rgba(255,255,255,0.35); margin-top:5px;">Ships with the site</div>'
+                  : ''}
               </td>
               <td style="padding:10px 12px;">
                 <input type="text" class="coll-desc" value="${escapeHtml(c.description || '')}" placeholder="Optional description"
                   style="width:100%; padding:7px 9px; background:#12100e; border:1px solid rgba(200,169,110,0.3); color:#fff; border-radius:5px;" />
               </td>
               <td style="padding:10px 12px; white-space:nowrap;">
-                <a href="/collection/${escapeHtml(c.slug)}" target="_blank" rel="noopener"
-                   style="color:var(--color-gold-light); font-size:12px;">/collection/${escapeHtml(c.slug)}</a>
+                <a href="${escapeHtml(address)}" target="_blank" rel="noopener"
+                   style="color:var(--color-gold-light); font-size:12px;">${escapeHtml(address)}</a>
+                ${c.builtIn
+                  ? '<div style="font-size:10px; color:rgba(255,255,255,0.3); margin-top:3px;">fixed</div>'
+                  : ''}
               </td>
               <td style="padding:10px 12px; text-align:center; color:rgba(255,255,255,0.75);">${count}</td>
               <td style="padding:10px 12px; white-space:nowrap; text-align:right;">
                 <button type="button" class="admin-action-btn coll-save" style="padding:6px 12px; font-size:11px;">Save</button>
-                <button type="button" class="admin-action-btn delete coll-delete" style="padding:6px 12px; font-size:11px;">Remove</button>
+                ${action}
               </td>
             </tr>`;
         }).join('')
       : `<tr><td colspan="5" style="padding:24px; text-align:center; color:rgba(255,255,255,0.45); font-size:13px;">
-           No collections of your own yet. The eight the site ships with are always there.
+           The collection list could not be loaded.
          </td></tr>`;
 
     box.innerHTML = `
       <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px; margin-bottom:14px;">
         <div>
-          <h3 style="font-family:var(--font-serif); font-size:20px; color:var(--color-gold-light);">Your collections</h3>
-          <p style="font-size:12px; color:rgba(255,255,255,0.5); margin-top:4px; max-width:62ch; line-height:1.6;">
-            Beyond the eight the site ships with. Each gets a page at /collection/&lt;name&gt;.
-            Put pieces in one from the piece&rsquo;s own form, under &ldquo;Also appears in&rdquo;.
+          <h3 style="font-family:var(--font-serif); font-size:20px; color:var(--color-gold-light);">Collections</h3>
+          <p style="font-size:12px; color:rgba(255,255,255,0.5); margin-top:4px; max-width:66ch; line-height:1.6;">
+            The ones that ship with the site and any you add. You can rename and describe all of
+            them; the addresses of the built-in ones are fixed, because those URLs are indexed and
+            every piece is filed against them. Put pieces in a collection from the piece&rsquo;s own
+            form, under &ldquo;Also appears in&rdquo;.
           </p>
         </div>
         <div style="display:flex; gap:8px;">
@@ -1808,6 +1900,9 @@
     });
     box.querySelectorAll('.coll-delete').forEach(btn => {
       btn.addEventListener('click', () => deleteCollectionRow(btn.closest('tr')));
+    });
+    box.querySelectorAll('.coll-reset').forEach(btn => {
+      btn.addEventListener('click', () => resetCollectionRow(btn.closest('tr')));
     });
   }
 
@@ -1868,6 +1963,29 @@
       await window.loadCategories();
       renderCollectionsManager();
       showToast(`"${name}" removed.`, 'success');
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  }
+
+  /**
+   * Put a built-in back to the wording the site ships with.
+   *
+   * The same DELETE the custom ones use — for a built-in the server reads it
+   * as "drop the override" rather than "remove the collection", because there
+   * is nothing to remove: its page is part of the build.
+   */
+  async function resetCollectionRow(row) {
+    const slug = row.getAttribute('data-slug');
+    const name = row.querySelector('.coll-name').value.trim() || slug;
+    if (!window.confirm(`Put "${name}" back to the name and description the site ships with?`)) return;
+    try {
+      const res = await adminFetch(`/categories/${encodeURIComponent(slug)}`, { method: 'DELETE' });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.success) throw new Error(data.message || `Could not reset it (${res.status}).`);
+      await window.loadCategories();
+      renderCollectionsManager();
+      showToast(data.message || 'Put back.', 'success');
     } catch (err) {
       showToast(err.message, 'error');
     }
