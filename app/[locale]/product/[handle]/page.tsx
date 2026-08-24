@@ -1,3 +1,4 @@
+import { Fragment } from 'react';
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -118,20 +119,44 @@ export default async function ProductPage({ params }: Props) {
         </nav>
 
         <div className="mt-10 grid gap-12 lg:grid-cols-2">
-          <div className="relative aspect-square overflow-hidden border border-hairline bg-canvas-soft">
-            <Image
-              src={product.img}
-              alt={product.name}
-              fill
-              sizes="(min-width: 1024px) 50vw, 100vw"
-              priority
-              unoptimized={isEmbeddedImage(product.img)}
-              className="object-cover"
-            />
-            {product.badge && (
-              <span className="absolute top-4 left-4 bg-onyx px-3 py-1 font-sans text-[10px] font-bold uppercase tracking-[0.15em] text-gold-300">
-                {product.badge}
-              </span>
+          <div>
+            <div className="relative aspect-square overflow-hidden border border-hairline bg-canvas-soft">
+              <Image
+                src={product.img}
+                alt={product.name}
+                fill
+                sizes="(min-width: 1024px) 50vw, 100vw"
+                priority
+                unoptimized={isEmbeddedImage(product.img)}
+                className="object-cover"
+              />
+              {product.badge && (
+                <span className="absolute top-4 left-4 bg-onyx px-3 py-1 font-sans text-[10px] font-bold uppercase tracking-[0.15em] text-gold-300">
+                  {product.badge}
+                </span>
+              )}
+            </div>
+
+            {/* Only when there are more. A lone thumbnail under the main
+                photograph looks like a gallery that failed to load. */}
+            {product.images.length > 0 && (
+              <ul className="mt-3 grid grid-cols-4 gap-3">
+                {product.images.map(src => (
+                  <li
+                    key={src}
+                    className="relative aspect-square overflow-hidden border border-hairline bg-canvas-soft"
+                  >
+                    <Image
+                      src={src}
+                      alt=""
+                      fill
+                      sizes="12vw"
+                      unoptimized={isEmbeddedImage(src)}
+                      className="object-cover"
+                    />
+                  </li>
+                ))}
+              </ul>
             )}
           </div>
 
@@ -168,23 +193,112 @@ export default async function ProductPage({ params }: Props) {
               </p>
             )}
 
-            <dl className="mt-8 grid grid-cols-[auto_1fr] gap-x-8 gap-y-3 font-sans text-sm">
-              <dt className="text-ink-faint">Reference</dt>
-              <dd className="text-ink">{product.id}</dd>
-              {category && (
-                <>
-                  <dt className="text-ink-faint">Collection</dt>
-                  <dd className="text-ink">{category.name}</dd>
-                </>
-              )}
-              <dt className="text-ink-faint">Availability</dt>
-              <dd className="text-ink">
-                {product.stock > 0 ? 'In stock' : 'Made to order'}
-              </dd>
-            </dl>
+            {product.sizes.length > 0 && (
+              <div className="mt-8">
+                <h2 className="font-sans text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-faint">
+                  Sizes made
+                </h2>
+                <ul className="mt-3 flex flex-wrap gap-2">
+                  {product.sizes.map(size => (
+                    <li
+                      key={size}
+                      className="border border-hairline px-3 py-1.5 font-sans text-sm text-ink"
+                    >
+                      {size}
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-2 font-sans text-xs text-ink-faint">
+                  Other sizes are made to order &mdash; ask when you enquire.
+                </p>
+              </div>
+            )}
+
+            {/*
+              The specification.
+
+              Every row is conditional and the whole block disappears when a
+              piece has none of it. The catalogue predates these fields, so
+              rendering the labels regardless would print a column of "Metal —"
+              against fourteen pieces and read as a page that had failed to
+              load rather than one with nothing to say.
+            */}
+            <Spec
+              rows={[
+                ['Reference', product.id],
+                ['Collection', category ? category.name : ''],
+                ['Metal', product.metal],
+                ['Hallmark', product.purity],
+                ['Weight', product.grossWeightG !== null ? `${product.grossWeightG} g` : ''],
+                ['Stone', product.stone],
+                [
+                  'Carat weight',
+                  product.stoneCarats !== null ? `${product.stoneCarats} ct total` : ''
+                ],
+                ['Stones set', product.stoneCount !== null ? String(product.stoneCount) : ''],
+                ['Quality', product.stoneQuality],
+                ['Certificate', product.certificate],
+                ['Dimensions', product.dimensions],
+                ['Availability', product.stock > 0 ? 'In stock' : 'Made to order'],
+                [
+                  'Ready in',
+                  product.madeToOrderDays !== null
+                    ? `${product.madeToOrderDays} working days`
+                    : ''
+                ]
+              ]}
+            />
           </div>
         </div>
+
+        {(product.details || product.care) && (
+          <div className="mt-16 grid gap-12 border-t border-hairline pt-12 lg:grid-cols-2">
+            {product.details && (
+              <section>
+                <h2 className="font-serif text-2xl font-light text-ink">About this piece</h2>
+                {/* Blank lines are paragraph breaks. The admin field is a
+                    textarea, and a jeweller writing two paragraphs should get
+                    two paragraphs rather than one run-on block. */}
+                {splitParagraphs(product.details).map((para, i) => (
+                  <p key={i} className="mt-4 font-sans text-sm leading-relaxed text-ink-muted">
+                    {para}
+                  </p>
+                ))}
+              </section>
+            )}
+            {product.care && (
+              <section>
+                <h2 className="font-serif text-2xl font-light text-ink">Care</h2>
+                <p className="mt-4 font-sans text-sm leading-relaxed text-ink-muted">
+                  {product.care}
+                </p>
+              </section>
+            )}
+          </div>
+        )}
       </main>
     </>
+  );
+}
+
+/** Blank lines separate paragraphs; a single newline is just a wrap. */
+function splitParagraphs(text: string): string[] {
+  return text.split(/\n\s*\n/).map(t => t.trim()).filter(Boolean);
+}
+
+/** A definition list that omits its blank rows rather than labelling them. */
+function Spec({ rows }: { rows: [label: string, value: string][] }) {
+  const shown = rows.filter(([, value]) => value !== '' && value !== undefined);
+  if (shown.length === 0) return null;
+
+  return (
+    <dl className="mt-8 grid grid-cols-[auto_1fr] gap-x-8 gap-y-3 border-t border-hairline pt-6 font-sans text-sm">
+      {shown.map(([label, value]) => (
+        <Fragment key={label}>
+          <dt className="text-ink-faint">{label}</dt>
+          <dd className="text-ink">{value}</dd>
+        </Fragment>
+      ))}
+    </dl>
   );
 }

@@ -20,6 +20,29 @@ export type AdminProduct = {
   badge: string;
   img: string;
   desc: string;
+
+  /**
+   * The specification, as the API returns it — numbers as numbers, lists as
+   * lists. The edit form holds a different shape (everything a string), which
+   * is what toForm converts between; see catalogue-tab.
+   *
+   * Optional here because a piece stored before these fields existed simply
+   * has no such keys.
+   */
+  metal?: string;
+  purity?: string;
+  stone?: string;
+  stoneQuality?: string;
+  certificate?: string;
+  dimensions?: string;
+  details?: string;
+  care?: string;
+  grossWeightG?: number | null;
+  stoneCarats?: number | null;
+  stoneCount?: number | null;
+  madeToOrderDays?: number | null;
+  sizes?: string[];
+  images?: string[];
 };
 
 export type AdminOrder = {

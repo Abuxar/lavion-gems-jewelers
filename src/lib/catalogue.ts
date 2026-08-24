@@ -31,6 +31,30 @@ export type Product = {
   /** Always root-relative, e.g. /images/featured_rings.png */
   img: string;
   desc: string;
+  /**
+   * The specification, as a jeweller would quote it. Every one of these is
+   * optional and most pieces predate all of them, so a renderer must drop what
+   * is blank rather than print "Metal —".
+   *
+   * Empty string for absent text, null for an absent number — a ring that
+   * weighs nothing is not the same statement as one whose weight nobody has
+   * recorded, and 0 g would be printed as a fact.
+   */
+  metal: string;
+  purity: string;
+  stone: string;
+  stoneQuality: string;
+  certificate: string;
+  dimensions: string;
+  details: string;
+  care: string;
+  grossWeightG: number | null;
+  stoneCarats: number | null;
+  stoneCount: number | null;
+  madeToOrderDays: number | null;
+  sizes: string[];
+  /** Further photographs; `img` stays the one the grid and the card use. */
+  images: string[];
 };
 
 /**
@@ -48,6 +72,24 @@ function normaliseImage(img: unknown): string {
   return path.startsWith('/') ? path : `/${path}`;
 }
 
+/** Blank, absent and whitespace all mean the same thing: do not render it. */
+function text(value: unknown): string {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+/** null unless it is a real, non-negative number. */
+function measure(value: unknown): number | null {
+  const n = Number(value);
+  return value !== null && value !== undefined && value !== '' && Number.isFinite(n) && n >= 0
+    ? n
+    : null;
+}
+
+function list(value: unknown): string[] {
+  if (Array.isArray(value)) return value.map(v => String(v).trim()).filter(Boolean);
+  return text(value) ? text(value).split(',').map(v => v.trim()).filter(Boolean) : [];
+}
+
 function toProduct(raw: Record<string, unknown>): Product {
   return {
     id: String(raw.id ?? ''),
@@ -57,7 +99,22 @@ function toProduct(raw: Record<string, unknown>): Product {
     stock: Number(raw.stock ?? 0),
     badge: String(raw.badge ?? ''),
     img: normaliseImage(raw.img),
-    desc: String(raw.desc ?? '')
+    desc: String(raw.desc ?? ''),
+
+    metal: text(raw.metal),
+    purity: text(raw.purity),
+    stone: text(raw.stone),
+    stoneQuality: text(raw.stoneQuality),
+    certificate: text(raw.certificate),
+    dimensions: text(raw.dimensions),
+    details: text(raw.details),
+    care: text(raw.care),
+    grossWeightG: measure(raw.grossWeightG),
+    stoneCarats: measure(raw.stoneCarats),
+    stoneCount: measure(raw.stoneCount),
+    madeToOrderDays: measure(raw.madeToOrderDays),
+    sizes: list(raw.sizes),
+    images: list(raw.images).map(normaliseImage)
   };
 }
 
@@ -66,7 +123,10 @@ export async function getAllProducts(): Promise<Product[]> {
     await ensureMongo();
     if (isMongoConnected()) {
       const docs = await ProductModel.find({})
-        .select('id name category price stock badge img desc -_id')
+        // Listed from the model so a field added there cannot be saved and then
+        // silently never read back.
+        .select(['id', 'name', 'category', 'price', 'stock', 'badge', 'img', 'desc']
+          .concat(ProductModel.SPEC_FIELDS).join(' ') + ' -_id')
         .lean();
       return docs.map(toProduct);
     }
