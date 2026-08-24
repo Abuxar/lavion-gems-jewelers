@@ -1,9 +1,9 @@
-import { getFx, getGoldRates } from '@/lib/money';
+import { getDiamondGuide, getFx, getGoldRates } from '@/lib/money';
 import { formatMoney, convert, type Fx } from '@/lib/currency';
 import { getLocale, type Locale, type LocaleCode } from '@/lib/locales';
 
 /**
- * The day's bullion quotes, across the top of every page.
+ * The day's bullion quotes and the diamond guide, across the top of every page.
  *
  * The whole catalogue says "daily rate — enquire" rather than carrying a price,
  * which only means something if the reader can see what today's rate actually
@@ -40,7 +40,7 @@ function Quote({
 }
 
 export async function GoldRateBar({ locale }: { locale: LocaleCode }) {
-  const [rates, fx] = await Promise.all([getGoldRates(), getFx()]);
+  const [rates, fx, diamonds] = await Promise.all([getGoldRates(), getFx(), getDiamondGuide()]);
   const { currency } = getLocale(locale);
 
   // Nullable throughout: silver has no default in the schema and the karat
@@ -71,23 +71,66 @@ export async function GoldRateBar({ locale }: { locale: LocaleCode }) {
       }).format(new Date(rates.asOf)) + ' UTC'
     : null;
 
+  /**
+   * The whole line, rendered twice.
+   *
+   * The bar carries about twice what fits on a laptop, so it travels rather
+   * than sitting still — the same behaviour the old site had and the port
+   * dropped, which left everything past the fifth quote reachable only by
+   * dragging the bar sideways. The duplicate is hidden from assistive tech so
+   * the quotes are not announced twice.
+   */
+  const run = (
+    <>
+      <span className="shrink-0 bg-gold-400 px-2 py-0.5 text-[10px] font-bold tracking-[0.12em] text-onyx uppercase">
+        Live rate
+      </span>
+      {lines.map(([label, pkr]) => (
+        <Quote key={label} label={label} pkr={pkr} currency={currency} fx={fx} />
+      ))}
+
+      {/*
+        Diamonds get their own badge, and it does not say "live".
+
+        The bullion figures beside them come from a public spot feed. These
+        cannot: a diamond is not fungible, and the trade prices off the
+        Rapaport list, which is a paid licence. Carrying them under the same
+        "Live rate" tag would tell a customer that the shop's own judgement
+        figure is today's market. What is genuinely live is the conversion —
+        the guide is held in dollars and follows the FX feed into whatever
+        currency the visitor is being quoted in.
+      */}
+      {diamonds.lines.length > 0 && (
+        <>
+          <span
+            title="Indicative per-carat guide, not a market rate. Diamonds are priced individually — a firm quote needs the stone."
+            className="shrink-0 border border-diamond-300/50 px-2 py-0.5 text-[10px] font-bold tracking-[0.12em] text-diamond-200 uppercase"
+          >
+            Diamond guide
+          </span>
+          {diamonds.lines.map(d => (
+            <Quote key={d.label} label={d.label} pkr={d.pkr} currency={currency} fx={fx} />
+          ))}
+        </>
+      )}
+
+      {taken && <span className="shrink-0 whitespace-nowrap text-gold-200/50">taken {taken}</span>}
+    </>
+  );
+
   return (
     <aside
-      aria-label="Today's gold rates"
-      className="border-b border-white/10 bg-onyx-soft text-[11px] tracking-[0.08em] text-gold-200"
+      aria-label="Today's gold and diamond prices"
+      className="overflow-hidden border-b border-white/10 bg-onyx-soft text-[11px] tracking-[0.08em] text-gold-200 motion-reduce:overflow-x-auto"
     >
-      {/* Scrolls within itself rather than wrapping into three rows on a phone
-          or pushing the whole page sideways. */}
-      <div className="mx-auto flex max-w-6xl items-center gap-5 overflow-x-auto px-6 py-2 font-sans">
-        <span className="shrink-0 bg-gold-400 px-2 py-0.5 text-[10px] font-bold tracking-[0.12em] text-onyx uppercase">
-          Live rate
-        </span>
-        {lines.map(([label, pkr]) => (
-          <Quote key={label} label={label} pkr={pkr} currency={currency} fx={fx} />
-        ))}
-        {taken && (
-          <span className="shrink-0 whitespace-nowrap text-gold-200/50">taken {taken}</span>
-        )}
+      <div
+        className="flex w-max items-center gap-5 py-2 pl-6 font-sans animate-[ticker_60s_linear_infinite] hover:[animation-play-state:paused] motion-reduce:animate-none"
+      >
+        <div className="flex shrink-0 items-center gap-5 pr-5">{run}</div>
+        {/* The second run is what makes the loop seamless. It is decoration. */}
+        <div className="flex shrink-0 items-center gap-5 pr-5" aria-hidden="true">
+          {run}
+        </div>
       </div>
     </aside>
   );

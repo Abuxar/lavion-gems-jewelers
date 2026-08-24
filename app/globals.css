@@ -79,3 +79,21 @@ body {
   color: var(--color-ink);
   font-family: var(--font-sans);
 }
+
+/**
+ * The rate ticker.
+ *
+ * The bar holds more than fits: six bullion quotes, the diamond guide and the
+ * time they were taken come to roughly twice the width of the container on a
+ * laptop. The old site solved that by scrolling the line past; the port left
+ * that behind, so everything after the fifth quote was reachable only by
+ * dragging the bar sideways, which nobody does.
+ *
+ * The track holds the same content twice — the second copy is aria-hidden — and
+ * travels exactly half its width, so the loop is seamless rather than snapping
+ * back at the end.
+ */
+@keyframes ticker {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
