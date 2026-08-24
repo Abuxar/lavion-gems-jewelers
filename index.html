@@ -1398,6 +1398,16 @@
 
         <!-- TAB 2: CATALOG MANAGEMENT -->
         <div class="admin-tab-content" id="admin-catalog">
+          <!--
+            Collections the shop has made up.
+
+            Creating one from inside the product form is convenient and not
+            enough — there was nowhere to see what exists, rename one, or
+            remove it. It sits above the catalogue because it is what the
+            catalogue is filed into.
+          -->
+          <div id="admin-collections" style="background:#12100e; border:1px solid rgba(200,169,110,0.35); border-radius:8px; padding:20px; margin-bottom:22px;"></div>
+
           <div class="admin-toolbar">
             <div style="display:flex; gap:12px; align-items:center;">
               <input type="text" class="admin-search-box" id="admin-search-catalog" placeholder="Search by item name..." />
