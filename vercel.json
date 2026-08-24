@@ -24,6 +24,10 @@
     {
       "source": "/product/(.*)",
       "destination": "/product"
+    },
+    {
+      "source": "/collection/(.*)",
+      "destination": "/collection"
     }
   ]
 }
