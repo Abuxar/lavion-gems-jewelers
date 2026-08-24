@@ -159,9 +159,10 @@
       });
       const data = await res.json();
       if (data.success) {
-        // Remembered so the popup does not ask someone to subscribe twelve
-        // seconds after they have just subscribed here. Guarded because
-        // storage throws outright in private browsing.
+        // Remembered so the popup does not ask someone to subscribe three
+        // seconds after they have just subscribed here. Permanent, and in the
+        // same key the popup reads. Guarded because storage throws outright in
+        // private browsing.
         try {
           localStorage.setItem('lavion.newsletter',
             JSON.stringify({ state: 'subscribed', at: Date.now() }));
@@ -3862,23 +3863,27 @@
  *
  * The rule about *when* to ask matters more than the form itself. A popup that
  * reappears on every page load is worse than no popup — it trains people to
- * close it unread, and it asks visitors who already subscribed to subscribe
- * again. So the answer is remembered in the visitor's own browser: a signup
- * suppresses it for good, a dismissal for a month.
+ * close it unread. But the two answers are not the same kind of answer, so
+ * they are not kept in the same place: "not now" goes to sessionStorage and
+ * lasts until the tab closes, so a visitor who comes back another day is asked
+ * again; "yes" goes to localStorage and lasts for good, because someone who
+ * has joined the list must never be asked to join it again.
  *
  * It is a real dialog rather than a floating div: Escape closes it, focus moves
  * into it and returns to where it was, Tab cannot wander onto the page behind,
  * and the page behind cannot scroll while it is open.
  */
 (function newsletterPopup() {
-  var KEY = 'lavion.newsletter';
-  var DISMISS_DAYS = 30;
+  /** Permanent, and only ever holds the fact of a subscription. */
+  var SUBSCRIBED_KEY = 'lavion.newsletter';
+  /** This visit only. Cleared by the browser when the tab closes. */
+  var DISMISSED_KEY = 'lavion.newsletter.dismissed';
   /**
    * Long enough for the hero to have painted, so the offer lands over a page
    * rather than over a blank screen — and short enough to reach the many
-   * visitors who are gone well before ten seconds.
+   * visitors who are gone within a few seconds.
    */
-  var DELAY_MS = 4000;
+  var DELAY_MS = 3000;
 
   /**
    * Pages where interrupting is the wrong thing to do. Someone in the bag is
@@ -3897,27 +3902,37 @@
    * failure means the visitor is treated as one who has not been asked rather
    * than taking the page down around it.
    */
-  function read() {
+  function hasSubscribed() {
     try {
-      var raw = localStorage.getItem(KEY);
-      if (!raw) return null;
+      var raw = localStorage.getItem(SUBSCRIBED_KEY);
+      if (!raw) return false;
       var parsed = JSON.parse(raw);
-      if (parsed && (parsed.state === 'subscribed' || parsed.state === 'dismissed')) return parsed;
+      return !!(parsed && parsed.state === 'subscribed');
     } catch (e) { /* unreadable — treat as never asked */ }
-    return null;
+    return false;
   }
 
-  function write(state) {
+  function dismissedThisSession() {
     try {
-      localStorage.setItem(KEY, JSON.stringify({ state: state, at: Date.now() }));
+      return sessionStorage.getItem(DISMISSED_KEY) === '1';
+    } catch (e) { return false; }
+  }
+
+  function markSubscribed() {
+    try {
+      localStorage.setItem(SUBSCRIBED_KEY,
+        JSON.stringify({ state: 'subscribed', at: Date.now() }));
     } catch (e) { /* if we cannot remember it, we simply ask again next time */ }
   }
 
+  function markDismissed() {
+    try {
+      sessionStorage.setItem(DISMISSED_KEY, '1');
+    } catch (e) { /* same — a browser that will not store it gets asked again */ }
+  }
+
   function mayAsk() {
-    var stored = read();
-    if (!stored) return true;
-    if (stored.state === 'subscribed') return false;
-    return Date.now() - stored.at > DISMISS_DAYS * 24 * 60 * 60 * 1000;
+    return !hasSubscribed() && !dismissedThisSession();
   }
 
   function offLimits() {
@@ -4145,7 +4160,7 @@
     if (style.parentNode) style.parentNode.removeChild(style);
     // A signup has already been recorded as a subscription, which suppresses
     // the offer for good. Only an actual dismissal is recorded here.
-    if (!subscribed) write('dismissed');
+    if (!subscribed) markDismissed();
     if (returnFocusTo && returnFocusTo.focus) returnFocusTo.focus();
   }
 
@@ -4188,7 +4203,7 @@
 
         if (data.success) {
           subscribed = true;
-          write('subscribed');
+          markSubscribed();
           answer.className = 'ok';
           document.getElementById('lv-news-form').style.display = 'none';
           // Left on screen for a moment so the confirmation is actually read,
