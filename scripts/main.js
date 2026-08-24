@@ -159,6 +159,13 @@
       });
       const data = await res.json();
       if (data.success) {
+        // Remembered so the popup does not ask someone to subscribe twelve
+        // seconds after they have just subscribed here. Guarded because
+        // storage throws outright in private browsing.
+        try {
+          localStorage.setItem('lavion.newsletter',
+            JSON.stringify({ state: 'subscribed', at: Date.now() }));
+        } catch (e) { /* the popup will simply ask again */ }
         if (input) { input.value = ''; input.placeholder = '✓ Thank you for subscribing!'; }
         setTimeout(() => { if (input) input.placeholder = 'Your email address'; }, 4000);
       } else {
@@ -3844,3 +3851,367 @@
 
 
 
+
+// ===================== NEWSLETTER POPUP =====================
+/**
+ * The newsletter offer, as a dialog.
+ *
+ * Self-contained in the same way the WhatsApp button above is: it injects its
+ * own markup and its own styles, so it reaches every page from this one file
+ * and no page template has to be touched.
+ *
+ * The rule about *when* to ask matters more than the form itself. A popup that
+ * reappears on every page load is worse than no popup — it trains people to
+ * close it unread, and it asks visitors who already subscribed to subscribe
+ * again. So the answer is remembered in the visitor's own browser: a signup
+ * suppresses it for good, a dismissal for a month.
+ *
+ * It is a real dialog rather than a floating div: Escape closes it, focus moves
+ * into it and returns to where it was, Tab cannot wander onto the page behind,
+ * and the page behind cannot scroll while it is open.
+ */
+(function newsletterPopup() {
+  var KEY = 'lavion.newsletter';
+  var DISMISS_DAYS = 30;
+  /** Long enough to have looked at something first, short enough to still be here. */
+  var DELAY_MS = 12000;
+
+  /**
+   * Pages where interrupting is the wrong thing to do. Someone in the bag is
+   * partway through buying, someone on the tracking page is worried about an
+   * order that has not arrived, and someone resetting a password is locked out.
+   * None of them wants a mailing-list form across the middle of it. The admin
+   * panel is on this list because it is staff, not a customer.
+   */
+  var NEVER_ON = [
+    'cart', 'track-order', 'reset-password', 'verify-email', 'admin', 'admin-panel'
+  ];
+
+  /**
+   * Storage can throw outright — Safari private browsing, a browser set to
+   * block site data, an embedded webview. Every access is guarded, and a
+   * failure means the visitor is treated as one who has not been asked rather
+   * than taking the page down around it.
+   */
+  function read() {
+    try {
+      var raw = localStorage.getItem(KEY);
+      if (!raw) return null;
+      var parsed = JSON.parse(raw);
+      if (parsed && (parsed.state === 'subscribed' || parsed.state === 'dismissed')) return parsed;
+    } catch (e) { /* unreadable — treat as never asked */ }
+    return null;
+  }
+
+  function write(state) {
+    try {
+      localStorage.setItem(KEY, JSON.stringify({ state: state, at: Date.now() }));
+    } catch (e) { /* if we cannot remember it, we simply ask again next time */ }
+  }
+
+  function mayAsk() {
+    var stored = read();
+    if (!stored) return true;
+    if (stored.state === 'subscribed') return false;
+    return Date.now() - stored.at > DISMISS_DAYS * 24 * 60 * 60 * 1000;
+  }
+
+  function offLimits() {
+    var path = String(location.pathname || '').toLowerCase().replace(/\/+$/, '');
+    var page = (path.split('/').pop() || '').replace(/\.html$/, '');
+    return NEVER_ON.indexOf(page) !== -1;
+  }
+
+  if (offLimits() || !mayAsk()) return;
+
+  /* ---- styles ---- */
+  var style = document.createElement('style');
+  style.textContent = `
+    #lv-news-pop {
+      position: fixed;
+      inset: 0;
+      z-index: 9998;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      padding: 16px;
+      background: rgba(11, 10, 9, 0.72);
+      -webkit-backdrop-filter: blur(2px);
+      backdrop-filter: blur(2px);
+    }
+    @media (min-width: 640px) {
+      #lv-news-pop { align-items: center; }
+    }
+
+    #lv-news-card {
+      position: relative;
+      width: 100%;
+      max-width: 430px;
+      padding: 38px 34px 30px;
+      background: var(--color-onyx-soft, #141210);
+      border: 1px solid rgba(201, 169, 97, 0.4);
+      box-shadow: 0 30px 70px rgba(0, 0, 0, 0.55);
+      color: var(--color-bg, #fbf8f3);
+      outline: none;
+      animation: lvNewsIn 0.35s ease-out;
+    }
+    @keyframes lvNewsIn {
+      from { opacity: 0; transform: translateY(18px); }
+      to   { opacity: 1; transform: none; }
+    }
+    /* A dialog that slides in is a nice touch. A dialog that slides in for
+       someone who has asked the system to stop animating things is not. */
+    @media (prefers-reduced-motion: reduce) {
+      #lv-news-card { animation: none; }
+    }
+
+    #lv-news-close {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 38px;
+      height: 38px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: none;
+      border: 0;
+      font-size: 24px;
+      line-height: 1;
+      cursor: pointer;
+      color: rgba(251, 248, 243, 0.45);
+      transition: color 0.2s;
+    }
+    #lv-news-close:hover { color: var(--gold-300, #dcc188); }
+
+    #lv-news-card .lv-news-eyebrow {
+      margin: 0;
+      font-family: var(--font-sans);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.28em;
+      text-transform: uppercase;
+      color: var(--gold-400, #c9a961);
+    }
+    #lv-news-card h2 {
+      margin: 12px 0 0;
+      font-family: var(--font-serif);
+      font-size: 30px;
+      font-weight: 400;
+      line-height: 1.2;
+      color: var(--color-bg, #fbf8f3);
+    }
+    #lv-news-card .lv-news-body {
+      margin: 12px 0 0;
+      font-family: var(--font-sans);
+      font-size: 13.5px;
+      line-height: 1.75;
+      color: rgba(251, 248, 243, 0.6);
+    }
+
+    #lv-news-form { margin-top: 22px; }
+    #lv-news-email {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 13px 12px;
+      background: transparent;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: var(--color-bg, #fbf8f3);
+      font-family: var(--font-sans);
+      font-size: 13.5px;
+    }
+    #lv-news-email::placeholder { color: var(--color-text-light, #9c9285); }
+    #lv-news-email:focus { outline: none; border-color: var(--gold-400, #c9a961); }
+
+    #lv-news-submit {
+      width: 100%;
+      margin-top: 12px;
+      padding: 13px 16px;
+      cursor: pointer;
+      background: var(--gold-400, #c9a961);
+      border: 1px solid var(--gold-400, #c9a961);
+      color: var(--color-dark, #0b0a09);
+      font-family: var(--font-sans);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      transition: all 0.2s;
+    }
+    #lv-news-submit:hover { background: transparent; color: var(--gold-300, #dcc188); }
+    #lv-news-submit:disabled { opacity: 0.6; cursor: default; }
+
+    #lv-news-decline {
+      display: block;
+      width: 100%;
+      margin-top: 16px;
+      padding: 4px;
+      cursor: pointer;
+      background: none;
+      border: 0;
+      font-family: var(--font-sans);
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: rgba(251, 248, 243, 0.35);
+      transition: color 0.2s;
+    }
+    #lv-news-decline:hover { color: rgba(251, 248, 243, 0.6); }
+
+    #lv-news-answer {
+      margin: 14px 0 0;
+      font-family: var(--font-sans);
+      font-size: 13.5px;
+      line-height: 1.6;
+    }
+    #lv-news-answer.ok  { color: var(--gold-300, #dcc188); }
+    #lv-news-answer.bad { color: #fca5a5; }
+
+    .lv-news-sr {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      white-space: nowrap;
+    }
+  `;
+
+  /* ---- markup ---- */
+  var overlay = document.createElement('div');
+  overlay.id = 'lv-news-pop';
+  overlay.innerHTML = `
+    <div id="lv-news-card" role="dialog" aria-modal="true"
+         aria-labelledby="lv-news-title" aria-describedby="lv-news-desc" tabindex="-1">
+      <button type="button" id="lv-news-close" aria-label="Close">&times;</button>
+      <p class="lv-news-eyebrow">Lavion</p>
+      <h2 id="lv-news-title">New pieces, and the day&rsquo;s gold rate</h2>
+      <p class="lv-news-body" id="lv-news-desc">
+        Join our list for new arrivals, bridal collections and bespoke commissions.
+        One email at a time, and you can leave whenever you like.
+      </p>
+      <form id="lv-news-form" novalidate>
+        <label class="lv-news-sr" for="lv-news-email">Email address</label>
+        <input id="lv-news-email" name="email" type="email" required autocomplete="email"
+               placeholder="Your email address" />
+        <button type="submit" id="lv-news-submit">Subscribe</button>
+        <button type="button" id="lv-news-decline">No thank you</button>
+      </form>
+      <p id="lv-news-answer" role="status"></p>
+    </div>
+  `;
+
+  var timer = null;
+  var returnFocusTo = null;
+  var scrollLock = '';
+  var subscribed = false;
+
+  function focusable() {
+    return overlay.querySelectorAll(
+      'a[href], button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])'
+    );
+  }
+
+  function onKeyDown(e) {
+    if (e.key === 'Escape') { e.preventDefault(); close(); return; }
+    if (e.key !== 'Tab') return;
+
+    var items = focusable();
+    if (!items.length) return;
+    var first = items[0];
+    var last = items[items.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  }
+
+  function open() {
+    returnFocusTo = document.activeElement;
+    document.head.appendChild(style);
+    document.body.appendChild(overlay);
+    scrollLock = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    document.addEventListener('keydown', onKeyDown);
+    document.getElementById('lv-news-card').focus();
+  }
+
+  function close() {
+    document.removeEventListener('keydown', onKeyDown);
+    document.body.style.overflow = scrollLock;
+    if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+    if (style.parentNode) style.parentNode.removeChild(style);
+    // A signup has already been recorded as a subscription, which suppresses
+    // the offer for good. Only an actual dismissal is recorded here.
+    if (!subscribed) write('dismissed');
+    if (returnFocusTo && returnFocusTo.focus) returnFocusTo.focus();
+  }
+
+  // A click on the backdrop is a dismissal, the same as the close button.
+  // Comparing target to currentTarget keeps a drag that began inside the card
+  // and ended outside it from counting as one.
+  overlay.addEventListener('mousedown', function (e) {
+    if (e.target === e.currentTarget) close();
+  });
+
+  overlay.addEventListener('click', function (e) {
+    if (e.target.id === 'lv-news-close' || e.target.id === 'lv-news-decline') close();
+  });
+
+  overlay.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var input = document.getElementById('lv-news-email');
+    var btn = document.getElementById('lv-news-submit');
+    var answer = document.getElementById('lv-news-answer');
+    var email = (input.value || '').trim();
+    if (!email) return;
+
+    btn.disabled = true;
+    btn.textContent = 'Signing you up…';
+    answer.className = '';
+    answer.textContent = '';
+
+    fetch('/api/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email })
+    })
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        // The server distinguishes "already on our list" from "thank you for
+        // subscribing", and both are successes — its wording is used as given.
+        answer.textContent = data.message || (data.success
+          ? 'Thank you for subscribing.'
+          : 'That address was not accepted.');
+
+        if (data.success) {
+          subscribed = true;
+          write('subscribed');
+          answer.className = 'ok';
+          document.getElementById('lv-news-form').style.display = 'none';
+          // Left on screen for a moment so the confirmation is actually read,
+          // rather than the dialog vanishing the instant the request returns.
+          setTimeout(close, 2600);
+        } else {
+          answer.className = 'bad';
+          btn.disabled = false;
+          btn.textContent = 'Subscribe';
+        }
+      })
+      .catch(function () {
+        answer.className = 'bad';
+        answer.textContent = 'We could not reach the server. Please try again.';
+        btn.disabled = false;
+        btn.textContent = 'Subscribe';
+      });
+  });
+
+  // The timer does not start until the tab is actually being looked at, or a
+  // popup opened in a background tab would spend its whole life unseen and
+  // still count as having been shown.
+  function arm() {
+    if (timer || document.visibilityState !== 'visible') return;
+    timer = setTimeout(open, DELAY_MS);
+  }
+
+  arm();
+  document.addEventListener('visibilitychange', arm);
+})();
