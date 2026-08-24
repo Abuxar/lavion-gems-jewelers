@@ -7,12 +7,24 @@ const Category = require('../models/Category');
 const Product = require('../models/Product');
 
 /**
- * Collections the shop has made up itself.
+ * Collections, both kinds.
  *
- * Reading is public — the storefront needs the list to render the menu — and
- * writing is admin only, like the catalogue. The same two-store arrangement as
- * everything else: Mongo where it is connected, the JSON file for local
- * development without a database.
+ * The nine the site ships with are part of the build: one page each on the old
+ * site, one route on the new one, and URLs that have been indexed for years.
+ * Their wording is not part of the build, though, and there was no reason a
+ * shop should need a deploy to rename "Precious Gems" — so their name,
+ * description and tile are editable and stored here as overrides, keyed by the
+ * same slug.
+ *
+ * What cannot change is the slug. It is what every link points at, what every
+ * product record files against, and what Google has. A rename that moved it
+ * would break all three at once and silently.
+ *
+ * Anything the shop invents beyond those nine is stored here outright and gets
+ * a page at /collection/<slug>.
+ *
+ * Reading is public — the storefront needs the list — and writing is admin
+ * only. Mongo where connected, the JSON file for local development.
  */
 const FIELDS = 'slug name description image order -_id';
 
@@ -20,12 +32,36 @@ function usingMongo() {
   return isMongoConnected();
 }
 
-/** The eight that ship with the site. A new one may not collide with them. */
-const BUILT_IN = [
-  'rings', 'necklaces', 'earrings', 'bracelets',
-  'asian', 'asian-jewellery', 'western', 'western-jewellery',
-  'gems', 'diamonds', 'high-jewellery', 'customized', 'collections'
+/**
+ * The built-ins, exactly as src/lib/categories.ts has them.
+ *
+ * `key` is what a product record stores and is not always the slug: the page
+ * at /asian-jewellery holds pieces filed under "asian". That split predates
+ * this and is kept because both halves are load-bearing — the slug is the URL,
+ * the key is the data.
+ */
+const BUILT_IN_DEFAULTS = [
+  { slug: 'rings', key: 'rings', name: 'Rings' },
+  { slug: 'necklaces', key: 'necklaces', name: 'Necklaces' },
+  { slug: 'earrings', key: 'earrings', name: 'Earrings' },
+  { slug: 'bracelets', key: 'bracelets', name: 'Bracelets' },
+  { slug: 'asian-jewellery', key: 'asian', name: 'Asian Jewellery' },
+  { slug: 'western-jewellery', key: 'western', name: 'Western Jewellery' },
+  { slug: 'high-jewellery', key: 'high', name: 'High Jewellery' },
+  { slug: 'gems', key: 'gems', name: 'Gems' },
+  { slug: 'diamonds', key: 'diamonds', name: 'Diamonds' },
+  { slug: 'customized', key: 'customized', name: 'Customized' }
 ];
+
+const BUILT_IN_SLUGS = BUILT_IN_DEFAULTS.map(c => c.slug);
+/** Both spellings are reserved: the slug and the key a product files against. */
+const RESERVED = [...new Set([
+  ...BUILT_IN_SLUGS,
+  ...BUILT_IN_DEFAULTS.map(c => c.key),
+  'collections', 'collection', 'product', 'admin', 'all'
+])];
+
+const isBuiltIn = slug => BUILT_IN_SLUGS.includes(slug);
 
 function slugify(value) {
   return String(value || '')
@@ -37,16 +73,59 @@ function slugify(value) {
 const byOrder = (a, b) =>
   (a.order ?? 100) - (b.order ?? 100) || String(a.name).localeCompare(String(b.name));
 
+async function loadStored() {
+  if (usingMongo()) return Category.find({}).select(FIELDS).lean();
+  return readData().categories || [];
+}
+
+/**
+ * Every collection the site has, built-in first and in their long-standing
+ * order, then whatever the shop added.
+ *
+ * A built-in carries builtIn:true so a panel can lock its address and offer
+ * "reset" where it would otherwise offer "remove", and `key` so a product
+ * filed under "asian" is matched to /asian-jewellery.
+ */
+function merge(stored) {
+  const overrides = new Map(stored.map(c => [c.slug, c]));
+
+  const builtIns = BUILT_IN_DEFAULTS.map(def => {
+    const o = overrides.get(def.slug) || {};
+    return {
+      slug: def.slug,
+      key: def.key,
+      name: o.name || def.name,
+      description: o.description || '',
+      image: o.image || '',
+      order: Number.isFinite(o.order) ? o.order : 0,
+      builtIn: true,
+      // So a panel can say whether it is showing the shop's wording or the
+      // one the site shipped with, and offer to put it back.
+      customised: Boolean(o.name || o.description || o.image)
+    };
+  });
+
+  const custom = stored
+    .filter(c => !isBuiltIn(c.slug))
+    .map(c => ({
+      slug: c.slug,
+      key: c.slug,
+      name: c.name,
+      description: c.description || '',
+      image: c.image || '',
+      order: Number.isFinite(c.order) ? c.order : 100,
+      builtIn: false,
+      customised: true
+    }))
+    .sort(byOrder);
+
+  return [...builtIns, ...custom];
+}
+
 // GET /api/categories
 router.get('/', async (req, res) => {
   try {
-    let categories;
-    if (usingMongo()) {
-      categories = await Category.find({}).select(FIELDS).lean();
-    } else {
-      categories = (readData().categories || []);
-    }
-    res.json({ success: true, categories: categories.slice().sort(byOrder) });
+    res.json({ success: true, categories: merge(await loadStored()) });
   } catch (error) {
     failWith(res, error, 'Could not load the collections.');
   }
@@ -66,12 +145,11 @@ router.post('/', authenticateToken, requireAdmin, async (req, res) => {
     }
 
     // A collection that shadows a built-in would be unreachable — the built-in
-    // page wins the URL — and its products would appear in two places under
-    // one name. Saying so beats creating something that silently does nothing.
-    if (BUILT_IN.includes(slug)) {
+    // page wins the URL — and its pieces would appear twice under one name.
+    if (RESERVED.includes(slug)) {
       return res.status(409).json({
         success: false,
-        message: `"${slug}" is one of the collections that ships with the site. Pick another name.`
+        message: `"${slug}" is already part of the site. Rename that collection instead, or pick another name.`
       });
     }
 
@@ -98,13 +176,23 @@ router.post('/', authenticateToken, requireAdmin, async (req, res) => {
       writeDataOrThrow(db);
     }
 
-    res.status(201).json({ success: true, message: `Collection "${name}" created.`, category: record });
+    res.status(201).json({
+      success: true,
+      message: `Collection "${name}" created.`,
+      category: { ...record, key: slug, builtIn: false, customised: true }
+    });
   } catch (error) {
     failWith(res, error, 'Could not create the collection.');
   }
 });
 
-// PUT /api/categories/:slug (Admin)
+/**
+ * PUT /api/categories/:slug (Admin)
+ *
+ * Works for both kinds. For a built-in this writes an override record rather
+ * than editing anything in the build, so resetting is a matter of deleting it.
+ * The slug is never taken from the body: it is the address.
+ */
 router.put('/:slug', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const slug = slugify(req.params.slug);
@@ -114,40 +202,69 @@ router.put('/:slug', authenticateToken, requireAdmin, async (req, res) => {
     }
     if (req.body.order !== undefined) patch.order = Number(req.body.order) || 0;
 
-    let updated;
+    if (patch.name === '') {
+      return res.status(400).json({ success: false, message: 'A collection needs a name.' });
+    }
+
     if (usingMongo()) {
-      updated = await Category.findOneAndUpdate({ slug }, { $set: patch }, { new: true })
-        .select(FIELDS).lean();
+      // upsert: a built-in has no record until the first time it is edited.
+      await Category.findOneAndUpdate(
+        { slug },
+        { $set: { ...patch, slug } },
+        { new: true, upsert: isBuiltIn(slug) }
+      );
     } else {
       const db = readData();
       db.categories = db.categories || [];
       const i = db.categories.findIndex(c => c.slug === slug);
-      if (i !== -1) {
-        updated = { ...db.categories[i], ...patch, slug };
-        db.categories[i] = updated;
-        writeDataOrThrow(db);
-      }
+      if (i !== -1) db.categories[i] = { ...db.categories[i], ...patch, slug };
+      else if (isBuiltIn(slug)) db.categories.push({ slug, ...patch });
+      writeDataOrThrow(db);
     }
 
-    if (!updated) return res.status(404).json({ success: false, message: 'No such collection.' });
-    res.json({ success: true, message: 'Collection updated.', category: updated });
+    const category = merge(await loadStored()).find(c => c.slug === slug);
+    if (!category) return res.status(404).json({ success: false, message: 'No such collection.' });
+
+    res.json({ success: true, message: `${category.name} saved.`, category });
   } catch (error) {
     failWith(res, error, 'Could not update the collection.');
   }
 });
 
-// DELETE /api/categories/:slug (Admin)
+/**
+ * DELETE /api/categories/:slug (Admin)
+ *
+ * A built-in cannot be deleted — its page is part of the build and would go on
+ * serving under a name nobody could change back. Deleting one only clears the
+ * shop's wording and restores what the site shipped with, which is what the
+ * panel offers instead.
+ */
 router.delete('/:slug', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const slug = slugify(req.params.slug);
 
+    if (isBuiltIn(slug)) {
+      if (usingMongo()) {
+        await Category.findOneAndDelete({ slug });
+      } else {
+        const db = readData();
+        db.categories = (db.categories || []).filter(c => c.slug !== slug);
+        writeDataOrThrow(db);
+      }
+      const category = merge(await loadStored()).find(c => c.slug === slug);
+      return res.json({
+        success: true,
+        reset: true,
+        message: `${category.name} is back to the wording the site ships with.`,
+        category
+      });
+    }
+
     /**
-     * A collection with pieces in it is not deleted quietly.
-     *
-     * Removing it would leave those products filed under a collection that no
-     * longer exists — they would vanish from every listing while still being
-     * in the catalogue, which is the kind of disappearance nobody thinks to
-     * look for. The count is reported so the admin can move them first.
+     * A collection with pieces in it is not removed quietly. Those pieces stay
+     * in the catalogue but drop out of every listing that used it — the kind
+     * of disappearance nobody thinks to look for — so the count is reported
+     * and a second, deliberate request is required.
      */
     const inUse = usingMongo()
       ? await Product.countDocuments({ $or: [{ category: slug }, { categories: slug }] })
@@ -183,5 +300,9 @@ router.delete('/:slug', authenticateToken, requireAdmin, async (req, res) => {
 });
 
 module.exports = router;
-module.exports.BUILT_IN = BUILT_IN;
+module.exports.BUILT_IN_DEFAULTS = BUILT_IN_DEFAULTS;
+module.exports.BUILT_IN_SLUGS = BUILT_IN_SLUGS;
+module.exports.RESERVED = RESERVED;
 module.exports.slugify = slugify;
+module.exports.merge = merge;
+module.exports.loadStored = loadStored;
