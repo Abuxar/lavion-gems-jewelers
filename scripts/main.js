@@ -2146,6 +2146,126 @@
   /** The 1.00 ct tier is the one figure an admin actually watches. */
   const oneCaratTier = card => (card.diamondTiersUsd || []).find(t => t.upTo === 1);
 
+
+  /* ---- The live half: today's conversion of the dollar figures ---- */
+
+  const STONE_CURRENCIES = ['PKR', 'GBP', 'EUR'];
+
+  const stoneMoney = (n, code) =>
+    n === null || n === undefined || !isFinite(n)
+      ? '—'
+      : `${code} ${Math.round(n).toLocaleString('en-US')}`;
+
+  const stoneUsd = n => `$${Math.round(n).toLocaleString('en-US')}`;
+
+  function stoneCell(label, value, note) {
+    return `
+      <div style="background:#1c1a17; border:1px solid rgba(255,255,255,0.1); border-radius:6px; padding:10px 14px;">
+        <div style="font-size:10px; letter-spacing:1.4px; text-transform:uppercase; color:rgba(255,255,255,0.45);">${escapeHtml(label)}</div>
+        <div style="font-size:15px; font-weight:600; color:#fff; margin-top:3px;">${escapeHtml(value)}</div>
+        ${note ? `<div style="font-size:11px; color:rgba(255,255,255,0.35); margin-top:2px;">${escapeHtml(note)}</div>` : ''}
+      </div>`;
+  }
+
+  function stoneTable(caption, note, rows) {
+    if (!rows.length) return '';
+    const head = ['', 'USD'].concat(STONE_CURRENCIES);
+    return `
+      <div style="margin-bottom:20px;">
+        <p style="font-size:11px; letter-spacing:1.6px; text-transform:uppercase; color:var(--color-gold-light); margin-bottom:4px;">${escapeHtml(caption)}</p>
+        ${note ? `<p style="font-size:11.5px; color:rgba(255,255,255,0.45); margin-bottom:8px; line-height:1.6;">${escapeHtml(note)}</p>` : ''}
+        <div style="overflow-x:auto; border:1px solid rgba(255,255,255,0.1); border-radius:6px;">
+          <table style="width:100%; min-width:520px; border-collapse:collapse; font-size:12.5px;">
+            <thead>
+              <tr style="background:#1c1a17;">
+                ${head.map(h => `<th style="text-align:left; padding:9px 12px; font-size:10px; letter-spacing:1.2px; text-transform:uppercase; color:rgba(255,255,255,0.45); font-weight:600;">${escapeHtml(h)}</th>`).join('')}
+              </tr>
+            </thead>
+            <tbody>
+              ${rows.map(r => `
+                <tr style="border-top:1px solid rgba(255,255,255,0.06);">
+                  <td style="padding:9px 12px; color:rgba(255,255,255,0.85);">${escapeHtml(r.label)}</td>
+                  <td style="padding:9px 12px; color:rgba(255,255,255,0.5);">${escapeHtml(stoneUsd(r.usd))}</td>
+                  ${STONE_CURRENCIES.map(c => `<td style="padding:9px 12px; color:var(--color-gold-light); font-weight:600;">${escapeHtml(stoneMoney(r.local[c], c))}</td>`).join('')}
+                </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>`;
+  }
+
+  /**
+   * Paint the converted view.
+   *
+   * Every figure here is computed by the server from the same card the form
+   * below edits. Converting again in the browser would give the same number
+   * two places to be derived and one of them to be wrong.
+   */
+  function renderStoneMarket(market) {
+    const fxBox = document.getElementById('stone-market-fx');
+    const reviewBox = document.getElementById('stone-market-review');
+    const tablesBox = document.getElementById('stone-market-tables');
+    if (!fxBox || !reviewBox || !tablesBox) return;
+
+    if (!market) {
+      fxBox.innerHTML = '';
+      reviewBox.innerHTML = '';
+      tablesBox.innerHTML =
+        '<p style="font-size:12.5px; color:#e74c3c;">The live rate feed is unreachable, so today&rsquo;s converted prices cannot be shown. The dollar figures below are unaffected.</p>';
+      return;
+    }
+
+    const fx = market.fx || {};
+    const num = n => (isFinite(n) && n !== null ? Number(n).toLocaleString('en-US', { maximumFractionDigits: 4 }) : '—');
+
+    fxBox.innerHTML = [
+      stoneCell('USD → PKR', num(fx.usdPkr),
+        fx.pkrPremiumPercent ? `incl. ${fx.pkrPremiumPercent}% Sarafa premium` : 'at parity'),
+      stoneCell('USD → GBP', num(fx.usdGbp)),
+      stoneCell('USD → EUR', num(fx.usdEur)),
+      stoneCell('Rates as of', fx.asOf || 'unknown')
+    ].join('');
+
+    const review = market.review || {};
+    if (review.stale) {
+      reviewBox.innerHTML = `
+        <div role="alert" style="border:1px solid rgba(231,76,60,0.45); background:rgba(231,76,60,0.07); border-radius:6px; padding:12px 14px; font-size:12.5px; color:#f5b7b1; line-height:1.6;">
+          Dollar figures last reviewed <strong>${escapeHtml(review.revisedOn || 'never')}</strong>${
+            review.daysSince !== null && review.daysSince !== undefined ? ` — ${review.daysSince} days ago` : ''
+          }. That is past the ${review.staleAfterDays}-day review point. Diamond prices drift and lab-grown has fallen every year, so these are worth checking against a current price list.
+        </div>`;
+    } else {
+      reviewBox.innerHTML = `
+        <div style="border:1px solid rgba(255,255,255,0.1); border-radius:6px; padding:12px 14px; font-size:12.5px; color:rgba(255,255,255,0.6); line-height:1.6;">
+          Dollar figures last reviewed <strong style="color:var(--color-gold-light);">${escapeHtml(review.revisedOn || '—')}</strong>${
+            review.daysSince !== null && review.daysSince !== undefined ? ` — ${review.daysSince} days ago` : ''
+          }. Next review due after ${review.staleAfterDays} days.
+        </div>`;
+    }
+
+    const d = market.diamond || {};
+    const extras = []
+      .concat(d.melee ? [{ label: 'Melee (pavé) diamond / ct', usd: d.melee.usd, local: d.melee.local }] : [])
+      .concat(d.setting ? [{ label: 'Stone setting / ct', usd: d.setting.usd, local: d.setting.local }] : [])
+      .concat((market.gems || []).map(g => ({ label: `${g.name} / ct`, usd: g.usd, local: g.local })));
+
+    const labFactor = d.labGrownFactor;
+
+    tablesBox.innerHTML = [
+      stoneTable(
+        'Natural diamond, per carat',
+        'Priced by the stone’s own weight — a 2 ct stone is worth far more than two 1 ct stones. G–H / VS baseline.',
+        d.natural || []
+      ),
+      stoneTable(
+        'Lab-grown diamond, per carat',
+        labFactor ? `Priced at ${Math.round(labFactor * 100)}% of natural. Worth reviewing more often than anything else on the card.` : '',
+        d.labGrown || []
+      ),
+      stoneTable('Melee, setting and coloured stones', 'Coloured stones are flat per carat: origin and treatment move their value more than weight does.', extras)
+    ].join('');
+  }
+
   async function initRateCardControls() {
     const saveBtn = document.getElementById('ratecard-save-btn');
     if (!saveBtn) return;
@@ -2156,9 +2276,11 @@
       if (!res.ok || !data.success) throw new Error(data.message || 'unavailable');
       rateCardState = data.card;
       rateCardRates = data.rates;
+      renderStoneMarket(data.stoneMarket);
     } catch (e) {
       document.getElementById('ratecard-preview').textContent =
         'The live metal feed is unreachable, so the rate card cannot be loaded or saved right now.';
+      renderStoneMarket(null);
       saveBtn.disabled = true;
       return;
     }
@@ -2177,6 +2299,28 @@
     }
 
     saveBtn.addEventListener('click', saveRateCard);
+
+    // Re-pull the converted view on demand. The dollar figures do not change,
+    // but the dollar itself does, so this is the button for "what is that
+    // stone worth in rupees right now".
+    document.getElementById('stone-market-refresh')?.addEventListener('click', async (e) => {
+      const btn = e.currentTarget;
+      const label = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = 'Refreshing…';
+      try {
+        const r = await fetch(`${API_URL}/gold-rates/rate-card`);
+        const d = await r.json();
+        if (!r.ok || !d.success) throw new Error(d.message || 'unavailable');
+        renderStoneMarket(d.stoneMarket);
+      } catch (err) {
+        renderStoneMarket(null);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = label;
+      }
+    });
+
     renderRateCardPreview();
   }
 
@@ -2298,6 +2442,9 @@
       rateCardState = data.card;
       const revised = document.getElementById('ratecard-revised');
       if (revised) revised.textContent = rateCardState.revisedOn || '—';
+      // Comes back with the save, so the converted tables and the review date
+      // move at the same moment the figures do.
+      if (data.stoneMarket) renderStoneMarket(data.stoneMarket);
       showToast('Rate card saved — the studio is quoting on these figures now.', 'success');
     } catch (err) {
       showToast(err.message, 'error');
