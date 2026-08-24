@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { CATEGORIES } from '@/lib/categories';
+import { getCategories } from '@/lib/collections';
 import { href, type LocaleCode } from '@/lib/locales';
 import { AccountLink } from '@/components/account-link';
 import { BagLink } from '@/components/cart/bag-link';
@@ -19,7 +19,10 @@ import { LocaleSwitcher } from '@/components/locale-switcher';
  * HTML a crawler is served. Only the counters below know anything about the
  * reader, and those are client components of their own.
  */
-export function SiteHeader({ locale }: { locale: LocaleCode }) {
+export async function SiteHeader({ locale }: { locale: LocaleCode }) {
+  // Server-rendered, so the nav can carry a renamed collection rather than
+  // the wording that was written into the code.
+  const categories = await getCategories();
   return (
     <header className="border-b border-hairline bg-onyx">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
@@ -46,7 +49,7 @@ export function SiteHeader({ locale }: { locale: LocaleCode }) {
               All
             </Link>
           </li>
-          {CATEGORIES.map(c => (
+          {categories.map(c => (
             <li key={c.slug}>
               <Link
                 href={href(locale, `/${c.slug}`)}

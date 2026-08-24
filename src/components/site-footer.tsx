@@ -1,10 +1,13 @@
 import Link from 'next/link';
-import { CATEGORIES } from '@/lib/categories';
+import { getCategories } from '@/lib/collections';
 import { href, type LocaleCode } from '@/lib/locales';
 import { SITE } from '@/lib/seo';
 import { NewsletterForm } from '@/components/newsletter-form';
 
-export function SiteFooter({ locale }: { locale: LocaleCode }) {
+export async function SiteFooter({ locale }: { locale: LocaleCode }) {
+  // Server-rendered, so the nav can carry a renamed collection rather than
+  // the wording that was written into the code.
+  const categories = await getCategories();
   return (
     <footer className="mt-24 border-t border-hairline bg-onyx text-canvas">
       <div className="mx-auto grid max-w-6xl gap-10 px-6 py-14 sm:grid-cols-2">
@@ -31,7 +34,7 @@ export function SiteFooter({ locale }: { locale: LocaleCode }) {
             </Link>
           </h2>
           <ul className="mt-4 grid grid-cols-2 gap-y-2">
-            {CATEGORIES.map(c => (
+            {categories.map(c => (
               <li key={c.slug}>
                 <Link
                   href={href(locale, `/${c.slug}`)}

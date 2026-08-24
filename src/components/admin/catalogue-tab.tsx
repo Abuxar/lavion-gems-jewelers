@@ -126,7 +126,17 @@ const SPEC_FIELDS = [
  * each, their own copy, their own indexed URLs. Anything the shop invents is
  * stored and fetched, and appears alongside these.
  */
-type Collection = { slug: string; name: string };
+type Collection = {
+  slug: string;
+  /**
+   * What a product record files against, which is not always the slug: the
+   * page at /asian-jewellery holds pieces stored as "asian". The form must
+   * use this, or a piece would drop out of its own listing.
+   */
+  key: string;
+  name: string;
+  builtIn?: boolean;
+};
 
 export function CatalogueTab({
   products,
@@ -156,12 +166,16 @@ export function CatalogueTab({
     void loadCollections();
   }, [loadCollections]);
 
-  /** Built-ins first, in their long-standing order, then whatever was added. */
+  /**
+   * Every collection, from the API — built-ins with any renaming applied,
+   * then whatever the shop added. The build-time registry is the fallback for
+   * when that call cannot be made, so a piece can still be filed offline.
+   */
   const everyCollection = useMemo<Collection[]>(
-    () => [
-      ...CATEGORIES.map(c => ({ slug: c.key, name: c.name })),
-      ...collections.map(c => ({ slug: c.slug, name: c.name }))
-    ],
+    () =>
+      collections.length
+        ? collections
+        : CATEGORIES.map(c => ({ slug: c.slug, key: c.key, name: c.name, builtIn: true })),
     [collections]
   );
 
@@ -185,7 +199,7 @@ export function CatalogueTab({
       if (editing) {
         setEditing({
           ...editing,
-          extraCategories: [...new Set([...editing.extraCategories, data.category.slug])]
+          extraCategories: [...new Set([...editing.extraCategories, data.category.key])]
         });
       }
       setNewCollection('');
@@ -345,13 +359,13 @@ export function CatalogueTab({
               }
             >
               {everyCollection.map(c => (
-                <option key={c.slug} value={c.slug}>
+                <option key={c.slug} value={c.key}>
                   {c.name}
                 </option>
               ))}
               {/* A piece filed under something since deleted keeps its value
                   rather than being silently re-filed under whatever is first. */}
-              {!everyCollection.some(c => c.slug === editing.category) && (
+              {!everyCollection.some(c => c.key === editing.category) && (
                 <option value={editing.category}>{editing.category} (no longer listed)</option>
               )}
             </Select>
@@ -390,9 +404,9 @@ export function CatalogueTab({
                 {[
                   ...everyCollection,
                   ...editing.extraCategories
-                    .filter(slug => !everyCollection.some(c => c.slug === slug))
-                    .map(slug => ({ slug, name: `${slug} (not listed)` }))
-                ].filter(c => c.slug !== editing.category).map(c => (
+                    .filter(key => !everyCollection.some(c => c.key === key))
+                    .map(key => ({ slug: key, key, name: `${key} (not listed)` }))
+                ].filter(c => c.key !== editing.category).map(c => (
                   <label
                     key={c.slug}
                     className="inline-flex cursor-pointer items-center gap-2 border border-white/15 px-3 py-1.5 text-xs text-canvas/80 hover:border-gold-400"
@@ -401,14 +415,14 @@ export function CatalogueTab({
                       type="checkbox"
                       // Named, so the control reports which collection it is
                       // rather than the browser's default "on".
-                      value={c.slug}
-                      checked={editing.extraCategories.includes(c.slug)}
+                      value={c.key}
+                      checked={editing.extraCategories.includes(c.key)}
                       onChange={e =>
                         setEditing({
                           ...editing,
                           extraCategories: e.target.checked
-                            ? [...editing.extraCategories, c.slug]
-                            : editing.extraCategories.filter(x => x !== c.slug)
+                            ? [...editing.extraCategories, c.key]
+                            : editing.extraCategories.filter(x => x !== c.key)
                         })
                       }
                     />

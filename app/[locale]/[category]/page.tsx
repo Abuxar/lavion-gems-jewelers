@@ -1,7 +1,8 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { CATEGORIES, findCategory } from '@/lib/categories';
+import { CATEGORIES } from '@/lib/categories';
+import { getCategory } from '@/lib/collections';
 import { getProductsByCategory } from '@/lib/catalogue';
 import { productHandle } from '@/lib/handles';
 import { ProductCard } from '@/components/product-card';
@@ -40,7 +41,7 @@ type Props = { params: Promise<{ locale: string; category: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale, category: slug } = await params;
-  const found = findCategory(slug);
+  const found = await getCategory(slug);
   if (!found || !isLocaleCode(locale)) return {};
 
   const path = `/${found.slug}`;
@@ -66,7 +67,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function CategoryPage({ params }: Props) {
   const { locale, category: slug } = await params;
-  const category = findCategory(slug);
+  const category = await getCategory(slug);
   if (!category || !isLocaleCode(locale)) notFound();
 
   const products = await getProductsByCategory(category);

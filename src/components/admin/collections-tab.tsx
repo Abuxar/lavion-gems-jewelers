@@ -7,8 +7,14 @@ import { Button, Cell, Field, Notice, Panel, Row, Table, useNotice } from '@/com
 
 type Collection = {
   slug: string;
+  /** What products file against; not always the slug for a built-in. */
+  key: string;
   name: string;
   description?: string;
+  /** Part of the build: its address is fixed and it cannot be removed. */
+  builtIn?: boolean;
+  /** Whether the shop has changed its wording from what the site ships with. */
+  customised?: boolean;
 };
 
 /**
@@ -47,9 +53,9 @@ export function CollectionsTab({ products }: { products: AdminProduct[] }) {
     void load();
   }, [load]);
 
-  const countIn = (slug: string) =>
+  const countIn = (key: string) =>
     products.filter(
-      p => p.category === slug || (p.categories || []).includes(slug)
+      p => p.category === key || (p.categories || []).includes(key)
     ).length;
 
   const draftFor = (c: Collection) =>
@@ -123,7 +129,7 @@ export function CollectionsTab({ products }: { products: AdminProduct[] }) {
     if (ok) {
       setConfirming(null);
       await load();
-      say(true, `${c.name} removed.`);
+      say(true, data.message || `${c.name} removed.`);
     } else {
       say(false, data.message || 'The collection could not be removed.');
     }
@@ -132,8 +138,8 @@ export function CollectionsTab({ products }: { products: AdminProduct[] }) {
   return (
     <>
       <Panel
-        title="Your collections"
-        description="Beyond the eight the site ships with, which are part of the build and are not listed here. Each one made here gets a page at /collection/<name>. Put pieces in one from the piece's own form, under “Also appears in”."
+        title="Collections"
+        description="The ones that ship with the site and any you add. You can rename and describe all of them; the addresses of the built-in ones are fixed, because those URLs are indexed and every piece is filed against them. Put pieces in a collection from the piece's own form, under “Also appears in”."
       >
         <div className="mb-6 flex flex-wrap gap-3">
           <input
@@ -149,11 +155,7 @@ export function CollectionsTab({ products }: { products: AdminProduct[] }) {
 
         <Table
           head={['Name', 'Description', 'Address', 'Pieces', '']}
-          empty={
-            loading
-              ? 'Loading…'
-              : 'No collections of your own yet. The eight the site ships with are always there.'
-          }
+          empty={loading ? 'Loading…' : 'The collection list could not be loaded.'}
         >
           {collections.map(c => {
             const draft = draftFor(c);
@@ -167,6 +169,11 @@ export function CollectionsTab({ products }: { products: AdminProduct[] }) {
                     value={draft.name}
                     onChange={e => setDraft(c.slug, { name: e.target.value })}
                   />
+                  {c.builtIn && (
+                    <div className="mt-1 text-[10px] tracking-[0.12em] text-canvas/30 uppercase">
+                      Ships with the site
+                    </div>
+                  )}
                 </Cell>
                 <Cell>
                   <Field
@@ -179,22 +186,43 @@ export function CollectionsTab({ products }: { products: AdminProduct[] }) {
                 </Cell>
                 <Cell>
                   <a
-                    href={`/collection/${c.slug}`}
+                    href={c.builtIn ? `/${c.slug}` : `/collection/${c.slug}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-xs text-gold-300 hover:underline"
                   >
-                    /collection/{c.slug}
+                    {c.builtIn ? `/${c.slug}` : `/collection/${c.slug}`}
                   </a>
+                  {c.builtIn && <div className="mt-0.5 text-[10px] text-canvas/30">fixed</div>}
                 </Cell>
-                <Cell className="text-center text-canvas/70">{countIn(c.slug)}</Cell>
+                <Cell className="text-center text-canvas/70">{countIn(c.key)}</Cell>
                 <Cell className="text-right whitespace-nowrap">
                   <Button disabled={!dirty || busy === c.slug} onClick={() => void save(c)}>
                     {busy === c.slug ? 'Saving…' : 'Save'}
                   </Button>{' '}
-                  <Button kind="danger" onClick={() => void remove(c)}>
-                    Remove
-                  </Button>
+                  {/*
+                    A built-in cannot be removed — its page is part of the
+                    build and would go on serving under a name nobody could
+                    change back. Putting its wording back is the only thing
+                    there is to undo.
+                  */}
+                  {c.builtIn ? (
+                    <Button
+                      disabled={!c.customised}
+                      title={
+                        c.customised
+                          ? 'Put back the wording the site ships with'
+                          : 'Already the wording the site ships with'
+                      }
+                      onClick={() => void remove(c)}
+                    >
+                      Reset
+                    </Button>
+                  ) : (
+                    <Button kind="danger" onClick={() => void remove(c)}>
+                      Remove
+                    </Button>
+                  )}
                 </Cell>
               </Row>
             );
@@ -216,7 +244,7 @@ export function CollectionsTab({ products }: { products: AdminProduct[] }) {
             <Button
               kind="danger"
               onClick={() =>
-                void remove({ slug: confirming.slug, name: confirming.name }, true)
+                void remove({ slug: confirming.slug, key: confirming.slug, name: confirming.name }, true)
               }
             >
               Remove it anyway

@@ -3,6 +3,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { CATEGORIES } from '@/lib/categories';
+import { getCategories } from '@/lib/collections';
 import { countByCategory } from '@/lib/catalogue';
 import { alternatesFor, getLocale, href, isLocaleCode, LOCALE_CODES } from '@/lib/locales';
 import { breadcrumbJsonLd, collectionsIndexJsonLd } from '@/lib/seo';
@@ -58,6 +59,8 @@ export default async function CollectionsPage({ params }: Props) {
   const active = getLocale(locale);
   // One pass over the catalogue for all nine counts, rather than nine queries.
   const counts = await countByCategory();
+  // The same nine, with whatever the shop has renamed applied.
+  const categories = await getCategories();
 
   return (
     <>
@@ -78,7 +81,7 @@ export default async function CollectionsPage({ params }: Props) {
         </header>
 
         <ul className="mt-10 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-          {CATEGORIES.map((c, i) => {
+          {categories.map((c, i) => {
             const count = counts[c.key.toLowerCase()] ?? 0;
             return (
               <li key={c.slug} className="border border-hairline bg-canvas-pure">
