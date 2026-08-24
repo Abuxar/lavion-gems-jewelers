@@ -776,6 +776,40 @@
   const addProductBtn = document.getElementById('add-product-btn');
   const quickAddBtn = document.getElementById('quick-add-btn');
 
+  /**
+   * The specification fields, shared by the form that fills them and the form
+   * that reads them back. Listed once so the two cannot drift.
+   */
+  const PRODUCT_SPEC_FIELDS = ['metal', 'purity', 'stone', 'stoneQuality', 'certificate', 'dimensions', 'details', 'care', 'grossWeightG', 'stoneCarats', 'stoneCount', 'madeToOrderDays', 'sizes', 'images'];
+
+  /** A stored piece into the form. Lists arrive as arrays; inputs hold text. */
+  function fillSpecFields(product) {
+    PRODUCT_SPEC_FIELDS.forEach(key => {
+      const el = document.getElementById(`form-product-${key}`);
+      if (!el) return;
+      const value = product ? product[key] : '';
+      el.value = Array.isArray(value)
+        ? value.join(', ')
+        : (value === null || value === undefined ? '' : String(value));
+    });
+  }
+
+  /**
+   * The form back out.
+   *
+   * Every field is sent even when empty, because empty is how an admin clears
+   * one. The server reads an absent key as "not part of this edit", which is
+   * what lets the stock controls post { stock } alone without wiping the piece.
+   */
+  function readSpecFields() {
+    const out = {};
+    PRODUCT_SPEC_FIELDS.forEach(key => {
+      const el = document.getElementById(`form-product-${key}`);
+      if (el) out[key] = el.value.trim();
+    });
+    return out;
+  }
+
   function openProductModal(product = null) {
     const modal = document.getElementById('admin-product-modal');
     if (!modal) return;
@@ -790,6 +824,7 @@
     if (document.getElementById('form-product-stock')) document.getElementById('form-product-stock').value = product ? product.stock : 10;
     if (document.getElementById('form-product-badge')) document.getElementById('form-product-badge').value = product ? product.badge : '';
     if (document.getElementById('form-product-desc')) document.getElementById('form-product-desc').value = product ? product.desc || '' : '';
+    fillSpecFields(product);
 
     const imageVal = product ? product.img : 'images/gems.png';
     activeUploadedImageBase64 = imageVal;
@@ -851,7 +886,7 @@
       let synced;
 
       if (id) {
-        record = { id: String(id), name, category, price, stock, badge, img: finalImg, desc };
+        record = { id: String(id), name, category, price, stock, badge, img: finalImg, desc, ...readSpecFields() };
         products = products.map(p => String(p.id) === String(id) ? record : p);
         saveProducts(products);
         synced = await persistProduct('PUT', record);
@@ -860,7 +895,7 @@
           synced.ok ? 'success' : 'error'
         );
       } else {
-        record = { id: String(Date.now()), name, category, price, stock, badge, img: finalImg, desc };
+        record = { id: String(Date.now()), name, category, price, stock, badge, img: finalImg, desc, ...readSpecFields() };
         products.unshift(record);
         saveProducts(products);
         synced = await persistProduct('POST', record);
@@ -1320,79 +1355,344 @@
     showToast('Shopping Bag cleared.', 'info');
   };
 
-  // Quick View Modal
-  window.openQuickView = function (productId) {
-    const products = window.getProducts();
-    const product = products.find(p => p.id === String(productId));
-    if (!product) return;
+  /* ======================================
+     PRODUCT PAGES
+     A piece is a page, not a modal. The quick view showed a name, a line of
+     description and a stock count — which was very nearly everything the
+     catalogue held, so there was little to open. Now that a piece carries a
+     specification there is somewhere to put it, and more to the point there is
+     an address to link to, share and index.
+  ====================================== */
 
-    let modal = document.getElementById('quickview-modal');
-    if (!modal) {
-      modal = document.createElement('div');
-      modal.id = 'quickview-modal';
-      modal.className = 'admin-modal-backdrop';
-      document.body.appendChild(modal);
+  /**
+   * A stored image path, from a page that is not at the root.
+   *
+   * Images are stored the way the old pages referenced them — "images/x.png",
+   * no leading slash, because those pages sat at the site root. A product page
+   * lives at /product/<handle>, where that resolves to /product/images/x.png
+   * and every photograph 404s. A data: URI is already the image rather than a
+   * location, and prefixing a slash would break it outright.
+   */
+  function productImage(src) {
+    const path = String(src || '').trim() || 'images/hero_campaign.png';
+    if (/^(https?:\/\/|data:|\/)/i.test(path)) return path;
+    return `/${path}`;
+  }
+
+  /** Matches src/lib/handles.ts, so links made here survive the cutover. */
+  window.productHandle = function (product) {
+    const slug = String(product.name || '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+    return slug ? `${slug}-${product.id}` : String(product.id);
+  };
+
+  window.productUrl = function (product) {
+    return `/product/${window.productHandle(product)}`;
+  };
+
+  /** The id is whatever follows the last hyphen; the words before it decorate. */
+  function idFromHandle(handle) {
+    const at = String(handle).lastIndexOf('-');
+    return at === -1 ? String(handle) : String(handle).slice(at + 1);
+  }
+
+  /**
+   * Opening a piece.
+   *
+   * Kept under the old name so every existing call site — the grids, the
+   * wishlist page, the ?product= deep link — goes to the page without each
+   * having to be found and rewritten. The modal it used to build is gone.
+   */
+  window.openQuickView = function (productId) {
+    const product = (window.getProducts() || []).find(p => String(p.id) === String(productId));
+    if (!product) return;
+    window.location.href = window.productUrl(product);
+  };
+
+  /* ---- rendering one ---- */
+
+  const specRow = (label, value) =>
+    value === null || value === undefined || value === ''
+      ? ''
+      : `<tr>
+           <th style="text-align:left; padding:10px 16px 10px 0; font-weight:400; color:var(--color-text-muted); white-space:nowrap; vertical-align:top;">${escapeHtml(label)}</th>
+           <td style="padding:10px 0; color:var(--color-text);">${escapeHtml(String(value))}</td>
+         </tr>`;
+
+  function renderProductPage() {
+    const host = document.getElementById('product-page');
+    if (!host) return;
+
+    const params = new URLSearchParams(location.search);
+    // The path is the real address; ?h= exists so the page can be opened
+    // directly as /product.html?h=… where no rewrite is configured.
+    const fromPath = (location.pathname.match(/\/product\/([^/]+)\/?$/) || [])[1];
+    const handle = decodeURIComponent(fromPath || params.get('h') || '');
+    const id = idFromHandle(handle);
+
+    if (!id) {
+      host.innerHTML = notFoundHtml();
+      return;
     }
 
-    modal.innerHTML = `
-      <div class="admin-modal-dialog quickview-dialog">
-        <div style="border-radius: 6px; overflow: hidden; border: 1px solid rgba(200,169,110,0.3);">
-          <img src="${product.img}" alt="${product.name}" style="width: 100%; height: 320px; object-fit: cover;" />
-        </div>
+    fetch(`${API_URL}/products/${encodeURIComponent(id)}`)
+      .then(r => (r.ok ? r.json() : null))
+      .then(data => {
+        const product = data && data.success && data.product;
+        if (!product) {
+          host.innerHTML = notFoundHtml();
+          return;
+        }
+        paintProduct(host, product, handle);
+      })
+      .catch(() => { host.innerHTML = notFoundHtml('We could not reach the catalogue just now.'); });
+  }
+
+  function notFoundHtml(reason) {
+    return `
+      <div style="text-align:center; padding:60px 0;">
+        <h1 style="font-family:var(--font-serif); font-size:34px; color:var(--color-dark); margin-bottom:10px;">Piece not found</h1>
+        <p style="font-family:var(--font-sans); font-size:14px; color:var(--color-text-muted); margin-bottom:28px;">
+          ${escapeHtml(reason || 'This piece may have been sold or withdrawn from the collection.')}
+        </p>
+        <a href="/collections" class="btn-gold" style="padding:12px 26px; font-size:11px;">Browse the collections</a>
+      </div>`;
+  }
+
+  function paintProduct(host, p, requestedHandle) {
+    const canonical = window.productHandle(p);
+
+    /**
+     * Only one address per piece. The id is what resolves, so /anything-7 would
+     * serve the same ring under as many URLs as anyone cared to invent. The
+     * canonical spelling replaces whatever was asked for, without adding a
+     * history entry — the back button should leave the page, not bounce.
+     */
+    if (requestedHandle && requestedHandle !== canonical && location.pathname.startsWith('/product/')) {
+      history.replaceState(null, '', `/product/${canonical}${location.search}`);
+    }
+
+    const cat = String(p.category || '');
+    const catLabel = cat ? cat.charAt(0).toUpperCase() + cat.slice(1).replace(/-/g, ' ') : '';
+    const images = Array.isArray(p.images) ? p.images.filter(Boolean) : [];
+    const sizes = Array.isArray(p.sizes) ? p.sizes.filter(Boolean) : [];
+    const inStock = Number(p.stock) > 0;
+
+    const gallery = images.length
+      ? `<div style="display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-top:10px;">
+           ${images.map(src => `
+             <button type="button" class="product-thumb" data-src="${escapeHtml(productImage(src))}"
+               style="padding:0; border:1px solid var(--color-border); background:none; cursor:pointer; aspect-ratio:1; overflow:hidden;">
+               <img src="${escapeHtml(productImage(src))}" alt="" loading="lazy" style="width:100%; height:100%; object-fit:cover;" />
+             </button>`).join('')}
+         </div>`
+      : '';
+
+    const spec = [
+      specRow('Reference', p.id),
+      specRow('Collection', catLabel),
+      specRow('Metal', p.metal),
+      specRow('Hallmark', p.purity),
+      specRow('Weight', p.grossWeightG ? `${p.grossWeightG} g` : ''),
+      specRow('Stone', p.stone),
+      specRow('Carat weight', p.stoneCarats ? `${p.stoneCarats} ct total` : ''),
+      specRow('Stones set', p.stoneCount ? String(p.stoneCount) : ''),
+      specRow('Quality', p.stoneQuality),
+      specRow('Certificate', p.certificate),
+      specRow('Dimensions', p.dimensions),
+      specRow('Availability', inStock ? 'In stock' : 'Made to order'),
+      specRow('Ready in', p.madeToOrderDays ? `${p.madeToOrderDays} working days` : '')
+    ].join('');
+
+    // Blank lines are paragraph breaks — the admin field is a textarea, and a
+    // jeweller writing two paragraphs should get two.
+    const paragraphs = String(p.details || '')
+      .split(/\n\s*\n/).map(t => t.trim()).filter(Boolean);
+
+    const prose = (paragraphs.length || p.care)
+      ? `<div style="margin-top:56px; padding-top:40px; border-top:1px solid var(--color-border); display:grid; gap:40px; grid-template-columns:repeat(auto-fit,minmax(280px,1fr));">
+           ${paragraphs.length ? `
+             <section>
+               <h2 style="font-family:var(--font-serif); font-size:26px; font-weight:400; color:var(--color-dark);">About this piece</h2>
+               ${paragraphs.map(t => `<p style="font-family:var(--font-sans); font-size:14px; line-height:1.85; color:var(--color-text-muted); margin-top:14px;">${escapeHtml(t)}</p>`).join('')}
+             </section>` : ''}
+           ${p.care ? `
+             <section>
+               <h2 style="font-family:var(--font-serif); font-size:26px; font-weight:400; color:var(--color-dark);">Care</h2>
+               <p style="font-family:var(--font-sans); font-size:14px; line-height:1.85; color:var(--color-text-muted); margin-top:14px;">${escapeHtml(p.care)}</p>
+             </section>` : ''}
+         </div>`
+      : '';
+
+    host.innerHTML = `
+      <nav class="breadcrumbs" aria-label="Breadcrumb" style="margin-bottom:28px;">
+        <a href="/">Home</a>
+        ${cat ? `<span>/</span><a href="/${escapeHtml(cat)}">${escapeHtml(catLabel)}</a>` : ''}
+        <span>/</span>
+        <span>${escapeHtml(p.name)}</span>
+      </nav>
+
+      <div style="display:grid; gap:48px; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); align-items:start;">
         <div>
-          <span style="font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: var(--color-gold); display: block; margin-bottom: 6px;">${product.category}</span>
-          <h3 style="font-family: var(--font-serif); font-size: 28px; color: #fff; margin-bottom: 8px;">${product.name}</h3>
-          <p style="font-family: var(--font-serif); font-size: 15px; font-style: italic; color: rgba(255,255,255,0.7); margin-bottom: 16px;">${product.desc || ''}</p>
-          <div style="margin-bottom: 16px;">
-            <div style="font-size: 18px; font-weight: 700; color: var(--color-gold-light); text-transform: uppercase; letter-spacing: 0.5px;">Daily Rate Inquire</div>
-            <div style="font-size: 12px; font-style: italic; color: rgba(255,255,255,0.65); font-family: var(--font-serif);">✦ Price calculated on day of confirmation based on live gold market rates.</div>
+          <div style="position:relative; aspect-ratio:1; overflow:hidden; border:1px solid var(--color-border); background:var(--color-bg-soft);">
+            <img id="product-hero-img" src="${escapeHtml(productImage(p.img))}" alt="${escapeHtml(p.name)}"
+                 style="width:100%; height:100%; object-fit:cover;" />
+            ${p.badge ? `<span class="product-card-badge" style="position:absolute; top:16px; left:16px;">${escapeHtml(p.badge)}</span>` : ''}
           </div>
-          <div style="font-size: 12px; color: rgba(255,255,255,0.6); margin-bottom: 16px;">Stock: <strong>${product.stock > 0 ? product.stock + ' units available' : 'Out of Stock'}</strong></div>
-          <button type="button" class="admin-action-btn edit" id="qv-size-guide-btn" style="margin-bottom: 20px; width: 100%; justify-content: center; font-weight: 600;">
-            📏 View Jewellery & Ring Size Guide
-          </button>
-          <div style="display: flex; gap: 12px;">
-            <button class="admin-primary-btn" id="qv-add-btn" ${product.stock <= 0 ? 'disabled' : ''} style="flex: 1; justify-content: center;">
-              Add to Shopping Bag
-            </button>
-            <button class="btn-wishlist-toggle ${window.isInWishlist(product.id) ? 'in-wishlist' : ''}" id="qv-wish-btn" style="padding: 10px 14px;">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
-              </svg>
-            </button>
-            <button class="admin-action-btn" id="qv-close-btn" style="padding: 10px 18px;">Close</button>
+          ${gallery}
+        </div>
+
+        <div>
+          ${catLabel ? `<div style="font-family:var(--font-sans); font-size:11px; letter-spacing:2.4px; text-transform:uppercase; color:var(--color-gold-dark);">${escapeHtml(catLabel)}</div>` : ''}
+          <h1 style="font-family:var(--font-serif); font-size:40px; font-weight:300; line-height:1.15; color:var(--color-dark); margin-top:10px;">${escapeHtml(p.name)}</h1>
+          ${p.desc ? `<p style="font-family:var(--font-serif); font-size:17px; font-style:italic; color:var(--color-text-muted); margin-top:12px;">${escapeHtml(p.desc)}</p>` : ''}
+
+          <div style="margin-top:28px; padding:20px 0; border-top:1px solid var(--color-border); border-bottom:1px solid var(--color-border);">
+            <div style="font-family:var(--font-sans); font-size:13px; font-weight:700; letter-spacing:2.6px; text-transform:uppercase; color:var(--color-gold-dark);">Daily rate — enquire</div>
+            <p style="font-family:var(--font-serif); font-size:13px; font-style:italic; color:var(--color-text-muted); margin-top:8px;">
+              ✦ Priced on the day of confirmation against the live gold market rate.
+            </p>
           </div>
+
+          <p style="font-family:var(--font-sans); font-size:13px; color:${inStock ? 'var(--color-text)' : '#b45309'}; margin-top:16px;">
+            ${inStock ? `In stock — <strong>${Number(p.stock)}</strong> available` : 'Made to order'}
+          </p>
+
+          ${sizes.length ? `
+            <div style="margin-top:22px;">
+              <div style="font-family:var(--font-sans); font-size:11px; letter-spacing:2px; text-transform:uppercase; color:var(--color-text-muted);">Sizes made</div>
+              <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:10px;">
+                ${sizes.map(s => `<span style="border:1px solid var(--color-border); padding:6px 14px; font-family:var(--font-sans); font-size:13px;">${escapeHtml(s)}</span>`).join('')}
+              </div>
+              <p style="font-family:var(--font-sans); font-size:12px; color:var(--color-text-light); margin-top:8px;">Other sizes are made to order — ask when you enquire.</p>
+            </div>` : ''}
+
+          <div style="display:flex; flex-wrap:wrap; gap:12px; margin-top:28px;">
+            <button class="btn-gold" id="product-add-btn" style="padding:14px 30px; font-size:11px;">Add to Shopping Bag</button>
+            <button class="btn-outline" id="product-wish-btn" style="padding:14px 24px; font-size:11px;">Save</button>
+            <a class="btn-outline" id="product-enquire-btn" target="_blank" rel="noopener noreferrer"
+               style="padding:14px 24px; font-size:11px;">Enquire on WhatsApp</a>
+          </div>
+
+          <table style="width:100%; margin-top:32px; border-collapse:collapse; font-family:var(--font-sans); font-size:13.5px; border-top:1px solid var(--color-border);">
+            <tbody>${spec}</tbody>
+          </table>
         </div>
       </div>
+
+      ${prose}
+      <div id="product-related" style="margin-top:56px;"></div>
     `;
 
-    modal.classList.add('active');
-    document.body.style.overflow = 'hidden';
+    document.title = `${p.name} — Lavion Gems & Jewellers`;
+    setMeta('description', p.desc || `${p.name} from Lavion Gems & Jewellers.`);
+    setCanonical(`${location.origin}/product/${canonical}`);
+    // The shell ships noindex because a crawler that does not run JS would
+    // otherwise index an empty page. There is something here now.
+    document.getElementById('product-robots')?.remove();
+    injectProductJsonLd(p, canonical);
 
-    document.getElementById('qv-close-btn')?.addEventListener('click', () => {
-      modal.classList.remove('active');
-      document.body.style.overflow = '';
+    host.querySelectorAll('.product-thumb').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const hero = document.getElementById('product-hero-img');
+        if (hero) hero.src = btn.getAttribute('data-src');
+      });
     });
 
-    document.getElementById('qv-add-btn')?.addEventListener('click', () => {
-      window.addToCart(product.id, 1);
-      modal.classList.remove('active');
-      document.body.style.overflow = '';
+    document.getElementById('product-add-btn')?.addEventListener('click', () => {
+      window.addToCart(p.id, 1);
     });
 
-    document.getElementById('qv-wish-btn')?.addEventListener('click', () => {
-      window.toggleWishlist(product.id);
-      const btn = document.getElementById('qv-wish-btn');
-      if (btn) {
-        if (window.isInWishlist(product.id)) btn.classList.add('in-wishlist');
-        else btn.classList.remove('in-wishlist');
-      }
+    const wishBtn = document.getElementById('product-wish-btn');
+    const paintWish = () => {
+      const saved = (window.getWishlist() || []).map(String).includes(String(p.id));
+      wishBtn.textContent = saved ? 'Saved ✓' : 'Save';
+    };
+    wishBtn?.addEventListener('click', () => {
+      window.toggleWishlist(p.id);
+      paintWish();
     });
+    paintWish();
 
-    document.getElementById('qv-size-guide-btn')?.addEventListener('click', () => {
-      window.openSizeGuide();
-    });
-  };
+    const enquiry = `Hello Lavion, I would like to enquire about "${p.name}" (ref ${p.id}).`;
+    document.getElementById('product-enquire-btn')
+      ?.setAttribute('href', `https://wa.me/923241769500?text=${encodeURIComponent(enquiry)}`);
+
+    renderRelated(p);
+  }
+
+  /** More from the same collection, so the page is not a dead end. */
+  function renderRelated(p) {
+    const box = document.getElementById('product-related');
+    if (!box) return;
+    const others = (window.getProducts() || [])
+      .filter(x => String(x.id) !== String(p.id) && x.category === p.category)
+      .slice(0, 4);
+    if (!others.length) return;
+
+    box.innerHTML = `
+      <h2 style="font-family:var(--font-serif); font-size:26px; font-weight:400; color:var(--color-dark); margin-bottom:20px;">More from this collection</h2>
+      <div class="products-grid">
+        ${others.map(x => `
+          <div class="product-card">
+            <a href="${escapeHtml(window.productUrl(x))}" class="product-card-img" style="display:block;">
+              <img src="${escapeHtml(productImage(x.img))}" alt="${escapeHtml(x.name)}" loading="lazy" />
+            </a>
+            <div class="product-card-body">
+              <div class="product-card-name"><a href="${escapeHtml(window.productUrl(x))}" style="color:inherit;">${escapeHtml(x.name)}</a></div>
+              <div class="product-card-desc">${escapeHtml(x.desc || '')}</div>
+            </div>
+          </div>`).join('')}
+      </div>`;
+  }
+
+  function setMeta(name, content) {
+    let el = document.querySelector(`meta[name="${name}"]`);
+    if (!el) {
+      el = document.createElement('meta');
+      el.setAttribute('name', name);
+      document.head.appendChild(el);
+    }
+    el.setAttribute('content', content);
+  }
+
+  function setCanonical(href) {
+    let el = document.querySelector('link[rel="canonical"]');
+    if (!el) {
+      el = document.createElement('link');
+      el.setAttribute('rel', 'canonical');
+      document.head.appendChild(el);
+    }
+    el.setAttribute('href', href);
+  }
+
+  /**
+   * Product structured data.
+   *
+   * No price and no availability offer: the shop quotes against the day's gold
+   * rate rather than listing, so publishing a price here would be publishing
+   * one the page itself does not show.
+   */
+  function injectProductJsonLd(p, handle) {
+    const data = {
+      '@context': 'https://schema.org',
+      '@type': 'Product',
+      name: p.name,
+      description: p.desc || undefined,
+      sku: String(p.id),
+      image: p.img ? [new URL(productImage(p.img), location.origin).href] : undefined,
+      url: `${location.origin}/product/${handle}`,
+      brand: { '@type': 'Brand', name: 'Lavion Gems & Jewellers' },
+      material: p.metal || undefined,
+      weight: p.grossWeightG ? { '@type': 'QuantitativeValue', value: p.grossWeightG, unitCode: 'GRM' } : undefined
+    };
+    const el = document.createElement('script');
+    el.type = 'application/ld+json';
+    el.textContent = JSON.stringify(data);
+    document.head.appendChild(el);
+  }
 
   /* ======================================
      WISHLIST MANAGEMENT SYSTEM
@@ -1579,17 +1879,17 @@
 
       container.innerHTML = matches.map(p => `
         <div class="product-card" style="background: #1c1a17; border-color: rgba(200,169,110,0.3);">
-          <div class="product-card-img" onclick="window.openQuickView('${p.id}')">
+          <a href="${window.productUrl(p)}" class="product-card-img" style="display:block;">
             <img src="${p.img}" alt="${p.name}" loading="lazy" />
             ${p.badge ? `<span class="product-card-badge">${p.badge}</span>` : ''}
-          </div>
+          </a>
           <div class="product-card-body">
-            <div class="product-card-name" style="color:#fff;">${p.name}</div>
+            <div class="product-card-name" style="color:#fff;"><a href="${window.productUrl(p)}" style="color:inherit;">${p.name}</a></div>
             <div class="product-card-desc" style="color:rgba(255,255,255,0.6);">${p.desc || ''}</div>
             <div class="product-card-price" style="color:var(--color-gold-light); font-size:12px; letter-spacing:0.5px;">📞 Price on Request</div>
             <div class="product-card-actions">
               <button class="btn-add-cart" onclick="window.addToCart('${p.id}', 1)">+ Add to Bag</button>
-              <button class="btn-quick-view" onclick="window.openQuickView('${p.id}')" title="Quick View">👁</button>
+              <a class="btn-quick-view" href="${window.productUrl(p)}" title="View this piece" aria-label="View ${p.name}">👁</a>
             </div>
           </div>
         </div>
@@ -3844,6 +4144,7 @@
     initOrderTracker();
     window.renderGoldRateBar();
     window.fetchDiamondGuide();
+    renderProductPage();
     initAdminGoldRateControls();
     initCustomerAuthControls();
     initMobileMenu();
@@ -3855,6 +4156,7 @@
   initOrderTracker();
   window.renderGoldRateBar();
   window.fetchDiamondGuide();
+  renderProductPage();
   initAdminGoldRateControls();
   initCustomerAuthControls();
   initMobileMenu();

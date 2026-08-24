@@ -18,7 +18,49 @@ const Product = require('../models/Product');
  * Mongo documents carry _id and __v, which the client has no use for; strip
  * them so both stores hand back the same shape.
  */
-const FIELDS = 'id name category price stock badge img desc -_id';
+const BASE_FIELDS = ['id', 'name', 'category', 'price', 'stock', 'badge', 'img', 'desc'];
+
+/**
+ * Everything a client is given. The specification fields are listed by the
+ * model rather than repeated here, so adding one there is enough — a field
+ * that exists in the schema but not in this projection saves fine and then
+ * silently never comes back, which is the worst of both.
+ */
+const FIELDS = [...BASE_FIELDS, ...Product.SPEC_FIELDS].join(' ') + ' -_id';
+
+/**
+ * Read the specification off a request body.
+ *
+ * Blank is a deletion, not a no-op: an admin clearing the certificate number
+ * of a piece that turned out not to have one must be able to. Absent, on the
+ * other hand, means "not part of this edit" and is left alone — which is what
+ * lets the stock tab send { stock } without wiping the rest of the piece.
+ */
+function readSpec(body, patch = {}) {
+  for (const key of Product.SPEC_TEXT) {
+    if (body[key] !== undefined) patch[key] = String(body[key]).trim();
+  }
+  for (const key of Product.SPEC_NUMBERS) {
+    if (body[key] === undefined) continue;
+    const raw = body[key];
+    if (raw === '' || raw === null) {
+      // Cleared. null, not 0 — a ring that weighs nothing is not the same
+      // statement as a ring whose weight nobody has recorded.
+      patch[key] = null;
+    } else {
+      const n = Number(raw);
+      patch[key] = Number.isFinite(n) && n >= 0 ? n : null;
+    }
+  }
+  for (const key of Product.SPEC_LISTS) {
+    if (body[key] === undefined) continue;
+    const raw = body[key];
+    // Accepts either an array or the comma-separated string the forms submit.
+    const list = Array.isArray(raw) ? raw : String(raw).split(',');
+    patch[key] = list.map(v => String(v).trim()).filter(Boolean);
+  }
+  return patch;
+}
 
 function usingMongo() {
   return isMongoConnected();
@@ -92,7 +134,7 @@ router.post('/', authenticateToken, requireAdmin, async (req, res) => {
       return res.status(400).json({ success: false, message: 'Product name and category are required.' });
     }
 
-    const newProduct = {
+    const newProduct = readSpec(req.body, {
       id: String(Date.now()),
       name,
       category,
@@ -101,7 +143,7 @@ router.post('/', authenticateToken, requireAdmin, async (req, res) => {
       badge: badge || '',
       img: img || 'images/hero_campaign.png',
       desc: desc || ''
-    };
+    });
 
     if (usingMongo()) {
       await Product.create(newProduct);
@@ -126,6 +168,7 @@ router.put('/:id', authenticateToken, requireAdmin, async (req, res) => {
     for (const key of ['name', 'category', 'badge', 'img', 'desc']) {
       if (req.body[key] !== undefined) patch[key] = req.body[key];
     }
+    readSpec(req.body, patch);
     if (req.body.price !== undefined) patch.price = parseFloat(req.body.price) || 0;
     if (req.body.stock !== undefined) patch.stock = Math.max(0, parseInt(req.body.stock, 10) || 0);
 

@@ -177,6 +177,35 @@ app.get('/api/health/db', authenticateToken, requireAdmin, (req, res) => {
  */
 app.use(express.static(path.join(__dirname, '../'), { extensions: ['html'] }));
 
+/**
+ * And from public/, for local development on the migration branch.
+ *
+ * The old site keeps its images at the repository root, which is where the
+ * production deploy still serves them from. The Next migration moved the same
+ * files into public/, where Next expects them — so on that branch this server,
+ * which serves the root, finds no images at all and every static page renders
+ * with broken pictures that are perfectly fine in production.
+ *
+ * Serving both makes local development show what production shows. In
+ * production only one of the two directories exists, so nothing is shadowed.
+ */
+app.use(express.static(path.join(__dirname, '../public'), { extensions: ['html'] }));
+
+/**
+ * A piece is served from one file.
+ *
+ * /product/emerald-royale-ring-1 has no file behind it; product.html reads the
+ * handle out of the path and fetches the piece. Vercel does this with a rewrite
+ * in vercel.json, and this route is the local equivalent — without it the two
+ * environments disagree about whether a product URL exists at all, which is the
+ * same reason `extensions` is set above.
+ *
+ * Declared after express.static so a real file always wins.
+ */
+app.get('/product/:handle', (req, res) => {
+  res.sendFile(path.join(__dirname, '../product.html'));
+});
+
 // For all other routes (SPA fallback), Vercel's rewrite handles it
 // This is just a catch-all for API 404s
 app.get('/api/*', (req, res) => {

@@ -203,7 +203,7 @@
     </div>
   </footer>
 
-  <script src="scripts/main.js?v=6.0"></script>
+  <script src="scripts/main.js?v=6.1"></script>
   <script>
     (function () {
       function renderWishlist() {
@@ -238,10 +238,10 @@
 
         const cardsHtml = wishlistedProducts.map(p => `
           <div class="product-card" style="flex: auto;">
-            <div class="product-card-img" onclick="window.openQuickView('${p.id}')">
+            <a href="${window.productUrl(p)}" class="product-card-img" style="display:block;">
               <img src="${p.img}" alt="${p.name}" loading="lazy" />
               ${p.badge ? `<span class="product-card-badge">${p.badge}</span>` : ''}
-            </div>
+            </a>
             <div class="product-card-body">
               <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                 <div>
