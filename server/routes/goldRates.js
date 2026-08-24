@@ -53,9 +53,19 @@ router.get('/rate-card', async (req, res) => {
       });
     }
     const stored = await loadStored();
+    const card = pricing.mergeCard(stored && stored.rateCard);
     res.json({
       success: true,
-      card: pricing.mergeCard(stored && stored.rateCard),
+      card,
+      /**
+       * The same card, converted at today's dollar rate.
+       *
+       * The per-carat figures are in USD and the shop quotes in PKR, GBP and
+       * EUR, so what a stone actually costs a customer moves every time the
+       * FX feed refreshes — it just had nowhere to be seen. This is that,
+       * plus how long the USD figures have gone unreviewed.
+       */
+      stoneMarket: pricing.stoneMarket(card, rates),
       rates: {
         xauUsd: rates.xauUsd, xagUsd: rates.xagUsd,
         xptUsd: rates.xptUsd, xpdUsd: rates.xpdUsd,
@@ -142,7 +152,25 @@ router.patch('/rate-card', authenticateToken, requireAdmin, async (req, res) => 
     }
 
     await saveStored({ rateCard: nextOverrides });
-    res.json({ success: true, message: 'Bespoke rate card updated.', card: merged });
+
+    // The converted view goes back with the save so the panel can repaint from
+    // the server's own arithmetic rather than recomputing the conversion in
+    // the browser and risking the two disagreeing on screen. A failed rate
+    // refresh must not fail the save — the card is stored either way.
+    let stoneMarket = null;
+    try {
+      const { rates } = await refresh(false);
+      if (rates) stoneMarket = pricing.stoneMarket(merged, rates);
+    } catch (e) {
+      console.error('[GoldRate] stone market recompute after save:', e.message);
+    }
+
+    res.json({
+      success: true,
+      message: 'Bespoke rate card updated.',
+      card: merged,
+      stoneMarket
+    });
   } catch (error) {
     console.error('[GoldRate] rate-card patch error:', error);
     failWith(res, error, 'Could not save the rate card.');

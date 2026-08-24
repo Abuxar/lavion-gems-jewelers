@@ -443,12 +443,154 @@ function formatRange(est) {
   return `${money(est.low)} – ${money(est.high)}`;
 }
 
+
+/* ------------------------------------------------------------------ *
+ * The stone market view
+ * ------------------------------------------------------------------ */
+
+/**
+ * How long the judgement figures may go unreviewed before the panel says so.
+ *
+ * A quarter. Diamond prices do move — the published indices drift a few per
+ * cent a quarter and lab-grown has fallen every year — but they do not move
+ * hourly the way spot metal does, so nagging weekly would train the admin to
+ * ignore the warning. What must not happen is the studio quoting a rate card
+ * nobody has looked at since last year.
+ */
+const STONE_REVIEW_DAYS = 90;
+
+/**
+ * What is live here, and what is not.
+ *
+ * Gold has a public spot price because an ounce of gold is an ounce of gold.
+ * A diamond is not fungible — two stones of the same weight differ in cut,
+ * colour, clarity and fluorescence, and the trade prices them off the
+ * Rapaport Price List, which is a paid subscription whose redistribution is
+ * contractually restricted. Coloured stones have no index at all; origin and
+ * treatment matter more than weight. So there is no free feed to point at,
+ * and inventing one would put a "live" badge over guesses on quotes for real
+ * money.
+ *
+ * What IS live is the half nobody was being shown. The card is written in
+ * USD; the shop quotes in PKR, GBP and EUR; and the dollar rate is refreshed
+ * with the metal feed every five minutes. So what a stone costs the customer
+ * already moves on its own — this turns that into something you can see.
+ *
+ * Every price carries a `source`, so if a licensed feed is ever subscribed to
+ * it can mark its own lines `feed` and the panel will distinguish them
+ * without a rewrite.
+ */
+function stoneMarket(card, rates) {
+  const fx = {
+    PKR: fxFor('PK', rates, card),
+    GBP: fxFor('UK', rates, card),
+    EUR: fxFor('EU', rates, card)
+  };
+
+  /** One USD figure, alongside what it is worth in each market today. */
+  const priced = (usd, source = 'card') => {
+    const n = Number(usd);
+    if (!Number.isFinite(n)) return null;
+    const local = {};
+    for (const [code, rate] of Object.entries(fx)) {
+      local[code] = Number.isFinite(rate) ? roundMoney(n * rate, code) : null;
+    }
+    return { usd: n, local, source };
+  };
+
+  const tiers = Array.isArray(card.diamondTiersUsd) ? card.diamondTiersUsd : [];
+
+  /** "0.50 – 0.75 ct" rather than a bare ceiling, which reads as a price band. */
+  const bands = tiers.map((t, i) => {
+    const from = i === 0 ? 0 : tiers[i - 1].upTo;
+    const to = t.upTo === null || t.upTo === undefined ? null : t.upTo;
+    const label = to === null
+      ? `${Number(from).toFixed(2)} ct and above`
+      : `${Number(from).toFixed(2)} – ${Number(to).toFixed(2)} ct`;
+    return { label, from: Number(from), to, perCarat: t.perCarat };
+  });
+
+  const labFactor = Number(card.labGrownFactor);
+  const hasLab = Number.isFinite(labFactor) && labFactor > 0;
+
+  // Only stones the card can actually put a number on. The nulls are the
+  // entries priced from the tier table or refused outright ("Custom
+  // Combination"), and listing them here as blank rows would suggest the
+  // feed had failed to fill them in.
+  const gems = Object.entries(card.gemUsdPerCarat || {})
+    .filter(([, usd]) => Number.isFinite(Number(usd)) && Number(usd) > 0)
+    .map(([name, usd]) => ({ name, ...priced(usd) }));
+
+  return {
+    /**
+     * The FX behind every converted figure, so the panel can show its
+     * working rather than asking to be trusted.
+     */
+    fx: {
+      usdPkr: fx.PKR,
+      usdGbp: fx.GBP,
+      usdEur: fx.EUR,
+      // Pakistan buys at the Sarafa counter, not at international parity, so
+      // the same premium the gold ticker carries is in the PKR figure above.
+      pkrPremiumPercent: Number(rates.premiumPercent) || 0,
+      asOf: rates.lastUpdated || null,
+      isSpot: rates.isSpot !== false
+    },
+    review: reviewState(card.revisedOn),
+    diamond: {
+      // `perCarat` is deliberately not spread through: it is the natural
+      // anchor, and carrying it onto a lab-grown row would print the natural
+      // price beside the lab-grown one as though both applied. `usd` is the
+      // price of that row, whichever table it is in.
+      natural: bands.map(({ label, from, to, perCarat }) => ({
+        label, from, to, ...priced(perCarat)
+      })),
+      labGrown: hasLab
+        ? bands.map(({ label, from, to, perCarat }) => ({
+            label, from, to, ...priced(perCarat * labFactor)
+          }))
+        : [],
+      labGrownFactor: hasLab ? labFactor : null,
+      melee: priced(card.meleeUsdPerCarat),
+      setting: priced(card.settingUsdPerCarat)
+    },
+    gems,
+    /**
+     * Named so the panel does not have to hardcode the explanation, and so a
+     * later licensed feed can change this one string rather than the copy in
+     * two admin panels.
+     */
+    anchor: {
+      source: 'card',
+      label: 'Your rate card',
+      note: 'Per-carat figures in USD are the shop’s own. Diamonds have no public spot feed — the trade prices off the Rapaport list, which is a paid licence.'
+    }
+  };
+}
+
+/** Days since the judgement figures were last reviewed, and whether that is too long. */
+function reviewState(revisedOn) {
+  const parsed = revisedOn ? Date.parse(`${revisedOn}T00:00:00Z`) : NaN;
+  if (!Number.isFinite(parsed)) {
+    return { revisedOn: revisedOn || null, daysSince: null, staleAfterDays: STONE_REVIEW_DAYS, stale: true };
+  }
+  const daysSince = Math.max(0, Math.floor((Date.now() - parsed) / 86400000));
+  return {
+    revisedOn,
+    daysSince,
+    staleAfterDays: STONE_REVIEW_DAYS,
+    stale: daysSince > STONE_REVIEW_DAYS
+  };
+}
+
 module.exports = {
   DEFAULT_CARD,
   CURRENCY,
+  STONE_REVIEW_DAYS,
   readMetal,
   mergeCard,
   estimate,
+  stoneMarket,
   formatRange,
   roundMoney
 };

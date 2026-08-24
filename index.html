@@ -1165,20 +1165,58 @@
           </div>
 
           <!--
-            The judgement half of the bespoke estimator.
+            THE STONE MARKET
 
-            Metal has a live feed and needs no control. Stones and labour do
-            not — these are the shop's own figures, and without somewhere to
-            change them the studio quietly goes on quoting whatever the
-            diamond market looked like on the day this was written.
+            The half of the estimator that has no feed, and the half of it that
+            does — separated, because presenting them as one thing is what made
+            a rate card nobody had edited look like a dead API.
+
+            Gold has a public spot price because an ounce of gold is an ounce
+            of gold. A diamond is not fungible: the trade prices off the
+            Rapaport list, which is a paid licence, and coloured stones have no
+            index at all. So the per-carat dollar figures are the shop's own
+            judgement and are edited below.
+
+            What IS live, and was previously invisible, is the conversion. The
+            card is written in USD, the shop quotes in PKR, GBP and EUR, and
+            the dollar rate refreshes with the metal feed every five minutes —
+            so what a stone costs a customer already moves on its own.
           -->
+          <div style="background:#12100e; border:1.5px solid rgba(46,204,113,0.4); border-radius:8px; padding:24px; margin-bottom:20px;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px; flex-wrap:wrap; gap:12px;">
+              <div>
+                <span class="admin-status-tag instock" style="padding:4px 10px; font-size:11px; background:#1e4620; color:#2ecc71; border:1px solid #2ecc71;">● LIVE — CONVERTS WITH THE MARKET</span>
+                <h3 style="font-family:var(--font-serif); font-size:22px; color:var(--color-gold-light); margin-top:6px;">Stone Market</h3>
+                <p style="font-size:12px; color:rgba(255,255,255,0.6); margin-top:4px; max-width:680px; line-height:1.6;">
+                  Per-carat figures are held in US dollars and converted at today&rsquo;s rate, so what a stone costs your
+                  customer moves every time the metal feed refreshes. The dollar figures themselves are yours &mdash;
+                  diamonds have no public spot feed, because the trade prices off the Rapaport list, which is a paid licence.
+                </p>
+              </div>
+              <button type="button" class="admin-action-btn" id="stone-market-refresh" style="padding:8px 16px; font-size:11px;">
+                Refresh
+              </button>
+            </div>
+
+            <div id="stone-market-fx" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(170px, 1fr)); gap:12px; margin-top:16px;"></div>
+
+            <div id="stone-market-review" style="margin-top:16px;"></div>
+
+            <div id="stone-market-tables" style="margin-top:18px;">
+              <p style="font-size:12.5px; color:rgba(255,255,255,0.5);">Loading today&rsquo;s converted prices&hellip;</p>
+            </div>
+          </div>
+
           <div style="background:#12100e; border:1px solid rgba(200,169,110,0.45); border-radius:8px; padding:24px; margin-bottom:28px;">
             <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px; flex-wrap:wrap; gap:12px;">
               <div>
-                <h3 style="font-family:var(--font-serif); font-size:22px; color:var(--color-gold-light);">Bespoke Estimator — Stone &amp; Labour Rates</h3>
-                <p style="font-size:12px; color:rgba(255,255,255,0.6); margin-top:4px; max-width:640px; line-height:1.6;">
-                  Gold, silver, platinum and palladium are priced automatically from the live market. The figures below are the ones
-                  that cannot be — review them when the diamond market moves. Last revised <strong id="ratecard-revised" style="color:var(--color-gold-light);">—</strong>.
+                <span class="admin-status-tag" style="padding:4px 10px; font-size:11px; background:rgba(255,255,255,0.06); color:rgba(255,255,255,0.55); border:1px solid rgba(255,255,255,0.2);">YOUR FIGURES &mdash; NOT A FEED</span>
+                <h3 style="font-family:var(--font-serif); font-size:22px; color:var(--color-gold-light); margin-top:6px;">What the prices are anchored to</h3>
+                <p style="font-size:12px; color:rgba(255,255,255,0.6); margin-top:4px; max-width:680px; line-height:1.6;">
+                  Everything here is in US dollars. Change the 1.00&nbsp;ct anchor and the whole tier table moves with it,
+                  keeping the shape of the curve &mdash; a 2&nbsp;ct stone is worth far more than two 1&nbsp;ct stones, and that
+                  is a property of the diamond market rather than something to re-derive by hand.
+                  Last revised <strong id="ratecard-revised" style="color:var(--color-gold-light);">&mdash;</strong>.
                 </p>
               </div>
               <button type="button" class="admin-primary-btn" id="ratecard-save-btn" style="padding:8px 16px; font-size:11px;">
@@ -1482,7 +1520,7 @@
     </div>
   </div>
 
-  <script src="scripts/main.js?v=5.8"></script>
+  <script src="scripts/main.js?v=5.9"></script>
 </body>
 
 </html>
