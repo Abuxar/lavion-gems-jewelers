@@ -158,7 +158,7 @@
     <div class="footer-bottom"><p>© 2025 Lavion Gems & Jewellers. All rights reserved.</p></div>
   </footer>
 
-  <script src="scripts/main.js?v=6.0"></script>
+  <script src="scripts/main.js?v=6.1"></script>
   <script>
     document.addEventListener('DOMContentLoaded', () => { renderCategoryPage('necklaces'); });
     function renderCategoryPage(categorySlug) {
@@ -181,17 +181,17 @@
 
       grid.innerHTML = products.map(p => `
         <div class="product-card" style="flex: auto;">
-          <div class="product-card-img" onclick="window.openQuickView('${p.id}')">
+          <a href="${window.productUrl(p)}" class="product-card-img" style="display:block;">
             <img src="${p.img}" alt="${p.name}" loading="lazy" />
             ${p.badge ? `<span class="product-card-badge">${p.badge}</span>` : ''}
-          </div>
+          </a>
           <div class="product-card-body">
             <div class="product-card-name">${p.name}</div>
             <div class="product-card-desc">${p.desc || ''}</div>
             <div class="product-card-price" style="font-size:12px; letter-spacing:0.5px;">✦ Price on Request</div>
             <div class="product-card-actions">
               <button class="btn-add-cart" onclick="window.addToCart('${p.id}', 1)">+ Add to Bag</button>
-              <button class="btn-quick-view" onclick="window.openQuickView('${p.id}')">👁</button>
+              <a class="btn-quick-view" href="${window.productUrl(p)}">👁</a>
             </div>
           </div>
         </div>
