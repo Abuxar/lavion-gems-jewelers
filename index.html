@@ -1034,17 +1034,8 @@
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px; margin-bottom:14px;">
           <div class="admin-form-group">
             <label style="font-size:11px; text-transform:uppercase; color:rgba(255,255,255,0.7); display:block; margin-bottom:6px;">Category</label>
-            <select id="form-product-category" style="width:100%; padding:10px; background:#12100e; border:1px solid rgba(200,169,110,0.3); color:#fff; border-radius:6px;" required>
-              <option value="rings">Rings</option>
-              <option value="necklaces">Necklaces</option>
-              <option value="earrings">Earrings</option>
-              <option value="bracelets">Bracelets</option>
-              <option value="asian">Asian Jewellery</option>
-              <option value="western">Western Jewellery</option>
-              <option value="gems">Precious Gems</option>
-              <option value="diamonds">Diamonds</option>
-              <option value="customized">Customized</option>
-            </select>
+            <select id="form-product-category" style="width:100%; padding:10px; background:#12100e; border:1px solid rgba(200,169,110,0.3); color:#fff; border-radius:6px;" required></select>
+            <p style="font-size:11px; color:rgba(255,255,255,0.4); margin-top:4px;">Its home collection &mdash; the breadcrumb and the page it belongs to.</p>
           </div>
           <div class="admin-form-group">
             <label style="font-size:11px; text-transform:uppercase; color:rgba(255,255,255,0.7); display:block; margin-bottom:6px;">Price (PKR)</label>
@@ -1064,11 +1055,33 @@
         </div>
 
         <div class="admin-form-group" style="margin-bottom:14px;">
-          <label style="font-size:11px; text-transform:uppercase; color:rgba(255,255,255,0.7); display:block; margin-bottom:6px;">Product Image Upload / File Picker</label>
-          <input type="file" id="form-product-file" accept="image/*" style="width:100%; padding:8px; background:#12100e; border:1px solid rgba(200,169,110,0.3); color:#fff; border-radius:6px; margin-bottom:8px;" />
-          <div id="form-product-img-preview-wrap" style="text-align:center; margin-bottom:12px;">
-            <img id="form-product-img-preview" src="images/gems.png" style="max-height:100px; border-radius:6px; border:1px solid var(--color-gold); margin:0 auto;" />
+          <label style="font-size:11px; text-transform:uppercase; color:rgba(255,255,255,0.7); display:block; margin-bottom:6px;">Also appears in</label>
+          <div id="form-product-extra-categories" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
+          <div style="display:flex; gap:8px; margin-top:10px;">
+            <input type="text" id="form-new-category" placeholder="New collection, e.g. Bridal" style="flex:1; padding:9px; background:#12100e; border:1px solid rgba(200,169,110,0.3); color:#fff; border-radius:6px;" />
+            <button type="button" id="form-new-category-btn" class="admin-action-btn" style="padding:9px 16px; font-size:11px; white-space:nowrap;">Create collection</button>
           </div>
+          <p style="font-size:11px; color:rgba(255,255,255,0.35); margin-top:6px;">
+            A collection made here gets its own page at /collection/&lt;name&gt;.
+          </p>
+        </div>
+
+        <!--
+          Pictures.
+
+          One ordered list rather than a main image plus a separate field of
+          others: the first entry IS the main one, which is the only thing that
+          makes reordering worth having. It is split back into img + images on
+          submit, so the storefront and the API are unchanged.
+        -->
+        <div class="admin-form-group" style="margin-bottom:14px;">
+          <label style="font-size:11px; text-transform:uppercase; color:rgba(255,255,255,0.7); display:block; margin-bottom:6px;">Pictures</label>
+          <div id="form-product-images-grid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(110px, 1fr)); gap:10px; margin-bottom:10px;"></div>
+          <input type="file" id="form-product-file" accept="image/*" multiple style="width:100%; padding:8px; background:#12100e; border:1px solid rgba(200,169,110,0.3); color:#fff; border-radius:6px;" />
+          <p id="form-product-images-note" style="font-size:11px; color:rgba(255,255,255,0.45); margin-top:6px;"></p>
+          <p style="font-size:11px; color:rgba(255,255,255,0.35); margin-top:2px;">
+            Pick several at once. Large photographs are resized before they are stored.
+          </p>
         </div>
 
         <div class="admin-form-group" style="margin-bottom:14px;">
@@ -1135,10 +1148,6 @@
           <div class="admin-form-group">
             <label style="font-size:11px; text-transform:uppercase; color:rgba(255,255,255,0.7); display:block; margin-bottom:6px;">Sizes made</label>
             <input type="text" id="form-product-sizes" placeholder="Comma separated: 12, 14, 16"  style="width:100%; padding:10px; background:#12100e; border:1px solid rgba(200,169,110,0.3); color:#fff; border-radius:6px;" />
-          </div>
-          <div class="admin-form-group">
-            <label style="font-size:11px; text-transform:uppercase; color:rgba(255,255,255,0.7); display:block; margin-bottom:6px;">Further images</label>
-            <input type="text" id="form-product-images" placeholder="Comma separated paths"  style="width:100%; padding:10px; background:#12100e; border:1px solid rgba(200,169,110,0.3); color:#fff; border-radius:6px;" />
           </div>
         </div>
 
@@ -1595,7 +1604,7 @@
     </div>
   </div>
 
-  <script src="scripts/main.js?v=6.1"></script>
+  <script src="scripts/main.js?v=6.2"></script>
 </body>
 
 </html>

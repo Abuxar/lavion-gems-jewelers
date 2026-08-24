@@ -204,7 +204,7 @@
     </div>
   </footer>
 
-  <script src="scripts/main.js?v=6.1"></script>
+  <script src="scripts/main.js?v=6.2"></script>
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       renderCategoryPage('rings');
@@ -216,7 +216,9 @@
       if (!grid) return;
 
       const allProducts = window.getProducts();
-      let products = allProducts.filter(p => p.category === categorySlug || categorySlug === 'all');
+      // A piece filed under this collection as an extra belongs here too,
+      // or ticking a second collection would do nothing visible.
+      let products = allProducts.filter(p => categorySlug === 'all' || window.productInCategory(p, categorySlug));
 
       // Add category fallback items if catalog has few specific category items
       if (products.length < 2 && categorySlug === 'rings') {
