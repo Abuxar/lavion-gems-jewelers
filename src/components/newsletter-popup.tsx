@@ -5,8 +5,12 @@ import { usePathname } from 'next/navigation';
 import { isLocaleCode } from '@/lib/locales';
 import { markDismissed, mayAsk, subscribe } from '@/lib/newsletter';
 
-/** Long enough to have looked at something first, short enough to still be here. */
-const DELAY_MS = 12_000;
+/**
+ * Long enough for the hero to have painted, so the offer lands over a page
+ * rather than over a blank screen — and short enough to reach the many
+ * visitors who are gone well before ten seconds.
+ */
+const DELAY_MS = 4_000;
 
 /**
  * Pages where interrupting is the wrong thing to do.
