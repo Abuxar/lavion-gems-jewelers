@@ -381,13 +381,27 @@ export function CatalogueTab({
                 Also appears in
               </span>
               <div className="mt-2 flex flex-wrap gap-2">
-                {everyCollection.filter(c => c.slug !== editing.category).map(c => (
+                {/*
+                  Anything the piece is already in, even if the collection list
+                  has not arrived yet or the collection has since been deleted.
+                  Without this the membership is invisible: the box simply is
+                  not drawn, and the admin has no way to see it or remove it.
+                */}
+                {[
+                  ...everyCollection,
+                  ...editing.extraCategories
+                    .filter(slug => !everyCollection.some(c => c.slug === slug))
+                    .map(slug => ({ slug, name: `${slug} (not listed)` }))
+                ].filter(c => c.slug !== editing.category).map(c => (
                   <label
                     key={c.slug}
                     className="inline-flex cursor-pointer items-center gap-2 border border-white/15 px-3 py-1.5 text-xs text-canvas/80 hover:border-gold-400"
                   >
                     <input
                       type="checkbox"
+                      // Named, so the control reports which collection it is
+                      // rather than the browser's default "on".
+                      value={c.slug}
                       checked={editing.extraCategories.includes(c.slug)}
                       onChange={e =>
                         setEditing({

@@ -7,6 +7,7 @@ import { DashboardTab } from '@/components/admin/dashboard-tab';
 import { CatalogueTab } from '@/components/admin/catalogue-tab';
 import { StockTab } from '@/components/admin/stock-tab';
 import { StonesTab } from '@/components/admin/stones-tab';
+import { CollectionsTab } from '@/components/admin/collections-tab';
 import { OrdersTab } from '@/components/admin/orders-tab';
 import { NewsletterTab } from '@/components/admin/newsletter-tab';
 import { Button } from '@/components/admin/ui';
@@ -62,7 +63,7 @@ export type AdminOrder = {
   date?: string;
 };
 
-const TABS = ['Dashboard', 'Catalogue', 'Stock', 'Stones', 'Orders', 'Newsletter'] as const;
+const TABS = ['Dashboard', 'Catalogue', 'Collections', 'Stock', 'Stones', 'Orders', 'Newsletter'] as const;
 type Tab = (typeof TABS)[number];
 
 /**
@@ -163,6 +164,9 @@ export function AdminPanel() {
       <div className="mt-8">
         {tab === 'Dashboard' && <DashboardTab products={products} orders={orders} />}
         {tab === 'Catalogue' && <CatalogueTab products={products} onChanged={load} />}
+        {/* Given the catalogue so it can count what is in each collection
+            without a second fetch of the same list. */}
+        {tab === 'Collections' && <CollectionsTab products={products} />}
         {tab === 'Stock' && <StockTab products={products} onChanged={load} />}
         {/* Loads its own rate card: nothing else on the panel wants it, and
             it is the one tab whose data is not the catalogue or the orders. */}
