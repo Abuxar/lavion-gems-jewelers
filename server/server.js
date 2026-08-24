@@ -22,6 +22,7 @@ require('dotenv').config();
 
 const authRoutes = require('./routes/auth');
 const productRoutes = require('./routes/products');
+const categoryRoutes = require('./routes/categories');
 const orderRoutes = require('./routes/orders');
 const goldRateRoutes = require('./routes/goldRates');
 const customOrderRoutes = require('./routes/customOrders');
@@ -137,6 +138,7 @@ app.use('/api', withMongoRetry);
 // API Routes (handle before static fallback)
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
+app.use('/api/categories', categoryRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/gold-rates', goldRateRoutes);
 app.use('/api/custom-orders', customOrderRoutes);
@@ -204,6 +206,11 @@ app.use(express.static(path.join(__dirname, '../public'), { extensions: ['html']
  */
 app.get('/product/:handle', (req, res) => {
   res.sendFile(path.join(__dirname, '../product.html'));
+});
+
+/** The same arrangement for a collection the shop invented. */
+app.get('/collection/:slug', (req, res) => {
+  res.sendFile(path.join(__dirname, '../collection.html'));
 });
 
 // For all other routes (SPA fallback), Vercel's rewrite handles it

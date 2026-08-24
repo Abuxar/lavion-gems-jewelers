@@ -776,11 +776,321 @@
   const addProductBtn = document.getElementById('add-product-btn');
   const quickAddBtn = document.getElementById('quick-add-btn');
 
+  /* ======================================
+     PRODUCT IMAGES
+     One ordered list, not a main picture and a list of others. The first is
+     the main one — that is what "reorder" has to mean for it to be worth
+     having — and it is split back into img + images only when the form is
+     submitted, so nothing downstream has to change.
+  ====================================== */
+
+  /** More than this and the page is scrolling through a photo album. */
+  const MAX_PRODUCT_IMAGES = 8;
+
+  /**
+   * Uploads are stored as data URIs inside the product record, which is how
+   * this admin has always handled the single image. That is fine for a few
+   * modest pictures and ruinous for eight straight off a phone: a 4 MB JPEG
+   * becomes 5.5 MB of base64, eight of them exceed Mongo's 16 MB document
+   * limit outright, and every catalogue read afterwards carries the weight.
+   *
+   * So every upload is re-encoded before it is stored — longest edge capped,
+   * re-compressed as JPEG. A 4000×3000 phone photograph comes out around
+   * 250 KB, which is a sensible size for a product page anyway.
+   */
+  const IMAGE_MAX_EDGE = 1600;
+  const IMAGE_QUALITY = 0.82;
+
+  function compressImage(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = () => reject(new Error(`${file.name} could not be read.`));
+      reader.onload = () => {
+        const img = new Image();
+        img.onerror = () => reject(new Error(`${file.name} is not an image this browser can read.`));
+        img.onload = () => {
+          const scale = Math.min(1, IMAGE_MAX_EDGE / Math.max(img.width, img.height));
+          const canvas = document.createElement('canvas');
+          canvas.width = Math.round(img.width * scale);
+          canvas.height = Math.round(img.height * scale);
+          const ctx = canvas.getContext('2d');
+          // A PNG with transparency would otherwise come out with black behind
+          // it once it is re-encoded as JPEG.
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          resolve(canvas.toDataURL('image/jpeg', IMAGE_QUALITY));
+        };
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  /** The working list for the product form. First entry is the main picture. */
+  let productImages = [];
+
+  const isDataUri = s => /^data:/i.test(String(s || ''));
+
+  /** A stored piece into the one ordered list the form edits. */
+  function loadProductImages(product) {
+    const main = product && product.img ? [product.img] : [];
+    const rest = product && Array.isArray(product.images) ? product.images : [];
+    productImages = [...main, ...rest].filter(Boolean).slice(0, MAX_PRODUCT_IMAGES);
+    renderProductImages();
+  }
+
+  function renderProductImages() {
+    const grid = document.getElementById('form-product-images-grid');
+    const note = document.getElementById('form-product-images-note');
+    if (!grid) return;
+
+    if (!productImages.length) {
+      grid.innerHTML = `<p style="grid-column:1/-1; font-size:12px; color:rgba(255,255,255,0.45); margin:0;">
+        No pictures yet. Add one or more below — the first is the one shown on cards and in search results.
+      </p>`;
+    } else {
+      grid.innerHTML = productImages.map((src, i) => `
+        <figure style="margin:0; border:1px solid ${i === 0 ? 'var(--color-gold)' : 'rgba(255,255,255,0.15)'}; border-radius:6px; overflow:hidden; background:#12100e;">
+          <div style="position:relative; aspect-ratio:1; background:#0b0a09;">
+            <img src="${escapeHtml(src)}" alt="" style="width:100%; height:100%; object-fit:cover;" />
+            ${i === 0 ? '<span style="position:absolute; top:6px; left:6px; background:var(--color-gold); color:#0b0a09; font-size:9px; font-weight:700; letter-spacing:1.2px; padding:3px 7px; border-radius:3px;">MAIN</span>' : ''}
+          </div>
+          <figcaption style="display:flex; gap:4px; padding:6px; justify-content:center;">
+            <button type="button" class="pi-move" data-i="${i}" data-dir="-1" title="Move earlier"
+              ${i === 0 ? 'disabled' : ''} style="flex:1; padding:5px; cursor:pointer; background:none; border:1px solid rgba(255,255,255,0.2); color:#fff; border-radius:4px; ${i === 0 ? 'opacity:.3; cursor:default;' : ''}">&larr;</button>
+            <button type="button" class="pi-remove" data-i="${i}" title="Remove"
+              style="flex:1; padding:5px; cursor:pointer; background:none; border:1px solid rgba(231,76,60,0.5); color:#e74c3c; border-radius:4px;">&times;</button>
+            <button type="button" class="pi-move" data-i="${i}" data-dir="1" title="Move later"
+              ${i === productImages.length - 1 ? 'disabled' : ''} style="flex:1; padding:5px; cursor:pointer; background:none; border:1px solid rgba(255,255,255,0.2); color:#fff; border-radius:4px; ${i === productImages.length - 1 ? 'opacity:.3; cursor:default;' : ''}">&rarr;</button>
+          </figcaption>
+        </figure>`).join('');
+    }
+
+    if (note) {
+      const stored = productImages.filter(isDataUri).length;
+      const bytes = productImages.filter(isDataUri).reduce((n, s) => n + s.length * 0.75, 0);
+      note.textContent = productImages.length
+        ? `${productImages.length} of ${MAX_PRODUCT_IMAGES}. The first is the main picture.` +
+          (stored ? ` ${stored} uploaded, about ${Math.round(bytes / 1024)} KB stored with the piece.` : '')
+        : '';
+    }
+
+    grid.querySelectorAll('.pi-move').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const i = Number(btn.getAttribute('data-i'));
+        const to = i + Number(btn.getAttribute('data-dir'));
+        if (to < 0 || to >= productImages.length) return;
+        const [moved] = productImages.splice(i, 1);
+        productImages.splice(to, 0, moved);
+        renderProductImages();
+      });
+    });
+
+    grid.querySelectorAll('.pi-remove').forEach(btn => {
+      btn.addEventListener('click', () => {
+        productImages.splice(Number(btn.getAttribute('data-i')), 1);
+        renderProductImages();
+      });
+    });
+  }
+
+  async function addProductImageFiles(fileList) {
+    const files = [...(fileList || [])];
+    if (!files.length) return;
+
+    const room = MAX_PRODUCT_IMAGES - productImages.length;
+    if (room <= 0) {
+      showToast(`A piece can carry ${MAX_PRODUCT_IMAGES} pictures. Remove one first.`, 'error');
+      return;
+    }
+    if (files.length > room) {
+      showToast(`Only ${room} more will fit — the rest were skipped.`, 'info');
+    }
+
+    for (const file of files.slice(0, room)) {
+      if (!/^image\//.test(file.type)) {
+        showToast(`${file.name} is not an image.`, 'error');
+        continue;
+      }
+      try {
+        productImages.push(await compressImage(file));
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+    renderProductImages();
+  }
+
+  /* ======================================
+     COLLECTIONS
+     The eight the site ships with are hardcoded here, because they are
+     hardcoded everywhere else too — one .html page each, their own copy, their
+     own indexed URLs. Anything the shop invents is stored and fetched.
+  ====================================== */
+
+  const BUILT_IN_CATEGORIES = [
+    { slug: 'rings', name: 'Rings' },
+    { slug: 'necklaces', name: 'Necklaces' },
+    { slug: 'earrings', name: 'Earrings' },
+    { slug: 'bracelets', name: 'Bracelets' },
+    { slug: 'asian', name: 'Asian Jewellery' },
+    { slug: 'western', name: 'Western Jewellery' },
+    { slug: 'gems', name: 'Precious Gems' },
+    { slug: 'diamonds', name: 'Diamonds' },
+    { slug: 'customized', name: 'Customized' }
+  ];
+
+  let customCategories = [];
+
+  window.loadCategories = async function () {
+    try {
+      const res = await fetch(`${API_URL}/categories`);
+      if (!res.ok) return customCategories;
+      const data = await res.json();
+      if (data.success && Array.isArray(data.categories)) customCategories = data.categories;
+    } catch (e) {
+      // The eight built-ins still work without the network; a shop-made
+      // collection simply will not be offered until it can be read.
+    }
+    return customCategories;
+  };
+
+  /** Built-ins first, in their long-standing order, then whatever was added. */
+  function allCategories() {
+    return [...BUILT_IN_CATEGORIES, ...customCategories.map(c => ({ slug: c.slug, name: c.name }))];
+  }
+
+  window.categoryLabel = function (slug) {
+    const found = allCategories().find(c => c.slug === String(slug || '').toLowerCase());
+    if (found) return found.name;
+    const s = String(slug || '');
+    return s ? s.charAt(0).toUpperCase() + s.slice(1).replace(/-/g, ' ') : '';
+  };
+
+  /**
+   * The home collection and the extra ones.
+   *
+   * They are separate controls because they are separate ideas: the home
+   * collection decides the piece's breadcrumb and which page is canonical,
+   * while the extras only decide which listings it also turns up in. Merging
+   * them into one multi-select would have left the primary ambiguous.
+   */
+  function renderCategoryControls(product) {
+    /**
+     * The list may still be in flight.
+     *
+     * loadCategories() is kicked off at boot, but the form can be opened
+     * before that fetch has come back — and then it offers only the eight
+     * built-ins, with the shop's own collections silently missing. Painting
+     * again when they land costs nothing and closes the gap; the ticks made in
+     * the meantime are carried over rather than reset.
+     */
+    if (!customCategories.length) {
+      window.loadCategories().then(list => {
+        if (list && list.length && document.getElementById('form-product-category')) {
+          paintCategoryControls(product, new Set(readExtraCategories()));
+        }
+      });
+    }
+    paintCategoryControls(product);
+  }
+
+  function paintCategoryControls(product, keep) {
+    const select = document.getElementById('form-product-category');
+    const extras = document.getElementById('form-product-extra-categories');
+    const home = String((product && product.category) || 'rings').toLowerCase();
+    const also = keep || new Set(
+      (product && Array.isArray(product.categories) ? product.categories : [])
+        .map(c => String(c).toLowerCase())
+    );
+
+    if (select) {
+      select.innerHTML = allCategories()
+        .map(c => `<option value="${escapeHtml(c.slug)}"${c.slug === home ? ' selected' : ''}>${escapeHtml(c.name)}</option>`)
+        .join('');
+      // A piece filed under something since deleted keeps its value rather
+      // than being silently re-filed under whatever happens to be first.
+      if (!allCategories().some(c => c.slug === home)) {
+        select.insertAdjacentHTML('afterbegin',
+          `<option value="${escapeHtml(home)}" selected>${escapeHtml(window.categoryLabel(home))} (no longer listed)</option>`);
+      }
+      select.onchange = () => renderExtraCategoryChoices();
+    }
+
+    if (extras) renderExtraCategoryChoices(also);
+  }
+
+  /** Checkboxes for every collection except the one chosen as home. */
+  function renderExtraCategoryChoices(preset) {
+    const box = document.getElementById('form-product-extra-categories');
+    if (!box) return;
+
+    const chosen = preset || new Set(readExtraCategories());
+    const home = (document.getElementById('form-product-category') || {}).value;
+
+    const options = allCategories().filter(c => c.slug !== home);
+    box.innerHTML = options.length
+      ? options.map(c => `
+          <label style="display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border:1px solid rgba(200,169,110,0.3); border-radius:6px; font-size:12px; color:rgba(255,255,255,0.8); cursor:pointer;">
+            <input type="checkbox" class="extra-category" value="${escapeHtml(c.slug)}"${chosen.has(c.slug) ? ' checked' : ''} />
+            ${escapeHtml(c.name)}
+          </label>`).join('')
+      : '<p style="font-size:12px; color:rgba(255,255,255,0.4); margin:0;">No other collections yet.</p>';
+  }
+
+  function readExtraCategories() {
+    return [...document.querySelectorAll('.extra-category:checked')].map(el => el.value);
+  }
+
+  /** Create a collection from inside the product form, without leaving it. */
+  async function createCategoryFromForm() {
+    const input = document.getElementById('form-new-category');
+    const name = (input?.value || '').trim();
+    if (!name) {
+      showToast('Give the collection a name first.', 'error');
+      return;
+    }
+
+    const btn = document.getElementById('form-new-category-btn');
+    const label = btn ? btn.textContent : '';
+    if (btn) { btn.disabled = true; btn.textContent = 'Creating…'; }
+
+    try {
+      const res = await adminFetch('/categories', {
+        method: 'POST',
+        body: JSON.stringify({ name })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.success) throw new Error(data.message || `Could not create it (${res.status}).`);
+
+      await window.loadCategories();
+      // Kept as it was, with the new collection ticked — creating one from
+      // inside the form almost always means this piece belongs in it.
+      const chosen = new Set(readExtraCategories());
+      chosen.add(data.category.slug);
+      renderExtraCategoryChoices(chosen);
+      input.value = '';
+      showToast(data.message || `Collection "${name}" created.`, 'success');
+    } catch (err) {
+      showToast(err.message, 'error');
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = label; }
+    }
+  }
+
+  document.addEventListener('click', (e) => {
+    if (e.target && e.target.id === 'form-new-category-btn') {
+      e.preventDefault();
+      createCategoryFromForm();
+    }
+  });
+
   /**
    * The specification fields, shared by the form that fills them and the form
    * that reads them back. Listed once so the two cannot drift.
    */
-  const PRODUCT_SPEC_FIELDS = ['metal', 'purity', 'stone', 'stoneQuality', 'certificate', 'dimensions', 'details', 'care', 'grossWeightG', 'stoneCarats', 'stoneCount', 'madeToOrderDays', 'sizes', 'images'];
+  const PRODUCT_SPEC_FIELDS = ['metal', 'purity', 'stone', 'stoneQuality', 'certificate', 'dimensions', 'details', 'care', 'grossWeightG', 'stoneCarats', 'stoneCount', 'madeToOrderDays', 'sizes'];
 
   /** A stored piece into the form. Lists arrive as arrays; inputs hold text. */
   function fillSpecFields(product) {
@@ -826,10 +1136,8 @@
     if (document.getElementById('form-product-desc')) document.getElementById('form-product-desc').value = product ? product.desc || '' : '';
     fillSpecFields(product);
 
-    const imageVal = product ? product.img : 'images/gems.png';
-    activeUploadedImageBase64 = imageVal;
-    const preview = document.getElementById('form-product-img-preview');
-    if (preview) preview.src = imageVal;
+    loadProductImages(product);
+    renderCategoryControls(product);
 
     modal.classList.add('active');
     modal.style.zIndex = '25000';
@@ -846,19 +1154,10 @@
     }
   });
 
-  let activeUploadedImageBase64 = null;
-
-  document.getElementById('form-product-file')?.addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        activeUploadedImageBase64 = event.target.result;
-        const preview = document.getElementById('form-product-img-preview');
-        if (preview) preview.src = activeUploadedImageBase64;
-      };
-      reader.readAsDataURL(file);
-    }
+  document.getElementById('form-product-file')?.addEventListener('change', async (e) => {
+    await addProductImageFiles(e.target.files);
+    // Cleared, so picking the same file twice running still fires a change.
+    e.target.value = '';
   });
 
   document.body.addEventListener('click', (e) => {
@@ -879,14 +1178,17 @@
       const stock = parseInt(document.getElementById('form-product-stock')?.value) || 0;
       const badge = document.getElementById('form-product-badge')?.value || '';
       const desc = document.getElementById('form-product-desc')?.value.trim() || '';
-      const finalImg = activeUploadedImageBase64 || 'images/hero_campaign.png';
+      // The first picture is the main one; the rest ride along in order.
+      const finalImg = productImages[0] || 'images/hero_campaign.png';
+      const extraImages = productImages.slice(1);
+      const extraCategories = readExtraCategories();
 
       let products = getProducts();
       let record;
       let synced;
 
       if (id) {
-        record = { id: String(id), name, category, price, stock, badge, img: finalImg, desc, ...readSpecFields() };
+        record = { id: String(id), name, category, categories: extraCategories, price, stock, badge, img: finalImg, images: extraImages, desc, ...readSpecFields() };
         products = products.map(p => String(p.id) === String(id) ? record : p);
         saveProducts(products);
         synced = await persistProduct('PUT', record);
@@ -895,7 +1197,7 @@
           synced.ok ? 'success' : 'error'
         );
       } else {
-        record = { id: String(Date.now()), name, category, price, stock, badge, img: finalImg, desc, ...readSpecFields() };
+        record = { id: String(Date.now()), name, category, categories: extraCategories, price, stock, badge, img: finalImg, images: extraImages, desc, ...readSpecFields() };
         products.unshift(record);
         saveProducts(products);
         synced = await persistProduct('POST', record);
@@ -1421,6 +1723,123 @@
            <td style="padding:10px 0; color:var(--color-text);">${escapeHtml(String(value))}</td>
          </tr>`;
 
+
+  /* ======================================
+     COLLECTION PAGES
+     For collections the shop invented. The eight built-in ones keep their own
+     files and their own indexed URLs.
+  ====================================== */
+
+  /** True when a piece belongs to a collection, as home or as an extra. */
+  window.productInCategory = function (product, slug) {
+    const want = String(slug || '').toLowerCase();
+    if (!want) return false;
+    if (String(product.category || '').toLowerCase() === want) return true;
+    return Array.isArray(product.categories) &&
+      product.categories.some(c => String(c).toLowerCase() === want);
+  };
+
+  function renderCollectionPage() {
+    const host = document.getElementById('collection-page');
+    if (!host) return;
+
+    const fromPath = (location.pathname.match(/\/collection\/([^/]+)\/?$/) || [])[1];
+    const slug = decodeURIComponent(
+      fromPath || new URLSearchParams(location.search).get('c') || ''
+    ).toLowerCase();
+
+    if (!slug) {
+      host.innerHTML = collectionMissingHtml();
+      return;
+    }
+
+    Promise.all([
+      fetch(`${API_URL}/categories`).then(r => (r.ok ? r.json() : null)).catch(() => null),
+      fetch(`${API_URL}/products?category=${encodeURIComponent(slug)}`)
+        .then(r => (r.ok ? r.json() : null)).catch(() => null)
+    ]).then(([catData, prodData]) => {
+      const category = catData && catData.success
+        ? (catData.categories || []).find(c => c.slug === slug)
+        : null;
+      const products = prodData && prodData.success ? (prodData.products || []) : [];
+
+      // A collection nobody created and nothing is filed under does not exist.
+      // One that has pieces but no record is still worth showing — a built-in
+      // slug reached through this URL, say — under a tidied-up name.
+      if (!category && !products.length) {
+        host.innerHTML = collectionMissingHtml();
+        return;
+      }
+
+      paintCollection(host, category, slug, products);
+    });
+  }
+
+  function collectionMissingHtml() {
+    return `
+      <div style="text-align:center; padding:60px 0;">
+        <h1 style="font-family:var(--font-serif); font-size:34px; color:var(--color-dark); margin-bottom:10px;">Collection not found</h1>
+        <p style="font-family:var(--font-sans); font-size:14px; color:var(--color-text-muted); margin-bottom:28px;">
+          This collection may have been renamed or withdrawn.
+        </p>
+        <a href="/collections" class="btn-gold" style="padding:12px 26px; font-size:11px;">Browse the collections</a>
+      </div>`;
+  }
+
+  function paintCollection(host, category, slug, products) {
+    const name = (category && category.name) || window.categoryLabel(slug);
+    const description = (category && category.description) || '';
+
+    host.innerHTML = `
+      <nav class="breadcrumbs" aria-label="Breadcrumb" style="margin-bottom:24px;">
+        <a href="/">Home</a>
+        <span>/</span>
+        <a href="/collections">Collections</a>
+        <span>/</span>
+        <span>${escapeHtml(name)}</span>
+      </nav>
+
+      <header style="margin-bottom:32px;">
+        <h1 style="font-family:var(--font-serif); font-size:40px; font-weight:300; color:var(--color-dark);">${escapeHtml(name)}</h1>
+        ${description ? `<p style="font-family:var(--font-sans); font-size:14px; line-height:1.8; color:var(--color-text-muted); margin-top:10px; max-width:60ch;">${escapeHtml(description)}</p>` : ''}
+        <p style="font-family:var(--font-sans); font-size:12px; letter-spacing:1.6px; text-transform:uppercase; color:var(--color-text-light); margin-top:14px;">
+          ${products.length} ${products.length === 1 ? 'piece' : 'pieces'}
+        </p>
+      </header>
+
+      ${products.length ? `
+        <div class="products-grid">
+          ${products.map(p => `
+            <div class="product-card">
+              <a href="${escapeHtml(window.productUrl(p))}" class="product-card-img" style="display:block;">
+                <img src="${escapeHtml(productImage(p.img))}" alt="${escapeHtml(p.name)}" loading="lazy" />
+                ${p.badge ? `<span class="product-card-badge">${escapeHtml(p.badge)}</span>` : ''}
+              </a>
+              <div class="product-card-body">
+                <div class="product-card-name"><a href="${escapeHtml(window.productUrl(p))}" style="color:inherit;">${escapeHtml(p.name)}</a></div>
+                <div class="product-card-desc">${escapeHtml(p.desc || '')}</div>
+                <div class="product-card-price">
+                  <span class="price-daily-tag">Daily Rate Inquire</span>
+                </div>
+                <div class="product-card-actions">
+                  <button class="btn-add-cart" onclick="window.addToCart('${escapeHtml(p.id)}', 1)"><span>+</span> Add to Bag</button>
+                  <a class="btn-quick-view" href="${escapeHtml(window.productUrl(p))}" title="View this piece">👁</a>
+                </div>
+              </div>
+            </div>`).join('')}
+        </div>`
+      : `<p style="font-family:var(--font-sans); font-size:14px; color:var(--color-text-muted);">
+           Nothing is filed under this collection yet.
+         </p>`}
+    `;
+
+    document.title = `${name} — Lavion Gems & Jewellers`;
+    setMeta('description', description || `${name} at Lavion Gems & Jewellers.`);
+    setCanonical(`${location.origin}/collection/${slug}`);
+    // Something is on the page now, so the shell's noindex can go.
+    document.getElementById('shell-robots')?.remove();
+  }
+
   function renderProductPage() {
     const host = document.getElementById('product-page');
     if (!host) return;
@@ -1591,7 +2010,7 @@
     setCanonical(`${location.origin}/product/${canonical}`);
     // The shell ships noindex because a crawler that does not run JS would
     // otherwise index an empty page. There is something here now.
-    document.getElementById('product-robots')?.remove();
+    document.getElementById('shell-robots')?.remove();
     injectProductJsonLd(p, canonical);
 
     host.querySelectorAll('.product-thumb').forEach(btn => {
@@ -4144,7 +4563,9 @@
     initOrderTracker();
     window.renderGoldRateBar();
     window.fetchDiamondGuide();
+    window.loadCategories();
     renderProductPage();
+    renderCollectionPage();
     initAdminGoldRateControls();
     initCustomerAuthControls();
     initMobileMenu();
@@ -4156,7 +4577,9 @@
   initOrderTracker();
   window.renderGoldRateBar();
   window.fetchDiamondGuide();
+  window.loadCategories();
   renderProductPage();
+  renderCollectionPage();
   initAdminGoldRateControls();
   initCustomerAuthControls();
   initMobileMenu();

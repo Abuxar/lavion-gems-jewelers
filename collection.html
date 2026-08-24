@@ -13,7 +13,7 @@
   </script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>Loading… — Lavion Gems &amp; Jewellers</title>
+  <title>Collection — Lavion Gems &amp; Jewellers</title>
   <meta name="description" content="Fine gold, diamond and gemstone jewellery from Lavion Gems &amp; Jewellers." />
   <meta name="robots" content="noindex" id="shell-robots" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -159,25 +159,19 @@
 
   <!-- Hero Header -->
   <!--
-    A page per piece.
+    A page for a collection the shop made up.
 
-    Rendered in the browser from /api/products/:id, because this site has no
-    build step and no per-product HTML file to generate one into. That is a
-    real cost: a crawler that does not execute JavaScript sees an empty shell,
-    which is why the page ships noindex until the piece has actually loaded and
-    the structured data is in place. The Next build renders the same page on
-    the server and does not have that problem — this is the version that works
-    today.
-
-    The URL is deliberately the same shape the Next site uses,
-    /product/<name>-<id>, so links made now keep working after the cutover and
-    whatever they have earned is not thrown away.
+    The eight that ship with the site keep their own files and their own
+    indexed URLs — /rings, /diamonds and the rest — and are untouched. This
+    serves the ninth, at /collection/<slug>, so inventing a collection does not
+    need a deploy. It reads the collection and its pieces from the API, the
+    same way the product page does.
   -->
   <section style="padding: 40px 0 100px; background: var(--color-bg); min-height: 70vh;">
     <div class="container">
-      <div id="product-page">
+      <div id="collection-page">
         <p style="font-family: var(--font-sans); font-size: 13px; color: var(--color-text-muted);">
-          Loading this piece&hellip;
+          Loading this collection&hellip;
         </p>
       </div>
     </div>

@@ -155,7 +155,7 @@
     <div class="footer-bottom"><p>© 2025 Lavion Gems & Jewellers. All rights reserved.</p></div>
   </footer>
 
-  <script src="scripts/main.js?v=6.1"></script>
+  <script src="scripts/main.js?v=6.2"></script>
   <script>
     document.addEventListener('DOMContentLoaded', () => { renderCategoryPage('asian'); });
     function renderCategoryPage(categorySlug) {
@@ -164,7 +164,7 @@
       if (!grid) return;
 
       const allProducts = window.getProducts();
-      let products = allProducts.filter(p => p.category === categorySlug || p.category === 'asian-jewellery' || p.name.toLowerCase().includes('kundan') || p.name.toLowerCase().includes('polki') || p.name.toLowerCase().includes('parure'));
+      let products = allProducts.filter(p => window.productInCategory(p, categorySlug) || p.category === 'asian-jewellery' || p.name.toLowerCase().includes('kundan') || p.name.toLowerCase().includes('polki') || p.name.toLowerCase().includes('parure'));
 
       const searchVal = document.getElementById('cat-search')?.value.toLowerCase() || '';
       const sortVal = document.getElementById('cat-sort')?.value || 'featured';

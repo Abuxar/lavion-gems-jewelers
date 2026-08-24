@@ -620,7 +620,7 @@
     </div>
   </footer>
 
-  <script src="scripts/main.js?v=6.1"></script>
+  <script src="scripts/main.js?v=6.2"></script>
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       renderCustomGrid();
@@ -1067,7 +1067,7 @@
       const grid = document.getElementById('custom-products-grid');
       if (!grid) return;
 
-      const products = window.getProducts().filter(p => p.category === 'customized' || p.badge === 'Bespoke' || p.badge === 'Custom');
+      const products = window.getProducts().filter(p => window.productInCategory(p, 'customized') || p.badge === 'Bespoke' || p.badge === 'Custom');
 
       if (products.length === 0) {
         grid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--color-text-muted);">Explore our custom studio above to craft your piece.</div>`;

@@ -58,7 +58,22 @@ const SPEC_FIELDS = [...SPEC_TEXT, ...SPEC_NUMBERS, ...SPEC_LISTS];
 const ProductSchema = new mongoose.Schema({
   id: { type: String, required: true, unique: true },
   name: { type: String, required: true },
+  /**
+   * The collection a piece belongs to, and the one its page and breadcrumb
+   * name. Required, unchanged, and still what every existing listing filters
+   * on — a ring must not fall out of /rings because someone also filed it
+   * under "bridal".
+   */
   category: { type: String, required: true },
+  /**
+   * Any further collections it also appears in.
+   *
+   * Kept alongside `category` rather than replacing it: one primary is what
+   * lets a piece have a single breadcrumb, one canonical page and one place
+   * in the sitemap, while still showing up in as many listings as the shop
+   * wants. The primary is always included when this is read back.
+   */
+  categories: { type: [String], default: [] },
   price: { type: Number, default: 0 },
   stock: { type: Number, default: 0 },
   badge: { type: String, default: '' },

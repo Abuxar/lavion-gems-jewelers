@@ -158,7 +158,7 @@
     <div class="footer-bottom"><p>© 2025 Lavion Gems & Jewellers. All rights reserved.</p></div>
   </footer>
 
-  <script src="scripts/main.js?v=6.1"></script>
+  <script src="scripts/main.js?v=6.2"></script>
   <script>
     document.addEventListener('DOMContentLoaded', () => { renderCategoryPage('necklaces'); });
     function renderCategoryPage(categorySlug) {
@@ -167,7 +167,7 @@
       if (!grid) return;
 
       const allProducts = window.getProducts();
-      let products = allProducts.filter(p => p.category === categorySlug || p.name.toLowerCase().includes('necklace') || p.name.toLowerCase().includes('parure') || p.name.toLowerCase().includes('choker'));
+      let products = allProducts.filter(p => window.productInCategory(p, categorySlug) || p.name.toLowerCase().includes('necklace') || p.name.toLowerCase().includes('parure') || p.name.toLowerCase().includes('choker'));
 
       const searchVal = document.getElementById('cat-search')?.value.toLowerCase() || '';
       const sortVal = document.getElementById('cat-sort')?.value || 'featured';

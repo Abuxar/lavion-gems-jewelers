@@ -18,7 +18,7 @@ const Product = require('../models/Product');
  * Mongo documents carry _id and __v, which the client has no use for; strip
  * them so both stores hand back the same shape.
  */
-const BASE_FIELDS = ['id', 'name', 'category', 'price', 'stock', 'badge', 'img', 'desc'];
+const BASE_FIELDS = ['id', 'name', 'category', 'categories', 'price', 'stock', 'badge', 'img', 'desc'];
 
 /**
  * Everything a client is given. The specification fields are listed by the
@@ -37,6 +37,13 @@ const FIELDS = [...BASE_FIELDS, ...Product.SPEC_FIELDS].join(' ') + ' -_id';
  * lets the stock tab send { stock } without wiping the rest of the piece.
  */
 function readSpec(body, patch = {}) {
+  if (body.categories !== undefined) {
+    const raw = body.categories;
+    const list = Array.isArray(raw) ? raw : String(raw).split(',');
+    patch.categories = [...new Set(
+      list.map(v => String(v).trim().toLowerCase()).filter(Boolean)
+    )];
+  }
   for (const key of Product.SPEC_TEXT) {
     if (body[key] !== undefined) patch[key] = String(body[key]).trim();
   }
@@ -55,8 +62,18 @@ function readSpec(body, patch = {}) {
   for (const key of Product.SPEC_LISTS) {
     if (body[key] === undefined) continue;
     const raw = body[key];
-    // Accepts either an array or the comma-separated string the forms submit.
-    const list = Array.isArray(raw) ? raw : String(raw).split(',');
+    /**
+     * An array, or a comma-separated string for the fields typed by hand.
+     *
+     * The split is guarded: an uploaded image is stored as a data URI, and
+     * "data:image/jpeg;base64,…" contains a comma of its own. Splitting one
+     * produces two broken halves, so anything that is already a data URI is
+     * taken whole. Both admin panels send images as a real array; this is the
+     * belt to that pair of braces.
+     */
+    const list = Array.isArray(raw)
+      ? raw
+      : (/^data:/i.test(String(raw).trim()) ? [raw] : String(raw).split(','));
     patch[key] = list.map(v => String(v).trim()).filter(Boolean);
   }
   return patch;
@@ -75,18 +92,33 @@ router.get('/', async (req, res) => {
     if (usingMongo()) {
       const query = {};
       if (category && category !== 'all') {
-        query.category = new RegExp(`^${escapeRegex(category)}$`, 'i');
+        // A piece filed under "bridal" as well as "rings" must appear in both
+        // listings, so the filter looks at the primary and the extras.
+        const exact = new RegExp(`^${escapeRegex(category)}$`, 'i');
+        query.$or = [{ category: exact }, { categories: exact }];
       }
       if (search) {
         const rx = new RegExp(escapeRegex(search), 'i');
-        query.$or = [{ name: rx }, { category: rx }, { desc: rx }];
+        // $and, because the category filter above already claimed $or and a
+        // second assignment would silently drop it — a search inside a
+        // collection would then return matches from the whole catalogue.
+        const match = [{ name: rx }, { category: rx }, { categories: rx }, { desc: rx }];
+        if (query.$or) {
+          query.$and = [{ $or: query.$or }, { $or: match }];
+          delete query.$or;
+        } else {
+          query.$or = match;
+        }
       }
       products = await Product.find(query).select(FIELDS).lean();
     } else {
       const db = readData();
       products = db.products || [];
       if (category && category !== 'all') {
-        products = products.filter(p => p.category.toLowerCase() === category.toLowerCase());
+        const want = category.toLowerCase();
+        products = products.filter(p =>
+          String(p.category || '').toLowerCase() === want ||
+          (Array.isArray(p.categories) && p.categories.some(c => String(c).toLowerCase() === want)));
       }
       if (search) {
         const q = search.toLowerCase();
