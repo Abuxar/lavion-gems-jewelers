@@ -5,23 +5,24 @@
  * the welcome mail and the unsubscribe tokens are untouched — this adds a
  * second place to sign up, not a second list.
  *
- * The rule matters more than the form. A popup that reappears on every page
- * load is worse than no popup: it trains people to close it before reading it,
- * and it asks visitors who already subscribed to subscribe again. So the answer
- * is remembered, in the visitor's own browser and nowhere else.
+ * The rule matters more than the form, and the two answers are not the same
+ * kind of answer, so they are not kept in the same place:
+ *
+ *   "not now"  -> sessionStorage. Held for this visit only. Close the tab and
+ *                 come back tomorrow and the offer is made again.
+ *   "yes"      -> localStorage. Held for good. Someone who has joined the list
+ *                 must never be asked to join it again, in this session or any
+ *                 later one.
+ *
+ * Keeping a dismissal in localStorage would silence the offer for months after
+ * a single idle close; keeping a subscription in sessionStorage would pester
+ * the people who actually said yes. Hence one of each.
  */
 
-const KEY = 'lavion.newsletter';
-
-/**
- * How long "no" lasts. Long enough that a returning visitor is not asked twice
- * in the same month; short enough that someone who dismissed it a season ago
- * and is now browsing seriously can still be offered it.
- */
-const DISMISS_DAYS = 30;
-
-type Answer = 'subscribed' | 'dismissed';
-type Stored = { state: Answer; at: number };
+/** Permanent, and only ever holds the fact of a subscription. */
+const SUBSCRIBED_KEY = 'lavion.newsletter';
+/** This visit only. Cleared by the browser when the tab closes. */
+const DISMISSED_KEY = 'lavion.newsletter.dismissed';
 
 /**
  * Storage can throw outright — Safari private browsing, a browser set to block
@@ -29,47 +30,52 @@ type Stored = { state: Answer; at: number };
  * the popup behaves as it does for a first-time visitor rather than crashing
  * the page around it.
  */
-function read(): Stored | null {
+function hasSubscribed(): boolean {
   try {
-    const raw = window.localStorage.getItem(KEY);
-    if (!raw) return null;
+    const raw = window.localStorage.getItem(SUBSCRIBED_KEY);
+    if (!raw) return false;
     const parsed: unknown = JSON.parse(raw);
-    if (
+    return (
       typeof parsed === 'object' &&
       parsed !== null &&
-      ((parsed as Stored).state === 'subscribed' || (parsed as Stored).state === 'dismissed')
-    ) {
-      return parsed as Stored;
-    }
+      (parsed as { state?: string }).state === 'subscribed'
+    );
   } catch {
-    /* unreadable or unparseable — treat as never asked */
+    return false;
   }
-  return null;
 }
 
-function write(state: Answer) {
+function dismissedThisSession(): boolean {
   try {
-    window.localStorage.setItem(KEY, JSON.stringify({ state, at: Date.now() }));
+    return window.sessionStorage.getItem(DISMISSED_KEY) === '1';
   } catch {
-    /* If we cannot remember the answer we simply ask again next time. */
+    return false;
   }
 }
 
 /** Recorded by the footer form too, so signing up there stops the popup. */
 export function markSubscribed() {
-  write('subscribed');
+  try {
+    window.localStorage.setItem(
+      SUBSCRIBED_KEY,
+      JSON.stringify({ state: 'subscribed', at: Date.now() })
+    );
+  } catch {
+    /* If we cannot remember it, we ask again next time. */
+  }
 }
 
 export function markDismissed() {
-  write('dismissed');
+  try {
+    window.sessionStorage.setItem(DISMISSED_KEY, '1');
+  } catch {
+    /* Same — a browser that will not store it gets asked again. */
+  }
 }
 
-/** True when this visitor has neither subscribed nor recently said no. */
+/** True when this visitor has neither subscribed nor said no during this visit. */
 export function mayAsk(): boolean {
-  const stored = read();
-  if (!stored) return true;
-  if (stored.state === 'subscribed') return false;
-  return Date.now() - stored.at > DISMISS_DAYS * 24 * 60 * 60 * 1000;
+  return !hasSubscribed() && !dismissedThisSession();
 }
 
 export type SignupResult = { ok: boolean; message: string };
@@ -87,7 +93,9 @@ export async function subscribe(email: string): Promise<SignupResult> {
     if (data.success) markSubscribed();
     return {
       ok: Boolean(data.success),
-      message: data.message || (data.success ? 'Thank you for subscribing.' : 'That address was not accepted.')
+      message:
+        data.message ||
+        (data.success ? 'Thank you for subscribing.' : 'That address was not accepted.')
     };
   } catch {
     return { ok: false, message: 'We could not reach the server. Please try again.' };

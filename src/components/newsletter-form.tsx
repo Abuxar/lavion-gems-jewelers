@@ -19,7 +19,7 @@ import { subscribe } from '@/lib/newsletter';
  *
  * Signing up here also stops the popup: subscribe() records it, and the popup
  * reads the same record. Otherwise someone who had just joined from the footer
- * would be asked to join again twelve seconds later.
+ * would be asked to join again three seconds later.
  */
 export function NewsletterForm() {
   const [state, setState] = useState<'idle' | 'busy' | 'done' | 'error'>('idle');

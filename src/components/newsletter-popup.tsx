@@ -8,9 +8,9 @@ import { markDismissed, mayAsk, subscribe } from '@/lib/newsletter';
 /**
  * Long enough for the hero to have painted, so the offer lands over a page
  * rather than over a blank screen — and short enough to reach the many
- * visitors who are gone well before ten seconds.
+ * visitors who are gone within a few seconds.
  */
-const DELAY_MS = 4_000;
+const DELAY_MS = 3_000;
 
 /**
  * Pages where interrupting is the wrong thing to do.
@@ -34,8 +34,10 @@ function offLimits(pathname: string | null): boolean {
 /**
  * The newsletter offer, as a dialog.
  *
- * It appears once, after a delay, and only for a visitor who has neither
- * subscribed nor turned it down in the last month — see lib/newsletter. The
+ * It appears once a visit, after a delay, and only for a visitor who has
+ * neither subscribed nor already turned it down during this visit — a
+ * dismissal lasts until the tab closes, a subscription lasts for good; see
+ * lib/newsletter. The
  * timer does not start until the tab is actually being looked at, or a popup
  * opened in a background tab would spend its whole life unseen and still count
  * as having been shown.
