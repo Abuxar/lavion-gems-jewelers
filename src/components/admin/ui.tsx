@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 /**
  * The small shared pieces every tab needs.
@@ -210,14 +210,21 @@ export function Notice({
   );
 }
 
-/** The notice plus its setter, since every tab wants exactly this pair. */
+/**
+ * The notice plus its setter, since every tab wants exactly this pair.
+ *
+ * Both functions are memoised, and that is load-bearing rather than tidiness.
+ * A tab that puts `say` in the dependency array of the useCallback it loads
+ * its data with gets a new `load` on every render, and its effect refetches
+ * forever. `clear` is passed to Notice, whose timer effect depends on it, so
+ * an unstable one restarts the six-second countdown on every unrelated render
+ * and the message never clears itself.
+ */
 export function useNotice() {
   const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null);
-  return {
-    notice,
-    clear: () => setNotice(null),
-    say: (ok: boolean, text: string) => setNotice({ ok, text })
-  };
+  const clear = useCallback(() => setNotice(null), []);
+  const say = useCallback((ok: boolean, text: string) => setNotice({ ok, text }), []);
+  return { notice, clear, say };
 }
 
 export const money = (n: number) => `PKR ${Math.round(n).toLocaleString('en-GB')}`;
