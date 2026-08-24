@@ -948,7 +948,13 @@
       const res = await fetch(`${API_URL}/categories`);
       if (!res.ok) return customCategories;
       const data = await res.json();
-      if (data.success && Array.isArray(data.categories)) customCategories = data.categories;
+      if (data.success && Array.isArray(data.categories)) {
+        customCategories = data.categories;
+        // The manager is only on screen for an admin, and repainting it when
+        // the list lands is what keeps it from showing an empty table for as
+        // long as the fetch takes.
+        renderCollectionsManager();
+      }
     } catch (e) {
       // The eight built-ins still work without the network; a shop-made
       // collection simply will not be offered until it can be read.
@@ -1224,6 +1230,7 @@
 
   // Render Function
   function renderAdmin() {
+    renderCollectionsManager();
     /**
      * Only the pages carrying the admin panel have these nodes. saveOrders and
      * saveProducts call this unconditionally, so on any other page the first
@@ -1723,6 +1730,180 @@
            <td style="padding:10px 0; color:var(--color-text);">${escapeHtml(String(value))}</td>
          </tr>`;
 
+
+
+  /* ======================================
+     COLLECTIONS MANAGER
+     Creating one from inside the product form is convenient and not enough:
+     there was nowhere to see what exists, rename one, give it a description,
+     or remove it. This is that place.
+  ====================================== */
+
+  function renderCollectionsManager() {
+    const box = document.getElementById('admin-collections');
+    if (!box) return;
+
+    const rows = customCategories.length
+      ? customCategories.map(c => {
+          const count = (window.getProducts() || [])
+            .filter(p => window.productInCategory(p, c.slug)).length;
+          return `
+            <tr data-slug="${escapeHtml(c.slug)}">
+              <td style="padding:10px 12px;">
+                <input type="text" class="coll-name" value="${escapeHtml(c.name)}"
+                  style="width:100%; padding:7px 9px; background:#12100e; border:1px solid rgba(200,169,110,0.3); color:#fff; border-radius:5px;" />
+              </td>
+              <td style="padding:10px 12px;">
+                <input type="text" class="coll-desc" value="${escapeHtml(c.description || '')}" placeholder="Optional description"
+                  style="width:100%; padding:7px 9px; background:#12100e; border:1px solid rgba(200,169,110,0.3); color:#fff; border-radius:5px;" />
+              </td>
+              <td style="padding:10px 12px; white-space:nowrap;">
+                <a href="/collection/${escapeHtml(c.slug)}" target="_blank" rel="noopener"
+                   style="color:var(--color-gold-light); font-size:12px;">/collection/${escapeHtml(c.slug)}</a>
+              </td>
+              <td style="padding:10px 12px; text-align:center; color:rgba(255,255,255,0.75);">${count}</td>
+              <td style="padding:10px 12px; white-space:nowrap; text-align:right;">
+                <button type="button" class="admin-action-btn coll-save" style="padding:6px 12px; font-size:11px;">Save</button>
+                <button type="button" class="admin-action-btn delete coll-delete" style="padding:6px 12px; font-size:11px;">Remove</button>
+              </td>
+            </tr>`;
+        }).join('')
+      : `<tr><td colspan="5" style="padding:24px; text-align:center; color:rgba(255,255,255,0.45); font-size:13px;">
+           No collections of your own yet. The eight the site ships with are always there.
+         </td></tr>`;
+
+    box.innerHTML = `
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px; margin-bottom:14px;">
+        <div>
+          <h3 style="font-family:var(--font-serif); font-size:20px; color:var(--color-gold-light);">Your collections</h3>
+          <p style="font-size:12px; color:rgba(255,255,255,0.5); margin-top:4px; max-width:62ch; line-height:1.6;">
+            Beyond the eight the site ships with. Each gets a page at /collection/&lt;name&gt;.
+            Put pieces in one from the piece&rsquo;s own form, under &ldquo;Also appears in&rdquo;.
+          </p>
+        </div>
+        <div style="display:flex; gap:8px;">
+          <input type="text" id="admin-new-collection" placeholder="New collection, e.g. Bridal"
+            style="padding:9px 12px; background:#12100e; border:1px solid rgba(200,169,110,0.3); color:#fff; border-radius:6px; min-width:220px;" />
+          <button type="button" class="admin-primary-btn" id="admin-new-collection-btn" style="padding:9px 16px; font-size:11px; white-space:nowrap;">Create</button>
+        </div>
+      </div>
+
+      <div class="admin-table-wrap">
+        <table class="admin-table" style="width:100%;">
+          <thead>
+            <tr>
+              <th style="text-align:left;">Name</th>
+              <th style="text-align:left;">Description</th>
+              <th style="text-align:left;">Address</th>
+              <th style="text-align:center;">Pieces</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>`;
+
+    box.querySelectorAll('.coll-save').forEach(btn => {
+      btn.addEventListener('click', () => saveCollectionRow(btn.closest('tr')));
+    });
+    box.querySelectorAll('.coll-delete').forEach(btn => {
+      btn.addEventListener('click', () => deleteCollectionRow(btn.closest('tr')));
+    });
+  }
+
+  async function saveCollectionRow(row) {
+    const slug = row.getAttribute('data-slug');
+    const name = row.querySelector('.coll-name').value.trim();
+    const description = row.querySelector('.coll-desc').value.trim();
+    if (!name) {
+      showToast('A collection needs a name.', 'error');
+      return;
+    }
+    try {
+      const res = await adminFetch(`/categories/${encodeURIComponent(slug)}`, {
+        method: 'PUT',
+        body: JSON.stringify({ name, description })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.success) throw new Error(data.message || `Save failed (${res.status}).`);
+      await window.loadCategories();
+      renderCollectionsManager();
+      showToast(`"${name}" saved.`, 'success');
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  }
+
+  /**
+   * Removing one is confirmed, and refused outright while pieces are still in
+   * it unless the admin says so a second time. Those pieces would otherwise
+   * disappear from every listing while still being in the catalogue.
+   */
+  async function deleteCollectionRow(row) {
+    const slug = row.getAttribute('data-slug');
+    const name = row.querySelector('.coll-name').value.trim() || slug;
+
+    try {
+      let res = await adminFetch(`/categories/${encodeURIComponent(slug)}`, { method: 'DELETE' });
+      let data = await res.json().catch(() => ({}));
+
+      if (res.status === 409 && data.inUse) {
+        const ok = window.confirm(
+          `${data.inUse} piece${data.inUse === 1 ? ' is' : 's are'} still filed under "${name}".\n\n` +
+          'They will stay in the catalogue but will no longer appear in this collection. Remove it anyway?'
+        );
+        if (!ok) return;
+        res = await adminFetch(`/categories/${encodeURIComponent(slug)}?force=1`, { method: 'DELETE' });
+        data = await res.json().catch(() => ({}));
+      } else if (res.ok) {
+        // Empty, so nothing to lose — but still an irreversible action.
+        if (!window.confirm(`Remove the collection "${name}"?`)) {
+          await window.loadCategories();
+          renderCollectionsManager();
+          return;
+        }
+      }
+
+      if (!res.ok || !data.success) throw new Error(data.message || `Could not remove it (${res.status}).`);
+      await window.loadCategories();
+      renderCollectionsManager();
+      showToast(`"${name}" removed.`, 'success');
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  }
+
+  async function createCollectionFromManager() {
+    const input = document.getElementById('admin-new-collection');
+    const name = (input?.value || '').trim();
+    if (!name) {
+      showToast('Give the collection a name first.', 'error');
+      return;
+    }
+    const btn = document.getElementById('admin-new-collection-btn');
+    const label = btn ? btn.textContent : '';
+    if (btn) { btn.disabled = true; btn.textContent = 'Creating…'; }
+    try {
+      const res = await adminFetch('/categories', { method: 'POST', body: JSON.stringify({ name }) });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.success) throw new Error(data.message || `Could not create it (${res.status}).`);
+      input.value = '';
+      await window.loadCategories();
+      renderCollectionsManager();
+      showToast(data.message || `Collection "${name}" created.`, 'success');
+    } catch (err) {
+      showToast(err.message, 'error');
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = label; }
+    }
+  }
+
+  document.addEventListener('click', (e) => {
+    if (e.target && e.target.id === 'admin-new-collection-btn') {
+      e.preventDefault();
+      createCollectionFromManager();
+    }
+  });
 
   /* ======================================
      COLLECTION PAGES
@@ -5157,9 +5338,28 @@
   // The timer does not start until the tab is actually being looked at, or a
   // popup opened in a background tab would spend its whole life unseen and
   // still count as having been shown.
+  /**
+   * Not over the admin panel.
+   *
+   * The path check above catches /admin, but the panel is also opened from the
+   * home page — where the path is "/" — and locally /admin redirects there
+   * rather than rewriting, so the path alone is not enough. Whoever is editing
+   * the catalogue is not a customer to be signed up to the newsletter.
+   */
+  function adminIsOpen() {
+    return !!document.querySelector(
+      '#admin-overlay.active, #admin-login-modal.active, #admin-product-modal.active'
+    );
+  }
+
   function arm() {
     if (timer || document.visibilityState !== 'visible') return;
-    timer = setTimeout(open, DELAY_MS);
+    timer = setTimeout(() => {
+      // Checked again here rather than only when the timer was set: the panel
+      // is usually opened during those three seconds, not before them.
+      if (adminIsOpen()) return;
+      open();
+    }, DELAY_MS);
   }
 
   arm();
