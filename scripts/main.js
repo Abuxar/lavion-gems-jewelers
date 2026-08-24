@@ -3873,8 +3873,12 @@
 (function newsletterPopup() {
   var KEY = 'lavion.newsletter';
   var DISMISS_DAYS = 30;
-  /** Long enough to have looked at something first, short enough to still be here. */
-  var DELAY_MS = 12000;
+  /**
+   * Long enough for the hero to have painted, so the offer lands over a page
+   * rather than over a blank screen — and short enough to reach the many
+   * visitors who are gone well before ten seconds.
+   */
+  var DELAY_MS = 4000;
 
   /**
    * Pages where interrupting is the wrong thing to do. Someone in the bag is
