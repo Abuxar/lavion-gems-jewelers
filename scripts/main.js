@@ -2012,6 +2012,51 @@
     showToast(`Gold rates updated — 24K PKR ${Math.round(r24).toLocaleString()} / tola`, 'success');
   };
 
+  /**
+   * The diamond guide for the ticker.
+   *
+   * Deliberately not called a rate. The bullion figures beside it come from a
+   * public spot feed; this cannot, because there is no free one — a diamond is
+   * not fungible and the trade prices off the Rapaport list, which is a paid
+   * licence. The per-carat dollar figures are the shop's own.
+   *
+   * What genuinely moves is the conversion: the card is held in USD and the
+   * customer pays in rupees or pounds, so these follow the dollar every time
+   * the FX feed refreshes. The server does that arithmetic — the same call the
+   * admin panel reads — so the figure a visitor sees and the figure the shop
+   * quotes against cannot drift apart.
+   */
+  let diamondGuide = null;
+
+  window.fetchDiamondGuide = async function () {
+    try {
+      const res = await fetch(`${API_URL}/gold-rates/rate-card`);
+      if (!res.ok) return;
+      const data = await res.json();
+      const market = data && data.stoneMarket;
+      if (!market || !market.diamond) return;
+
+      const pick = (rows, edge) => (rows || []).find(b => b.to === edge);
+      const line = (band, label) =>
+        band && band.local && band.local.PKR > 0
+          ? { label, pkr: band.local.PKR, gbp: band.local.GBP }
+          : null;
+
+      const lines = [
+        line(pick(market.diamond.natural, 1), 'Diamond 1 ct'),
+        line(pick(market.diamond.natural, 2), 'Diamond 2 ct'),
+        line(pick(market.diamond.labGrown, 1), 'Lab-grown 1 ct')
+      ].filter(Boolean);
+
+      if (!lines.length) return;
+      diamondGuide = lines;
+      window.renderGoldRateBar();
+    } catch (e) {
+      // No guide beats a wrong one — the bullion half of the ticker is
+      // unaffected and still renders.
+    }
+  };
+
   window.renderGoldRateBar = function () {
     let bar = document.querySelector('.gold-rate-bar');
     const rates = window.getGoldRates();
@@ -2034,6 +2079,17 @@
       ? `<span>✦</span><span class="gold-rate-item">Silver: <strong>PKR ${rates.rateSilverPerTola.toLocaleString()} / Tola</strong></span>`
       : '';
 
+    // Its own tag, and it does not say "live". Carrying the guide under the
+    // LIVE GOLD MARKET tag would tell a customer that a judgement figure is
+    // today's market.
+    const diamonds = diamondGuide
+      ? `<span>✦</span><span class="gold-rate-item"><span class="gold-rate-tag" style="background:rgba(196,222,238,0.15); color:var(--diamond-200,#e2eef5); border:1px solid rgba(196,222,238,0.45);" title="Indicative per-carat guide, not a market rate. Diamonds are priced individually — a firm quote needs the stone.">DIAMOND GUIDE</span> ` +
+        diamondGuide.map(d =>
+          `${d.label}: <strong>PKR ${d.pkr.toLocaleString()}${d.gbp ? ` (£${d.gbp.toLocaleString()})` : ''} / ct</strong>`
+        ).join(' <span>✦</span> ') +
+        `</span>`
+      : '';
+
     const tickerContent = `
       <div class="gold-rate-ticker">
         <span class="gold-rate-item"><span class="gold-rate-tag">LIVE GOLD MARKET</span> 24K Gold: <strong>${pair(rates.rate24kPerTola, rates.rate24kPerTolaGBP)} / Tola</strong></span>
@@ -2046,6 +2102,7 @@
         <span>✦</span>
         <span class="gold-rate-item">18K Gold: <strong>${pair(rates.rate18kPerTola, rates.rate18kPerTolaGBP)} / Tola</strong></span>
         ${silver}
+        ${diamonds}
         <span>✦</span>
         <span class="gold-rate-item"><span class="gold-rate-tag">UPDATED</span> ${rates.lastUpdated}</span>
       </div>
@@ -3786,6 +3843,7 @@
     initLiveSearch();
     initOrderTracker();
     window.renderGoldRateBar();
+    window.fetchDiamondGuide();
     initAdminGoldRateControls();
     initCustomerAuthControls();
     initMobileMenu();
@@ -3796,6 +3854,7 @@
   initLiveSearch();
   initOrderTracker();
   window.renderGoldRateBar();
+  window.fetchDiamondGuide();
   initAdminGoldRateControls();
   initCustomerAuthControls();
   initMobileMenu();
