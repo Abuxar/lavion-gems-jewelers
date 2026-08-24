@@ -1,9 +1,10 @@
 'use client';
 
 import { useState } from 'react';
+import { subscribe } from '@/lib/newsletter';
 
 /**
- * Newsletter signup.
+ * Newsletter signup, in the footer.
  *
  * Posts to the same /api/subscribe the old footer used, so the existing list,
  * the welcome mail and the unsubscribe tokens all keep working — this is a new
@@ -15,6 +16,10 @@ import { useState } from 'react';
  * for subscribing" over an address that had in fact been rejected. The answer
  * gets its own line here, and the server's own message is shown rather than a
  * guess at what went wrong.
+ *
+ * Signing up here also stops the popup: subscribe() records it, and the popup
+ * reads the same record. Otherwise someone who had just joined from the footer
+ * would be asked to join again twelve seconds later.
  */
 export function NewsletterForm() {
   const [state, setState] = useState<'idle' | 'busy' | 'done' | 'error'>('idle');
@@ -26,21 +31,9 @@ export function NewsletterForm() {
     if (!email) return;
 
     setState('busy');
-    try {
-      const res = await fetch('/api/subscribe', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email })
-      });
-      const data = await res.json();
-      // Trust the server's own wording. It distinguishes "already on our list"
-      // from "thank you for subscribing", and both are successes.
-      setMessage(data.message || 'Thank you for subscribing.');
-      setState(data.success ? 'done' : 'error');
-    } catch {
-      setMessage('We could not reach the server. Please try again.');
-      setState('error');
-    }
+    const result = await subscribe(email);
+    setMessage(result.message);
+    setState(result.ok ? 'done' : 'error');
   }
 
   if (state === 'done') {

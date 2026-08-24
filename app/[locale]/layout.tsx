@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { SiteHeader } from '@/components/site-header';
 import { SiteFooter } from '@/components/site-footer';
 import { GoldRateBar } from '@/components/gold-rate-bar';
+import { NewsletterPopup } from '@/components/newsletter-popup';
 import { JsonLd } from '@/components/json-ld';
 import { AuthProvider } from '@/lib/auth';
 import { CartProvider } from '@/lib/cart';
@@ -106,6 +107,9 @@ export default async function LocaleLayout({ children, params }: Props) {
                 <SiteHeader locale={active.code} />
                 <div className="flex-1">{children}</div>
                 <SiteFooter locale={active.code} />
+                {/* Renders nothing until its own timer fires, and nothing at
+                    all for a visitor who has already answered. */}
+                <NewsletterPopup />
               </WishlistProvider>
             </CartProvider>
           </AuthProvider>
