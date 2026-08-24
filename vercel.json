@@ -20,6 +20,10 @@
     {
       "source": "/admin-panel",
       "destination": "/"
+    },
+    {
+      "source": "/product/(.*)",
+      "destination": "/product.html"
     }
   ]
 }
