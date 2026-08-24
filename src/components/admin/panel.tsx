@@ -20,6 +20,8 @@ export type AdminProduct = {
   badge: string;
   img: string;
   desc: string;
+  /** Collections it also appears in, beyond `category`. */
+  categories?: string[];
 
   /**
    * The specification, as the API returns it — numbers as numbers, lists as

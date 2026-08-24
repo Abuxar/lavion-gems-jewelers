@@ -25,6 +25,14 @@ export type Product = {
   id: string;
   name: string;
   category: string;
+  /**
+   * Further collections it also appears in, beyond its home one.
+   *
+   * `category` stays the home collection — the breadcrumb, the canonical page
+   * and the sitemap entry all come from it — so a piece never falls out of
+   * /rings because someone also filed it under "bridal".
+   */
+  categories: string[];
   price: number;
   stock: number;
   badge: string;
@@ -95,6 +103,7 @@ function toProduct(raw: Record<string, unknown>): Product {
     id: String(raw.id ?? ''),
     name: String(raw.name ?? ''),
     category: String(raw.category ?? ''),
+    categories: list(raw.categories),
     price: Number(raw.price ?? 0),
     stock: Number(raw.stock ?? 0),
     badge: String(raw.badge ?? ''),
@@ -125,7 +134,7 @@ export async function getAllProducts(): Promise<Product[]> {
       const docs = await ProductModel.find({})
         // Listed from the model so a field added there cannot be saved and then
         // silently never read back.
-        .select(['id', 'name', 'category', 'price', 'stock', 'badge', 'img', 'desc']
+        .select(['id', 'name', 'category', 'categories', 'price', 'stock', 'badge', 'img', 'desc']
           .concat(ProductModel.SPEC_FIELDS).join(' ') + ' -_id')
         .lean();
       return docs.map(toProduct);
@@ -143,9 +152,24 @@ export async function getAllProducts(): Promise<Product[]> {
   }
 }
 
+/** True when a piece belongs to a collection, as its home or as an extra. */
+export function inCollection(product: Product, slug: string): boolean {
+  const want = slug.toLowerCase();
+  return (
+    product.category.toLowerCase() === want ||
+    product.categories.some(c => c.toLowerCase() === want)
+  );
+}
+
+/** Pieces in a collection the shop invented, which has no Category record. */
+export async function getProductsBySlug(slug: string): Promise<Product[]> {
+  const all = await getAllProducts();
+  return all.filter(p => inCollection(p, slug));
+}
+
 export async function getProductsByCategory(category: Category): Promise<Product[]> {
   const all = await getAllProducts();
-  return all.filter(p => p.category.toLowerCase() === category.key.toLowerCase());
+  return all.filter(p => inCollection(p, category.key));
 }
 
 export async function getProductByHandle(handle: string): Promise<Product | undefined> {

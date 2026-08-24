@@ -1,8 +1,9 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { CATEGORIES } from '@/lib/categories';
 import { useAdmin } from '@/lib/admin-auth';
+import { ImageManager } from '@/components/admin/image-manager';
 import type { AdminProduct } from '@/components/admin/panel';
 import {
   Button,
@@ -44,8 +45,14 @@ const BLANK = {
   price: 0,
   stock: 0,
   badge: '',
-  img: '',
   desc: '',
+  /**
+   * One ordered list. The first entry is the main picture; it is split back
+   * into img + images on save.
+   */
+  pictures: [] as string[],
+  /** Collections it also appears in, beyond its home one. */
+  extraCategories: [] as string[],
 
   metal: '',
   purity: '',
@@ -57,7 +64,6 @@ const BLANK = {
   certificate: '',
   dimensions: '',
   sizes: '',
-  images: '',
   madeToOrderDays: '',
   details: '',
   care: ''
@@ -86,8 +92,9 @@ function toForm(p: AdminProduct): typeof BLANK {
     price: p.price,
     stock: p.stock,
     badge: p.badge ?? '',
-    img: p.img ?? '',
     desc: p.desc ?? '',
+    pictures: [p.img, ...(p.images ?? [])].filter((v): v is string => Boolean(v)),
+    extraCategories: (p.categories ?? []).map(c => c.toLowerCase()),
 
     metal: str(p.metal),
     purity: str(p.purity),
@@ -99,7 +106,6 @@ function toForm(p: AdminProduct): typeof BLANK {
     certificate: str(p.certificate),
     dimensions: str(p.dimensions),
     sizes: csv(p.sizes),
-    images: csv(p.images),
     madeToOrderDays: str(p.madeToOrderDays),
     details: str(p.details),
     care: str(p.care)
@@ -109,9 +115,18 @@ function toForm(p: AdminProduct): typeof BLANK {
 /** Everything the specification form owns, in the order it is shown. */
 const SPEC_FIELDS = [
   'metal', 'purity', 'grossWeightG', 'stone', 'stoneCarats', 'stoneCount',
-  'stoneQuality', 'certificate', 'dimensions', 'sizes', 'images',
+  'stoneQuality', 'certificate', 'dimensions', 'sizes',
   'madeToOrderDays', 'details', 'care'
 ] as const;
+
+/**
+ * The eight collections the site ships with.
+ *
+ * Hardcoded here because they are hardcoded everywhere else too — one page
+ * each, their own copy, their own indexed URLs. Anything the shop invents is
+ * stored and fetched, and appears alongside these.
+ */
+type Collection = { slug: string; name: string };
 
 export function CatalogueTab({
   products,
@@ -123,11 +138,62 @@ export function CatalogueTab({
   const { api } = useAdmin();
   const { notice, say, clear } = useNotice();
 
+  const [collections, setCollections] = useState<Collection[]>([]);
+  const [newCollection, setNewCollection] = useState('');
+  const [creating, setCreating] = useState(false);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('');
   const [editing, setEditing] = useState<typeof BLANK | null>(null);
   const [busy, setBusy] = useState(false);
   const [confirming, setConfirming] = useState<AdminProduct | null>(null);
+
+  const loadCollections = useCallback(async () => {
+    const { ok, data } = await api<{ categories?: Collection[] }>('/api/categories');
+    if (ok && Array.isArray(data.categories)) setCollections(data.categories);
+  }, [api]);
+
+  useEffect(() => {
+    void loadCollections();
+  }, [loadCollections]);
+
+  /** Built-ins first, in their long-standing order, then whatever was added. */
+  const everyCollection = useMemo<Collection[]>(
+    () => [
+      ...CATEGORIES.map(c => ({ slug: c.key, name: c.name })),
+      ...collections.map(c => ({ slug: c.slug, name: c.name }))
+    ],
+    [collections]
+  );
+
+  async function createCollection() {
+    const name = newCollection.trim();
+    if (!name) {
+      say(false, 'Give the collection a name first.');
+      return;
+    }
+    setCreating(true);
+    const { ok, data } = await api<{ category?: Collection; message?: string }>('/api/categories', {
+      method: 'POST',
+      body: JSON.stringify({ name })
+    });
+    setCreating(false);
+
+    if (ok && data.category) {
+      await loadCollections();
+      // Ticked straight away: creating one from inside the form almost always
+      // means this piece belongs in it.
+      if (editing) {
+        setEditing({
+          ...editing,
+          extraCategories: [...new Set([...editing.extraCategories, data.category.slug])]
+        });
+      }
+      setNewCollection('');
+      say(true, data.message || `Collection "${name}" created.`);
+    } else {
+      say(false, data.message || 'The collection could not be created.');
+    }
+  }
 
   const shown = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -154,9 +220,12 @@ export function CatalogueTab({
           price: editing.price,
           stock: editing.stock,
           badge: editing.badge,
-          // Left blank, the server fills in its own default rather than
+          // The first picture is the main one; the rest ride along in order.
+          // Left with none, the server fills in its own default rather than
           // storing an empty string that renders as a broken image.
-          ...(editing.img ? { img: editing.img } : {}),
+          ...(editing.pictures[0] ? { img: editing.pictures[0] } : {}),
+          images: editing.pictures.slice(1),
+          categories: editing.extraCategories,
           desc: editing.desc,
           // Sent even when blank, because blank is how a field gets cleared.
           // The server reads absent as "not part of this edit", which is what
@@ -264,15 +333,27 @@ export function CatalogueTab({
               onChange={e => setEditing({ ...editing, name: e.target.value })}
             />
             <Select
-              label="Collection"
+              label="Home collection"
               value={editing.category}
-              onChange={e => setEditing({ ...editing, category: e.target.value })}
+              onChange={e =>
+                setEditing({
+                  ...editing,
+                  category: e.target.value,
+                  // A collection cannot be both the home one and an extra.
+                  extraCategories: editing.extraCategories.filter(c => c !== e.target.value)
+                })
+              }
             >
-              {CATEGORIES.map(c => (
-                <option key={c.key} value={c.key}>
+              {everyCollection.map(c => (
+                <option key={c.slug} value={c.slug}>
                   {c.name}
                 </option>
               ))}
+              {/* A piece filed under something since deleted keeps its value
+                  rather than being silently re-filed under whatever is first. */}
+              {!everyCollection.some(c => c.slug === editing.category) && (
+                <option value={editing.category}>{editing.category} (no longer listed)</option>
+              )}
             </Select>
             <Field
               label="Price (PKR)"
@@ -295,12 +376,55 @@ export function CatalogueTab({
               onChange={e => setEditing({ ...editing, badge: e.target.value })}
               hint="Shown on the card, e.g. New. Leave blank for none."
             />
-            <Field
-              label="Image path"
-              value={editing.img}
-              onChange={e => setEditing({ ...editing, img: e.target.value })}
-              hint="e.g. images/featured_rings.png"
-            />
+            <div className="sm:col-span-2">
+              <span className="block text-[10px] font-semibold tracking-[0.14em] text-canvas/45 uppercase">
+                Also appears in
+              </span>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {everyCollection.filter(c => c.slug !== editing.category).map(c => (
+                  <label
+                    key={c.slug}
+                    className="inline-flex cursor-pointer items-center gap-2 border border-white/15 px-3 py-1.5 text-xs text-canvas/80 hover:border-gold-400"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={editing.extraCategories.includes(c.slug)}
+                      onChange={e =>
+                        setEditing({
+                          ...editing,
+                          extraCategories: e.target.checked
+                            ? [...editing.extraCategories, c.slug]
+                            : editing.extraCategories.filter(x => x !== c.slug)
+                        })
+                      }
+                    />
+                    {c.name}
+                  </label>
+                ))}
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <input
+                  value={newCollection}
+                  onChange={e => setNewCollection(e.target.value)}
+                  placeholder="New collection, e.g. Bridal"
+                  className="min-w-0 flex-1 border border-white/15 bg-onyx px-3 py-2 text-sm text-canvas placeholder:text-canvas/25 focus:border-gold-400 focus:outline-none"
+                />
+                <Button onClick={() => void createCollection()} disabled={creating}>
+                  {creating ? 'Creating…' : 'Create collection'}
+                </Button>
+              </div>
+              <p className="mt-1.5 text-[11px] text-canvas/35">
+                A collection made here gets its own page at /collection/&lt;name&gt;.
+              </p>
+            </div>
+
+            <div className="sm:col-span-2">
+              <ImageManager
+                images={editing.pictures}
+                onChange={pictures => setEditing({ ...editing, pictures })}
+                onError={message => say(false, message)}
+              />
+            </div>
             <div className="sm:col-span-2">
               <TextArea
                 label="Description"
@@ -402,12 +526,7 @@ export function CatalogueTab({
               onChange={e => setEditing({ ...editing, sizes: e.target.value })}
               hint="Comma separated, e.g. 12, 14, 16"
             />
-            <Field
-              label="Further images"
-              value={editing.images}
-              onChange={e => setEditing({ ...editing, images: e.target.value })}
-              hint="Comma separated paths. The main image stays above."
-            />
+
             <div className="sm:col-span-2">
               <TextArea
                 label="About this piece"

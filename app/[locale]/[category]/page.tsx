@@ -1,11 +1,10 @@
 import type { Metadata } from 'next';
-import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { CATEGORIES, findCategory } from '@/lib/categories';
 import { getProductsByCategory } from '@/lib/catalogue';
-import { isEmbeddedImage } from '@/lib/images';
 import { productHandle } from '@/lib/handles';
+import { ProductCard } from '@/components/product-card';
 import { alternatesFor, getLocale, href, isLocaleCode, LOCALE_CODES } from '@/lib/locales';
 import { breadcrumbJsonLd, categoryJsonLd } from '@/lib/seo';
 import { JsonLd } from '@/components/json-ld';
@@ -108,48 +107,12 @@ export default async function CategoryPage({ params }: Props) {
         ) : (
           <ul className="mt-6 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
             {products.map((p, i) => (
-              <li key={p.id} className="border border-hairline bg-canvas-pure">
-                <Link
+              <li key={p.id}>
+                <ProductCard
+                  product={p}
                   href={href(active.code, `/product/${productHandle(p)}`)}
-                  className="block"
-                >
-                  <div className="relative aspect-square overflow-hidden bg-canvas-soft">
-                    <Image
-                      src={p.img}
-                      alt={p.name}
-                      fill
-                      // Tells the optimiser which widths are actually needed, so a
-                      // phone is not sent the desktop rendition of a 1024px photo.
-                      sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-                      // Only what is above the fold on a phone is worth preloading;
-                      // the rest stays lazy so it does not compete with the hero.
-                      priority={i < 3}
-                      // An admin-uploaded image arrives embedded in the record
-                      // rather than as a URL, and there is nothing for the
-                      // optimiser to fetch and resize.
-                      unoptimized={isEmbeddedImage(p.img)}
-                      className="object-cover"
-                    />
-                    {p.badge && (
-                      <span className="absolute top-3 left-3 bg-onyx px-3 py-1 font-sans text-[10px] font-bold uppercase tracking-[0.15em] text-gold-300">
-                        {p.badge}
-                      </span>
-                    )}
-                  </div>
-                  <div className="p-5">
-                    <h2 className="font-serif text-lg text-ink">{p.name}</h2>
-                    {p.desc && (
-                      <p className="mt-1 font-sans text-xs leading-relaxed text-ink-muted">
-                        {p.desc}
-                      </p>
-                    )}
-                    {/* Gold is priced off the day's bullion rate, so the shop
-                        quotes rather than lists. Kept as-is from the old cards. */}
-                    <p className="mt-4 font-sans text-[11px] font-semibold uppercase tracking-[0.15em] text-gold-600">
-                      Daily rate — enquire
-                    </p>
-                  </div>
-                </Link>
+                  priority={i < 3}
+                />
               </li>
             ))}
           </ul>
